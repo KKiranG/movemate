@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-interface AddressValue {
+export interface AddressValue {
   label: string;
   suburb: string;
   postcode: string;
@@ -22,6 +22,7 @@ interface GoogleAutocompleteInputProps {
   name: string;
   defaultValue?: string;
   placeholder?: string;
+  initialResolvedValue?: AddressValue | null;
   onResolved?: (value: AddressValue) => void;
 }
 
@@ -53,10 +54,17 @@ export function GoogleAutocompleteInput({
   name,
   defaultValue,
   placeholder,
+  initialResolvedValue,
   onResolved,
 }: GoogleAutocompleteInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const id = useId();
+
+  useEffect(() => {
+    if (initialResolvedValue) {
+      onResolved?.(initialResolvedValue);
+    }
+  }, [initialResolvedValue, onResolved]);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
@@ -113,7 +121,7 @@ export function GoogleAutocompleteInput({
       id={id}
       ref={inputRef}
       name={name}
-      defaultValue={defaultValue}
+      defaultValue={defaultValue ?? initialResolvedValue?.label}
       placeholder={placeholder}
     />
   );

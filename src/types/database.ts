@@ -184,6 +184,63 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["capacity_listings"]["Insert"]>;
       };
+      trip_templates: {
+        Row: {
+          id: string;
+          carrier_id: string;
+          name: string;
+          origin_suburb: string;
+          origin_postcode: string;
+          origin_point: unknown;
+          destination_suburb: string;
+          destination_postcode: string;
+          destination_point: unknown;
+          space_size: "S" | "M" | "L" | "XL";
+          available_volume_m3: number | null;
+          max_weight_kg: number | null;
+          detour_radius_km: number;
+          suggested_price_cents: number;
+          stairs_ok: boolean;
+          stairs_extra_cents: number;
+          helper_extra_cents: number;
+          helper_available: boolean;
+          accepts: string[];
+          time_window: "morning" | "afternoon" | "evening" | "flexible";
+          notes: string | null;
+          times_used: number;
+          last_used_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          carrier_id: string;
+          name: string;
+          origin_suburb: string;
+          origin_postcode: string;
+          origin_point: unknown;
+          destination_suburb: string;
+          destination_postcode: string;
+          destination_point: unknown;
+          space_size: "S" | "M" | "L" | "XL";
+          available_volume_m3?: number | null;
+          max_weight_kg?: number | null;
+          detour_radius_km?: number;
+          suggested_price_cents: number;
+          stairs_ok?: boolean;
+          stairs_extra_cents?: number;
+          helper_extra_cents?: number;
+          helper_available?: boolean;
+          accepts?: string[];
+          time_window?: "morning" | "afternoon" | "evening" | "flexible";
+          notes?: string | null;
+          times_used?: number;
+          last_used_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["trip_templates"]["Insert"]>;
+      };
       customers: {
         Row: {
           id: string;
@@ -440,6 +497,39 @@ export interface Database {
       };
     };
     Functions: {
+      create_booking_atomic: {
+        Args: {
+          p_actor_user_id: string;
+          p_carrier_id: string;
+          p_customer_id: string;
+          p_dropoff_access_notes?: string | null;
+          p_dropoff_address: string;
+          p_dropoff_contact_name?: string | null;
+          p_dropoff_contact_phone?: string | null;
+          p_dropoff_lat: number;
+          p_dropoff_lng: number;
+          p_dropoff_postcode: string;
+          p_dropoff_suburb: string;
+          p_item_category: "furniture" | "boxes" | "appliance" | "fragile" | "other";
+          p_item_description: string;
+          p_item_dimensions?: string | null;
+          p_item_photo_urls?: string[] | null;
+          p_item_weight_kg?: number | null;
+          p_listing_id: string;
+          p_needs_helper: boolean;
+          p_needs_stairs: boolean;
+          p_pickup_access_notes?: string | null;
+          p_pickup_address: string;
+          p_pickup_contact_name?: string | null;
+          p_pickup_contact_phone?: string | null;
+          p_pickup_lat: number;
+          p_pickup_lng: number;
+          p_pickup_postcode: string;
+          p_pickup_suburb: string;
+          p_special_instructions?: string | null;
+        };
+        Returns: string;
+      };
       find_matching_listings: {
         Args: {
           p_pickup_lat: number;

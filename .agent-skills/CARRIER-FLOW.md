@@ -35,6 +35,16 @@ Three-screen wizard:
 - upload pickup and delivery proof
 - track upcoming payouts
 
+## Trip Templates (Quick Post)
+
+Carriers can save common routes as templates. From the dashboard:
+1. Tap "Post" next to a template
+2. Confirm date, time window, and price
+3. Trip is posted immediately
+
+To create a template: from any trip detail page, tap "Save as template".
+Templates are private to each carrier.
+
 ## UX principles
 
 - mobile-first

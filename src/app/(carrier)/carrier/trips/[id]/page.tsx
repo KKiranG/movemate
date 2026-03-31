@@ -1,14 +1,17 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DisputeForm } from "@/components/booking/dispute-form";
 import { ReviewForm } from "@/components/booking/review-form";
 import { StatusUpdateActions } from "@/components/booking/status-update-actions";
+import { SaveTripTemplateAction } from "@/components/carrier/save-trip-template-action";
 import { TripEditForm } from "@/components/carrier/trip-edit-form";
 import { requirePageSessionUser } from "@/lib/auth";
 import { listCarrierBookings } from "@/lib/data/bookings";
 import { getBookingFeedbackForUser } from "@/lib/data/feedback";
 import { getTripById } from "@/lib/data/trips";
 import { PageIntro } from "@/components/layout/page-intro";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export default async function CarrierTripDetailPage({
@@ -41,6 +44,24 @@ export default async function CarrierTripDetailPage({
         title={trip.route.label}
         description="Edit live inventory, then manage proof-backed status changes for each booking on the run."
       />
+
+      <Card className="p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <SaveTripTemplateAction
+            tripId={trip.id}
+            defaultName={`${trip.route.originSuburb} → ${trip.route.destinationSuburb}`}
+          />
+          {trip.status === "expired" || trip.status === "cancelled" ? (
+            <Button asChild variant="secondary" className="min-h-[44px] active:opacity-80">
+              <Link
+                href={`/carrier/post?from=${encodeURIComponent(trip.route.originSuburb)}&to=${encodeURIComponent(trip.route.destinationSuburb)}&space=${trip.spaceSize}&price=${Math.round(trip.priceCents / 100)}&originPostcode=${encodeURIComponent(trip.route.originPostcode ?? "")}&destinationPostcode=${encodeURIComponent(trip.route.destinationPostcode ?? "")}&originLat=${trip.route.originLatitude ?? ""}&originLng=${trip.route.originLongitude ?? ""}&destinationLat=${trip.route.destinationLatitude ?? ""}&destinationLng=${trip.route.destinationLongitude ?? ""}&detour=${trip.detourRadiusKm}`}
+              >
+                Re-post this route
+              </Link>
+            </Button>
+          ) : null}
+        </div>
+      </Card>
 
       <Card className="p-4">
         <div className="space-y-4">
