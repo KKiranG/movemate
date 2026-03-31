@@ -1,11 +1,14 @@
 import Link from "next/link";
 
-import { WaitlistForm } from "@/components/customer/waitlist-form";
 import { PageIntro } from "@/components/layout/page-intro";
+import { SaveSearchForm } from "@/components/search/save-search-form";
 import { SearchBar } from "@/components/search/search-bar";
+import { Button } from "@/components/ui/button";
+import { getOptionalSessionUser } from "@/lib/auth";
 import { TripCard } from "@/components/trip/trip-card";
 import { searchTrips } from "@/lib/data/trips";
 import type { ItemCategory } from "@/types/trip";
+import { getTodayIsoDate } from "@/lib/utils";
 
 function getValue(
   value: string | string[] | undefined,
@@ -21,9 +24,18 @@ export default async function SearchPage({
 }) {
   const from = getValue(searchParams.from, "Penrith");
   const to = getValue(searchParams.to, "Bondi");
-  const when = getValue(searchParams.when, "2026-03-26");
+  const when = getValue(searchParams.when, getTodayIsoDate());
   const what = getValue(searchParams.what, "furniture") as ItemCategory;
-  const results = await searchTrips({ from, to, when, what });
+  const [results, user] = await Promise.all([
+    searchTrips({ from, to, when, what }),
+    getOptionalSessionUser(),
+  ]);
+  const redirectSearch = new URLSearchParams({
+    from,
+    to,
+    when,
+    what,
+  }).toString();
 
   return (
     <main className="page-shell">
@@ -52,11 +64,31 @@ export default async function SearchPage({
         {results.length === 0 ? (
           <div className="surface-card p-4">
             <div className="space-y-3">
+              <div>
+                <p className="section-label">Save this search</p>
+                <h2 className="mt-1 text-lg text-text">No trips available yet for this route</h2>
+              </div>
               <p className="subtle-text">
-                No live trips match that corridor yet. Join the waitlist so we can validate this
-                lane, support concierge matching, and seed supply where demand is real.
+                We&apos;ll email you as soon as a carrier posts a matching trip.
               </p>
-              <WaitlistForm from={from} to={to} when={when} what={what} />
+              {user ? (
+                <SaveSearchForm
+                  fromSuburb={from}
+                  toSuburb={to}
+                  itemCategory={what}
+                  dateFrom={when}
+                  userEmail={user.email ?? ""}
+                />
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-text-secondary">Sign in to save this search.</p>
+                  <Button asChild className="min-h-[44px] active:opacity-80">
+                    <Link href={`/login?next=/search?${redirectSearch}`}>
+                      Sign in to get notified
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ) : null}

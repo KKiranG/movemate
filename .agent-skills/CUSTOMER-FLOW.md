@@ -17,6 +17,7 @@ Output:
 - available space
 - price
 - savings signal
+- saved-search alert when no results are available
 
 ## Book
 
