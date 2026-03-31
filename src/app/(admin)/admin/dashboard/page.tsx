@@ -24,7 +24,7 @@ export default async function AdminDashboardPage() {
   const lastUpdated = new Date();
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Admin dashboard"
         title="Manual-first operations control"

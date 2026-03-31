@@ -8,7 +8,7 @@ export default async function AdminBookingsPage() {
   const bookings = await listAdminBookings();
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Admin bookings"
         title="Monitor booking state changes"

@@ -7,7 +7,7 @@ import { hasSupabaseEnv } from "@/lib/env";
 
 export default function LoginPage() {
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Auth"
         title="Log in to continue a booking or manage trips"

@@ -206,7 +206,10 @@ export function CarrierOnboardingForm({
           <Input name="serviceSuburbs" placeholder="Penrith, Parramatta, Bondi" />
         </label>
       </div>
-      <Textarea name="bio" placeholder="What kind of jobs do you usually take?" />
+      <label className="grid gap-2">
+        <span className="text-sm font-medium text-text">Business bio</span>
+        <Textarea name="bio" placeholder="What kind of jobs do you usually take?" />
+      </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-2">
@@ -231,12 +234,36 @@ export function CarrierOnboardingForm({
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input name="vehicleMake" placeholder="Make" />
-        <Input name="vehicleModel" placeholder="Model" />
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Vehicle make</span>
+          <Input name="vehicleMake" placeholder="Make" />
+        </label>
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Vehicle model</span>
+          <Input name="vehicleModel" placeholder="Model" />
+        </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input name="vehicleVolumeM3" type="number" step="0.1" placeholder="Volume m3" required />
-        <Input name="vehicleWeightKg" type="number" step="1" placeholder="Weight kg" required />
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Vehicle volume (m3)</span>
+          <Input
+            name="vehicleVolumeM3"
+            type="number"
+            step="0.1"
+            placeholder="Volume m3"
+            required
+          />
+        </label>
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Vehicle weight (kg)</span>
+          <Input
+            name="vehicleWeightKg"
+            type="number"
+            step="1"
+            placeholder="Weight kg"
+            required
+          />
+        </label>
       </div>
 
       <label className="flex flex-col gap-2">

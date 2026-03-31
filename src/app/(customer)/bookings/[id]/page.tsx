@@ -3,21 +3,14 @@ import { notFound } from "next/navigation";
 import { ConfirmReceiptButton } from "@/components/booking/confirm-receipt-button";
 import { DisputeForm } from "@/components/booking/dispute-form";
 import { ReviewForm } from "@/components/booking/review-form";
+import { BookingStatusStepper } from "@/components/booking/booking-status-stepper";
+import { PendingExpiryCountdown } from "@/components/booking/pending-expiry-countdown";
 import { requirePageSessionUser } from "@/lib/auth";
 import { getBookingByIdForUser } from "@/lib/data/bookings";
 import { getBookingFeedbackForUser } from "@/lib/data/feedback";
 import { PageIntro } from "@/components/layout/page-intro";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-
-const timeline = [
-  "pending",
-  "confirmed",
-  "picked_up",
-  "in_transit",
-  "delivered",
-  "completed",
-];
 
 export default async function BookingDetailPage({
   params,
@@ -35,7 +28,7 @@ export default async function BookingDetailPage({
   }
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Booking detail"
         title={booking.itemDescription}
@@ -45,28 +38,19 @@ export default async function BookingDetailPage({
       <Card className="p-4">
         <div className="space-y-3">
           <p className="section-label">Status</p>
-          <div className="grid gap-2">
-            {timeline.map((status) => {
-              const isActive = timeline.indexOf(status) <= timeline.indexOf(booking.status);
-
-              return (
-                <div
-                  key={status}
-                  className="flex items-center justify-between rounded-xl border border-border px-3 py-2"
-                >
-                  <span className="capitalize text-text">
-                    {status.replace("_", " ")}
-                  </span>
-                  <span className={isActive ? "text-success" : "text-text-secondary"}>
-                    {isActive ? "Done" : "Pending"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <BookingStatusStepper status={booking.status} />
           <p className="subtle-text">
             Customer total {formatCurrency(booking.pricing.totalPriceCents)}.
           </p>
+          {booking.status === "pending" && booking.createdAt ? (
+            <PendingExpiryCountdown createdAt={booking.createdAt} />
+          ) : null}
+          {booking.status === "pending" && booking.paymentStatus === "pending" ? (
+            <p className="subtle-text">
+              Payment setup is still waiting on Stripe confirmation. Your booking request is saved,
+              but the card authorization has not cleared yet.
+            </p>
+          ) : null}
           {booking.pickupProofPhotoUrl ? (
             <p className="subtle-text">Pickup proof saved for ops review.</p>
           ) : null}

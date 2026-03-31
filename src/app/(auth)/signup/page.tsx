@@ -17,7 +17,7 @@ const roles = [
 
 export default function SignupPage() {
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Auth"
         title="Create an account"

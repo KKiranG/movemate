@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Camera, Upload } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,8 +29,10 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
   const [pickup, setPickup] = useState<ResolvedAddress | null>(null);
   const [dropoff, setDropoff] = useState<ResolvedAddress | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [itemDescription, setItemDescription] = useState("Three-seat sofa");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [retryBookingId, setRetryBookingId] = useState<string | null>(null);
 
   const defaultPickup = useMemo(
     () => `${trip.route.originSuburb} NSW ${trip.route.originPostcode ?? ""}`.trim(),
@@ -62,9 +66,58 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
     return [payload.path as string];
   }
 
+  function getPaymentErrorMessage(message: string) {
+    if (message.toLowerCase().includes("stripe is not configured")) {
+      return "Payment setup is temporarily unavailable. Your booking is saved and you can retry payment setup in a moment.";
+    }
+
+    if (message.toLowerCase().includes("booking not found")) {
+      return "We saved your booking, but payment setup lost sync. Try payment setup again.";
+    }
+
+    return "Your booking was saved, but payment setup did not finish. Try again to continue.";
+  }
+
+  async function createPaymentIntent(bookingId: string) {
+    const response = await fetch("/api/payments/create-intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json();
+      throw new Error(getPaymentErrorMessage(payload.error ?? "Payment setup failed."));
+    }
+
+    return response.json();
+  }
+
+  async function retryPaymentSetup() {
+    if (!retryBookingId) {
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      await createPaymentIntent(retryBookingId);
+      router.push(`/bookings/${retryBookingId}`);
+      router.refresh();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Unable to resume payment setup.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setRetryBookingId(null);
 
     if (!isAuthenticated) {
       router.push(`/login?next=/trip/${trip.id}`);
@@ -87,7 +140,7 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
         body: JSON.stringify({
           listingId: trip.id,
           carrierId: trip.carrier.id,
-          itemDescription: formData.get("itemDescription"),
+          itemDescription,
           itemCategory: formData.get("itemCategory"),
           itemDimensions: formData.get("itemDimensions"),
           itemWeightKg: Number(formData.get("itemWeightKg") || 0) || undefined,
@@ -116,17 +169,20 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       const bookingPayload = await bookingResponse.json();
 
       if (!bookingResponse.ok) {
+        if (bookingPayload.code === "listing_not_bookable") {
+          throw new Error(
+            "This trip filled or closed before payment setup finished. Search again for another spare-capacity run.",
+          );
+        }
+
         throw new Error(bookingPayload.error ?? "Failed to create booking.");
       }
 
       try {
-        await fetch("/api/payments/create-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookingId: bookingPayload.booking.id }),
-        });
-      } catch {
-        // Keep the booking even if Stripe is not configured yet.
+        await createPaymentIntent(bookingPayload.booking.id);
+      } catch (paymentError) {
+        setRetryBookingId(bookingPayload.booking.id);
+        throw paymentError;
       }
 
       router.push(`/bookings/${bookingPayload.booking.id}`);
@@ -141,8 +197,17 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-text">What are you moving?</span>
-        <Input name="itemDescription" defaultValue="Three-seat sofa" required />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-text">What are you moving?</span>
+          <span className="text-xs text-text-secondary">{itemDescription.length}/200</span>
+        </div>
+        <Input
+          name="itemDescription"
+          value={itemDescription}
+          maxLength={200}
+          onChange={(event) => setItemDescription(event.target.value)}
+          required
+        />
       </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -168,11 +233,32 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
 
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-text">Item photo</span>
-        <Input
-          type="file"
-          accept="image/*"
-          onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
-        />
+        <div className="space-y-2">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white active:opacity-80">
+              <Camera className="h-4 w-4" />
+              Take Photo
+              <input
+                type="file"
+                accept="image/*,image/heic,image/heif"
+                capture="environment"
+                className="sr-only"
+                onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
+              <Upload className="h-4 w-4" />
+              Upload File
+              <input
+                type="file"
+                accept="image/*,image/heic,image/heif"
+                className="sr-only"
+                onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+          </div>
+          {photoFile ? <p className="text-sm text-text-secondary">{photoFile.name}</p> : null}
+        </div>
       </label>
 
       <label className="flex flex-col gap-2">
@@ -229,12 +315,24 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input name="pickupContactName" placeholder="Pickup contact name" />
-        <Input name="pickupContactPhone" placeholder="Pickup contact phone" />
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Pickup contact name</span>
+          <Input name="pickupContactName" placeholder="Pickup contact name" />
+        </label>
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Pickup contact phone</span>
+          <Input name="pickupContactPhone" placeholder="Pickup contact phone" />
+        </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input name="dropoffContactName" placeholder="Dropoff contact name" />
-        <Input name="dropoffContactPhone" placeholder="Dropoff contact phone" />
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Dropoff contact name</span>
+          <Input name="dropoffContactName" placeholder="Dropoff contact name" />
+        </label>
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Dropoff contact phone</span>
+          <Input name="dropoffContactPhone" placeholder="Dropoff contact phone" />
+        </label>
       </div>
 
       <label className="flex flex-col gap-2">
@@ -246,6 +344,11 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       </label>
 
       {error ? <p className="text-sm text-error">{error}</p> : null}
+      {retryBookingId ? (
+        <Button type="button" variant="secondary" disabled={isSubmitting} onClick={retryPaymentSetup}>
+          {isSubmitting ? "Retrying payment..." : "Try payment setup again"}
+        </Button>
+      ) : null}
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Creating booking..." : "Continue to payment"}
       </Button>

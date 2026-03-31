@@ -16,7 +16,7 @@ export default async function CarrierOnboardingPage() {
   const user = await requirePageSessionUser();
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Carrier onboarding"
         title="Verify supply before it hits the marketplace"

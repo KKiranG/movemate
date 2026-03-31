@@ -8,7 +8,7 @@ export default async function AdminVerificationPage() {
   const carriers = await listAdminCarriers();
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Admin verification"
         title="Review carrier trust signals"

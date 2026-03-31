@@ -5,6 +5,7 @@ import { SearchBar } from "@/components/search/search-bar";
 import { TripCard } from "@/components/trip/trip-card";
 import { hasSupabaseEnv } from "@/lib/env";
 import { listPublicTrips } from "@/lib/data/trips";
+import { getTodayIsoDate } from "@/lib/utils";
 
 const useCases = [
   {
@@ -26,9 +27,10 @@ const useCases = [
 
 export default async function HomePage() {
   const featuredTrips = await listPublicTrips(3);
+  const sampleDate = getTodayIsoDate();
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <section className="flex flex-col gap-6 pt-4">
         <div className="flex flex-col gap-3">
           <p className="section-label">Sydney spare-capacity marketplace</p>
@@ -41,12 +43,6 @@ export default async function HomePage() {
             small for a full removalist booking.
           </p>
         </div>
-
-        <SearchBar />
-
-        {!hasSupabaseEnv() ? (
-          <ConfigBanner message="Add Supabase, Maps, and Stripe environment variables to switch this shell into the live MVP. The UI is ready, but the backend services need credentials." />
-        ) : null}
 
         <div className="surface-card flex flex-col gap-4 p-4">
           <div className="flex items-center justify-between gap-4">
@@ -64,6 +60,12 @@ export default async function HomePage() {
             price, route, and time window upfront.
           </p>
         </div>
+
+        <SearchBar />
+
+        {!hasSupabaseEnv() ? (
+          <ConfigBanner message="Add Supabase, Maps, and Stripe environment variables to switch this shell into the live MVP. The UI is ready, but the backend services need credentials." />
+        ) : null}
       </section>
 
       <section className="flex flex-col gap-4">
@@ -73,7 +75,7 @@ export default async function HomePage() {
             <h2 className="mt-1 text-2xl text-text">The jobs we need to win</h2>
           </div>
           <Link
-            href="/search?from=Penrith&to=Bondi&when=2026-03-26&what=furniture"
+            href={`/search?from=Penrith&to=Bondi&when=${sampleDate}&what=furniture`}
             className="text-sm font-medium text-accent"
           >
             View sample search

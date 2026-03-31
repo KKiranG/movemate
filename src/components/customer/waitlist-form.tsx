@@ -53,17 +53,20 @@ export function WaitlistForm({ from, to, when, what }: WaitlistFormProps) {
 
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>
-      <Input
-        type="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        required
-      />
+      <label className="grid gap-2">
+        <span className="text-sm font-medium text-text">Email</span>
+        <Input
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+      </label>
       {error ? <p className="text-sm text-error">{error}</p> : null}
       {message ? <p className="text-sm text-success">{message}</p> : null}
       <Button type="submit" variant="secondary" disabled={isSubmitting}>
-        {isSubmitting ? "Joining waitlist..." : "Join waitlist"}
+        {isSubmitting ? "Saving alert..." : "Get notified"}
       </Button>
     </form>
   );

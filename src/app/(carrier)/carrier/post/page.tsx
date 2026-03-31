@@ -7,7 +7,7 @@ export default async function CarrierPostPage() {
   await requirePageSessionUser();
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Post capacity"
         title="Three screens, under 60 seconds"

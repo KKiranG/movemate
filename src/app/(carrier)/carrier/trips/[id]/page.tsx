@@ -38,7 +38,7 @@ export default async function CarrierTripDetailPage({
   const feedbackByBookingId = new Map(feedbackEntries);
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Carrier trip detail"
         title={trip.route.label}

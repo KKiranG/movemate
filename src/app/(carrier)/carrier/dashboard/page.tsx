@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 
 import { LiveBookingsList } from "@/components/carrier/live-bookings-list";
 import { QuickPostTemplates } from "@/components/carrier/quick-post-templates";
+import { TripListSkeleton } from "@/components/carrier/trip-list-skeleton";
+import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { requirePageSessionUser } from "@/lib/auth";
 import { getCarrierByUserId } from "@/lib/data/carriers";
 import { listCarrierBookings } from "@/lib/data/bookings";
@@ -13,12 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
-export default async function CarrierDashboardPage() {
-  const user = await requirePageSessionUser();
+async function CarrierDashboardContent({ userId }: { userId: string }) {
   const [carrier, carrierTrips, carrierBookings] = await Promise.all([
-    getCarrierByUserId(user.id),
-    listCarrierTrips(user.id),
-    listCarrierBookings(user.id),
+    getCarrierByUserId(userId),
+    listCarrierTrips(userId),
+    listCarrierBookings(userId),
   ]);
   const templates = carrier ? await listCarrierTemplates(carrier.id) : [];
   const liveListings = carrierTrips.filter((trip) =>
@@ -33,18 +35,7 @@ export default async function CarrierDashboardPage() {
     .reduce((sum, booking) => sum + booking.pricing.carrierPayoutCents, 0);
 
   return (
-    <main className="page-shell">
-      <PageIntro
-        eyebrow="Carrier dashboard"
-        title="Fill spare capacity without the quote chase"
-        description="Active listings, incoming bookings, and trip-day actions all live here in the MVP."
-        actions={
-          <Button asChild size="sm">
-            <Link href="/carrier/post">Post a trip</Link>
-          </Button>
-        }
-      />
-
+    <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4">
           <p className="section-label">Live listings</p>
@@ -97,6 +88,31 @@ export default async function CarrierDashboardPage() {
           </Card>
         ) : null}
       </div>
+    </>
+  );
+}
+
+export default async function CarrierDashboardPage() {
+  const user = await requirePageSessionUser();
+
+  return (
+    <main id="main-content" className="page-shell">
+      <PageIntro
+        eyebrow="Carrier dashboard"
+        title="Fill spare capacity without the quote chase"
+        description="Active listings, incoming bookings, and trip-day actions all live here in the MVP."
+        actions={
+          <Button asChild size="sm">
+            <Link href="/carrier/post">Post a trip</Link>
+          </Button>
+        }
+      />
+
+      <ErrorBoundary fallback={<TripListSkeleton />}>
+        <Suspense fallback={<TripListSkeleton />}>
+          <CarrierDashboardContent userId={user.id} />
+        </Suspense>
+      </ErrorBoundary>
     </main>
   );
 }

@@ -9,7 +9,7 @@ export default async function AdminDisputesPage() {
   const disputes = await listAdminDisputes();
 
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Admin disputes"
         title="Keep disputes lightweight and evidence-based"

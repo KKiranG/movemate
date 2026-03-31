@@ -3,7 +3,7 @@ import { PageIntro } from "@/components/layout/page-intro";
 
 export default function VerifyPage() {
   return (
-    <main className="page-shell">
+    <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Auth"
         title="Check your email"
