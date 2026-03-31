@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Camera, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 const categories = [
@@ -96,7 +96,32 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
         onChange={(event) => setDescription(event.target.value)}
         placeholder="Describe what happened, when it happened, and what outcome you need."
       />
-      <Input type="file" accept="image/*" onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)} />
+      <div className="space-y-2">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white active:opacity-80">
+            <Camera className="h-4 w-4" />
+            Take Photo
+            <input
+              type="file"
+              accept="image/*,image/heic,image/heif"
+              capture="environment"
+              className="sr-only"
+              onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
+            <Upload className="h-4 w-4" />
+            Upload File
+            <input
+              type="file"
+              accept="image/*,image/heic,image/heif"
+              className="sr-only"
+              onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+        </div>
+        {photoFile ? <p className="text-sm text-text-secondary">{photoFile.name}</p> : null}
+      </div>
       {error ? <p className="text-sm text-error">{error}</p> : null}
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Submitting dispute..." : "Raise dispute"}

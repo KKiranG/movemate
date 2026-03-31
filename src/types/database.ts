@@ -241,6 +241,43 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["trip_templates"]["Insert"]>;
       };
+      saved_searches: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          from_suburb: string;
+          from_postcode: string | null;
+          to_suburb: string;
+          to_postcode: string | null;
+          item_category: string | null;
+          date_from: string | null;
+          date_to: string | null;
+          notify_email: string;
+          last_notified_at: string | null;
+          notification_count: number;
+          expires_at: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          from_suburb: string;
+          from_postcode?: string | null;
+          to_suburb: string;
+          to_postcode?: string | null;
+          item_category?: string | null;
+          date_from?: string | null;
+          date_to?: string | null;
+          notify_email: string;
+          last_notified_at?: string | null;
+          notification_count?: number;
+          expires_at?: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["saved_searches"]["Insert"]>;
+      };
       customers: {
         Row: {
           id: string;
