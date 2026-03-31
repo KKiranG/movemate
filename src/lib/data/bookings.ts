@@ -399,6 +399,27 @@ export async function updateBookingStatusForActor(params: {
     throw new AppError("Invalid booking transition.", 400, "invalid_booking_transition");
   }
 
+  // Guard: disputed → completed requires the dispute to be resolved or closed
+  if (row.status === "disputed" && params.nextStatus === "completed") {
+    const disputeClient = hasSupabaseAdminEnv()
+      ? createAdminClient()
+      : createServerSupabaseClient();
+    const { data: openDispute } = await disputeClient
+      .from("disputes")
+      .select("id, status")
+      .eq("booking_id", params.bookingId)
+      .in("status", ["open", "investigating"])
+      .maybeSingle();
+
+    if (openDispute) {
+      throw new AppError(
+        "Cannot mark booking as completed while a dispute is open or under investigation.",
+        409,
+        "dispute_not_resolved",
+      );
+    }
+  }
+
   if (params.nextStatus === "picked_up" && !params.pickupProofPhotoUrl) {
     throw new AppError(
       "Pickup proof is required before marking a booking as picked up.",

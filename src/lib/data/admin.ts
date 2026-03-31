@@ -2,6 +2,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseAdminEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { sendTransactionalEmail } from "@/lib/notifications";
+import { captureAppError } from "@/lib/sentry";
+import { getStripeServerClient } from "@/lib/stripe/client";
 import type { ValidationMetric } from "@/types/admin";
 
 export async function listAdminDisputes() {
@@ -58,6 +60,42 @@ export async function resolveDispute(params: {
       .from("bookings")
       .update({ status: params.bookingStatus })
       .eq("id", data.booking_id);
+
+    // When resolving a dispute as cancelled, trigger Stripe refund/cancellation
+    if (params.bookingStatus === "cancelled" && process.env.STRIPE_SECRET_KEY) {
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("stripe_payment_intent_id, payment_status")
+        .eq("id", data.booking_id)
+        .maybeSingle();
+
+      if (booking?.stripe_payment_intent_id) {
+        try {
+          const stripe = getStripeServerClient();
+
+          if (booking.payment_status === "authorized") {
+            // Payment was authorised but not captured — cancel the intent
+            await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
+          } else if (booking.payment_status === "captured") {
+            // Payment was captured — issue a full refund
+            await stripe.refunds.create({
+              payment_intent: booking.stripe_payment_intent_id,
+            });
+          }
+
+          await supabase
+            .from("bookings")
+            .update({ payment_status: "refunded" })
+            .eq("id", data.booking_id);
+        } catch (stripeError) {
+          captureAppError(stripeError, {
+            feature: "admin",
+            action: "dispute_refund",
+            tags: { bookingId: data.booking_id, disputeId: params.disputeId },
+          });
+        }
+      }
+    }
   }
 
   const { data: bookingParties } = await supabase

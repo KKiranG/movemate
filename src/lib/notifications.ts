@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
 import { hasResendEnv } from "@/lib/env";
+import { captureAppError } from "@/lib/sentry";
 
 function getResendClient() {
   if (!hasResendEnv()) {
@@ -21,10 +22,20 @@ export async function sendTransactionalEmail(params: {
     return { skipped: true };
   }
 
-  return resend.emails.send({
+  const result = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to: [params.to],
     subject: params.subject,
     html: params.html,
   });
+
+  if (result.error) {
+    captureAppError(result.error, {
+      feature: "notifications",
+      action: "sendTransactionalEmail",
+      tags: { subject: params.subject },
+    });
+  }
+
+  return result;
 }
