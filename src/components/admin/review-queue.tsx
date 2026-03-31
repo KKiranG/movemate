@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 
 const tasks = [
   {
-    href: "/admin/carriers",
+    href: "/admin/verification",
     title: "Verify new carriers manually before they appear in search.",
   },
   {
@@ -26,7 +26,10 @@ export function ReviewQueue() {
         <ul className="space-y-2 text-sm leading-6 text-text-secondary">
           {tasks.map((task) => (
             <li key={task.href}>
-              <Link href={task.href} className="text-accent transition hover:text-accent/80">
+              <Link
+                href={task.href}
+                className="text-accent transition hover:text-accent/80 active:text-accent/70"
+              >
                 {task.title}
               </Link>
             </li>

@@ -4,10 +4,24 @@ import { getValidationMetrics } from "@/lib/data/admin";
 import { PageIntro } from "@/components/layout/page-intro";
 import { ReviewQueue } from "@/components/admin/review-queue";
 import { Card } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
+
+function formatMetricValue(metric: Awaited<ReturnType<typeof getValidationMetrics>>[number]) {
+  if (metric.kind === "percentage") {
+    return `${metric.value}%`;
+  }
+
+  if (metric.kind === "currency") {
+    return formatCurrency(metric.value);
+  }
+
+  return metric.value.toLocaleString("en-AU");
+}
 
 export default async function AdminDashboardPage() {
   await requirePageAdminUser();
   const metrics = await getValidationMetrics();
+  const lastUpdated = new Date();
 
   return (
     <main className="page-shell">
@@ -17,14 +31,18 @@ export default async function AdminDashboardPage() {
         description="Early moverrr needs a human override for verification, disputes, and booking exceptions."
       />
 
-      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <p className="text-sm text-text-secondary">
+        Last updated {lastUpdated.toLocaleString("en-AU")}
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <Card key={metric.label} className="p-4">
             <p className="section-label">{metric.label}</p>
-            <p className="mt-2 text-3xl text-text">
-              {metric.value}
-              {metric.changeLabel ?? ""}
-            </p>
+            <p className="mt-2 text-3xl text-text">{formatMetricValue(metric)}</p>
+            {metric.helperText ? (
+              <p className="mt-2 text-sm text-text-secondary">{metric.helperText}</p>
+            ) : null}
           </Card>
         ))}
       </div>

@@ -3,6 +3,7 @@ import { createClient as createServerSupabaseClient } from "@/lib/supabase/serve
 import { hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { toCarrierProfile, toVehicle } from "@/lib/data/mappers";
+import { sanitizeText } from "@/lib/utils";
 import { carrierOnboardingSchema, type CarrierOnboardingInput } from "@/lib/validation/carrier";
 import type { Database } from "@/types/database";
 
@@ -184,7 +185,7 @@ export async function verifyCarrier(params: {
     is_verified: params.isApproved,
     verification_status: params.isApproved ? "verified" : "rejected",
     verified_at: params.isApproved ? new Date().toISOString() : null,
-    verification_notes: params.notes ?? null,
+    verification_notes: params.notes ? sanitizeText(params.notes) : null,
   };
 
   const { data, error } = await supabase

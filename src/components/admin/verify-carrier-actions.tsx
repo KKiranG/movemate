@@ -2,16 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { CarrierProfile } from "@/types/carrier";
 
-export function VerifyCarrierActions({ carrier }: { carrier: CarrierProfile }) {
+export function VerifyCarrierActions({
+  carrier,
+  notes,
+}: {
+  carrier: CarrierProfile;
+  notes?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function submit(isApproved: boolean) {
+  async function submit(isApproved: boolean, notes?: string) {
     setError(null);
     setIsSubmitting(true);
 
@@ -19,7 +26,7 @@ export function VerifyCarrierActions({ carrier }: { carrier: CarrierProfile }) {
       const response = await fetch(`/api/admin/carriers/${carrier.id}/verify`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isApproved }),
+        body: JSON.stringify({ isApproved, notes }),
       });
       const payload = await response.json();
 
@@ -42,15 +49,17 @@ export function VerifyCarrierActions({ carrier }: { carrier: CarrierProfile }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={isSubmitting} onClick={() => submit(true)}>
+        <Button type="button" disabled={isSubmitting} onClick={() => submit(true, notes)}>
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Approve
         </Button>
         <Button
           type="button"
           variant="secondary"
           disabled={isSubmitting}
-          onClick={() => submit(false)}
+          onClick={() => submit(false, notes)}
         >
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Reject
         </Button>
       </div>

@@ -15,6 +15,7 @@
     "supabase:db:reset": "supabase db reset"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "@sentry/nextjs": "^10.45.0",
     "@stripe/stripe-js": "^8.11.0",

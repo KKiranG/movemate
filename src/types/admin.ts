@@ -1,5 +1,6 @@
 export interface ValidationMetric {
   label: string;
   value: number;
-  changeLabel?: string;
+  kind?: "number" | "percentage" | "currency";
+  helperText?: string;
 }

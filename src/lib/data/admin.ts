@@ -4,6 +4,8 @@ import { AppError } from "@/lib/errors";
 import { sendTransactionalEmail } from "@/lib/notifications";
 import { captureAppError } from "@/lib/sentry";
 import { getStripeServerClient } from "@/lib/stripe/client";
+import { updateBookingStatusForActor } from "@/lib/data/bookings";
+import { sanitizeText } from "@/lib/utils";
 import type { ValidationMetric } from "@/types/admin";
 
 export async function listAdminDisputes() {
@@ -40,7 +42,7 @@ export async function resolveDispute(params: {
     .from("disputes")
     .update({
       status: params.status,
-      resolution_notes: params.resolutionNotes || null,
+      resolution_notes: params.resolutionNotes ? sanitizeText(params.resolutionNotes) : null,
       resolved_by: params.status === "resolved" || params.status === "closed" ? params.resolvedBy : null,
       resolved_at:
         params.status === "resolved" || params.status === "closed"
@@ -55,31 +57,38 @@ export async function resolveDispute(params: {
     throw new AppError(error.message, 500, "dispute_resolve_failed");
   }
 
+  let bookingPaymentStatus: "pending" | "authorized" | "captured" | "refunded" | "failed" | null =
+    null;
+  let stripePaymentIntentId: string | null = null;
+
   if (params.bookingStatus) {
-    await supabase
-      .from("bookings")
-      .update({ status: params.bookingStatus })
-      .eq("id", data.booking_id);
+    const booking = await updateBookingStatusForActor({
+      userId: params.resolvedBy,
+      bookingId: data.booking_id,
+      nextStatus: params.bookingStatus,
+      actorRole: "admin",
+      cancellationReason:
+        params.bookingStatus === "cancelled"
+          ? "Cancelled during dispute resolution"
+          : undefined,
+    });
+
+    bookingPaymentStatus = booking.paymentStatus ?? null;
+    stripePaymentIntentId = booking.stripePaymentIntentId ?? null;
 
     // When resolving a dispute as cancelled, trigger Stripe refund/cancellation
     if (params.bookingStatus === "cancelled" && process.env.STRIPE_SECRET_KEY) {
-      const { data: booking } = await supabase
-        .from("bookings")
-        .select("stripe_payment_intent_id, payment_status")
-        .eq("id", data.booking_id)
-        .maybeSingle();
-
-      if (booking?.stripe_payment_intent_id) {
+      if (stripePaymentIntentId) {
         try {
           const stripe = getStripeServerClient();
 
-          if (booking.payment_status === "authorized") {
+          if (bookingPaymentStatus === "authorized") {
             // Payment was authorised but not captured — cancel the intent
-            await stripe.paymentIntents.cancel(booking.stripe_payment_intent_id);
-          } else if (booking.payment_status === "captured") {
+            await stripe.paymentIntents.cancel(stripePaymentIntentId);
+          } else if (bookingPaymentStatus === "captured") {
             // Payment was captured — issue a full refund
             await stripe.refunds.create({
-              payment_intent: booking.stripe_payment_intent_id,
+              payment_intent: stripePaymentIntentId,
             });
           }
 
@@ -137,7 +146,7 @@ export async function getValidationMetrics() {
       .in("status", ["active", "booked_partial"]),
     supabase
       .from("bookings")
-      .select("id, status", { count: "exact" }),
+      .select("id, status, total_price_cents", { count: "exact" }),
     supabase
       .from("analytics_events")
       .select("id, event_name"),
@@ -158,28 +167,57 @@ export async function getValidationMetrics() {
     events.data?.filter((event) => event.event_name === "booking_started").length ?? 0;
   const repeatCarriers =
     carriers.data?.filter((carrier) => carrier.total_bookings_completed > 1).length ?? 0;
+  const openDisputes = disputes.count ?? 0;
+  const totalCompletedValueCents = bookings.data
+    ?.filter((booking) => booking.status === "completed")
+    .reduce((sum, booking) => sum + Number(booking.total_price_cents ?? 0), 0) ?? 0;
+  const fillRatePct = Math.round((completedBookings / 50) * 100);
+  const avgJobValueCents =
+    completedBookings > 0 ? Math.round(totalCompletedValueCents / completedBookings) : 0;
+  const disputeRatePct =
+    completedBookings > 0 ? Math.round((openDisputes / completedBookings) * 100) : 0;
 
   return [
     {
       label: "Active listings",
       value: listings.count ?? 0,
+      kind: "number",
     },
     {
-      label: "Search to booking starts",
+      label: "Search-to-booking conversion",
       value: searchStarts > 0 ? Math.round((bookingStarts / searchStarts) * 100) : 0,
-      changeLabel: "%",
+      kind: "percentage",
     },
     {
       label: "Completed bookings",
       value: completedBookings,
+      kind: "number",
     },
     {
       label: "Carrier reuse",
       value: repeatCarriers,
+      kind: "number",
     },
     {
       label: "Open disputes",
-      value: disputes.count ?? 0,
+      value: openDisputes,
+      kind: "number",
+    },
+    {
+      label: "Fill rate target",
+      value: fillRatePct,
+      kind: "percentage",
+      helperText: `${completedBookings} completed / 50 goal`,
+    },
+    {
+      label: "Avg job value",
+      value: avgJobValueCents,
+      kind: "currency",
+    },
+    {
+      label: "Dispute rate",
+      value: disputeRatePct,
+      kind: "percentage",
     },
   ];
 }
