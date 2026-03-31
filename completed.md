@@ -299,7 +299,7 @@
 - Verification:
   - `npm run check`
 
-### `COMP-2026-04-01-11` — Search accessibility, pending-booking clarity, and live verification/dashboard surfaces
+### `COMP-2026-04-01-16` — Search accessibility, pending-booking clarity, and live verification/dashboard surfaces
 - Moved from active backlog: `BUG-01`, `BUG-08`, `BUG-16`, `BUG-18`, `BUG-21`
 - When: `2026-04-01`
 - Where:
@@ -325,7 +325,7 @@
 - Verification:
   - `npm run check`
 
-### `COMP-2026-04-01-12` — Payment lifecycle semantics, structured webhook context, and proportional capacity recovery
+### `COMP-2026-04-01-17` — Payment lifecycle semantics, structured webhook context, and proportional capacity recovery
 - Moved from active backlog: `BUG-09`, `BUG-10`, `BUG-11`, `BUG-12`, `BUG-17`, `BUG-23`, `BUG-25`
 - When: `2026-04-01`
 - Where:
