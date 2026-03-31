@@ -3,30 +3,51 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { GoogleAutocompleteInput } from "@/components/shared/google-autocomplete-input";
+import {
+  GoogleAutocompleteInput,
+  type AddressValue,
+} from "@/components/shared/google-autocomplete-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { suggestPrice } from "@/lib/pricing/suggest";
 
-interface AddressValue {
-  label: string;
-  suburb: string;
-  postcode: string;
-  latitude: number;
-  longitude: number;
-}
-
 const steps = ["Route", "When & space", "Price & rules"] as const;
+const acceptOptions = [
+  { value: "furniture", label: "Furniture" },
+  { value: "boxes", label: "Boxes" },
+  { value: "appliance", label: "Appliance" },
+  { value: "fragile", label: "Fragile" },
+] as const;
+const sizeDescriptions: Record<"S" | "M" | "L" | "XL", string> = {
+  S: "1-2 boxes or a compact marketplace pickup",
+  M: "One furniture piece like a desk, chair, or washing machine",
+  L: "Several bulky items or a light studio move",
+  XL: "Large pieces that take most of the spare bay",
+};
 
-export function CarrierTripWizard() {
+export function CarrierTripWizard({
+  initialOrigin = null,
+  initialDestination = null,
+  initialSpaceSize = "M",
+  initialPriceDollars,
+  initialDetourRadiusKm,
+}: {
+  initialOrigin?: AddressValue | null;
+  initialDestination?: AddressValue | null;
+  initialSpaceSize?: "S" | "M" | "L" | "XL";
+  initialPriceDollars?: string;
+  initialDetourRadiusKm?: string;
+}) {
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
-  const [origin, setOrigin] = useState<AddressValue | null>(null);
-  const [destination, setDestination] = useState<AddressValue | null>(null);
+  const [origin, setOrigin] = useState<AddressValue | null>(initialOrigin);
+  const [destination, setDestination] = useState<AddressValue | null>(initialDestination);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [spaceSize, setSpaceSize] = useState<"S" | "M" | "L" | "XL">("M");
+  const [spaceSize, setSpaceSize] = useState<"S" | "M" | "L" | "XL">(initialSpaceSize);
+  const [accepts, setAccepts] = useState<string[]>(["furniture", "boxes", "appliance"]);
+  const [specialNotes, setSpecialNotes] = useState("");
 
   const pricingSuggestion = useMemo(
     () =>
@@ -38,6 +59,9 @@ export function CarrierTripWizard() {
         isReturn: true,
       }),
     [spaceSize],
+  );
+  const [priceDollars, setPriceDollars] = useState(
+    initialPriceDollars ?? Math.round(pricingSuggestion.midCents / 100).toString(),
   );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -73,7 +97,7 @@ export function CarrierTripWizard() {
           availableWeightKg: Number(formData.get("availableWeightKg")),
           priceCents: Math.round(Number(formData.get("priceDollars")) * 100),
           suggestedPriceCents: pricingSuggestion.midCents,
-          accepts: formData.getAll("accepts"),
+          accepts,
           stairsOk: formData.get("stairsOk") === "yes",
           stairsExtraCents:
             Math.round(Number(formData.get("stairsExtraDollars") || 0) * 100),
@@ -90,7 +114,7 @@ export function CarrierTripWizard() {
         throw new Error(payload.error ?? "Unable to create trip.");
       }
 
-      router.push("/carrier/trips");
+      router.push("/carrier/trips?posted=1");
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to create trip.");
@@ -107,10 +131,10 @@ export function CarrierTripWizard() {
             key={label}
             type="button"
             onClick={() => setStepIndex(index)}
-            className={`rounded-xl border px-3 py-2 text-sm ${
+            className={`min-h-11 rounded-xl border px-3 py-2 text-sm transition-colors ${
               index === stepIndex
                 ? "border-accent bg-accent/10 text-accent"
-                : "border-border text-text-secondary"
+                : "border-border text-text-secondary active:bg-black/[0.04] dark:active:bg-white/[0.08]"
             }`}
           >
             {label}
@@ -123,64 +147,85 @@ export function CarrierTripWizard() {
           <GoogleAutocompleteInput
             name="originAddress"
             placeholder="Origin suburb or address"
+            initialResolvedValue={initialOrigin}
             onResolved={setOrigin}
           />
           <GoogleAutocompleteInput
             name="destinationAddress"
             placeholder="Destination suburb or address"
+            initialResolvedValue={initialDestination}
             onResolved={setDestination}
           />
-          <Input
-            name="detourRadiusKm"
-            type="number"
-            step="1"
-            defaultValue="10"
-            placeholder="Detour radius km"
-            required
-          />
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Detour radius (km)</span>
+            <Input
+              name="detourRadiusKm"
+              type="number"
+              step="1"
+              defaultValue={initialDetourRadiusKm ?? "10"}
+              placeholder="Detour radius km"
+              required
+            />
+          </label>
         </div>
       ) : null}
 
       {stepIndex === 1 ? (
         <div className="grid gap-4">
-          <Input name="tripDate" type="date" required />
-          <select
-            name="timeWindow"
-            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-            defaultValue="flexible"
-          >
-            <option value="morning">Morning</option>
-            <option value="afternoon">Afternoon</option>
-            <option value="evening">Evening</option>
-            <option value="flexible">Flexible</option>
-          </select>
-          <select
-            name="spaceSize"
-            value={spaceSize}
-            onChange={(event) => setSpaceSize(event.target.value as "S" | "M" | "L" | "XL")}
-            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-          >
-            <option value="S">S</option>
-            <option value="M">M</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
-          </select>
-          <Input
-            name="availableVolumeM3"
-            type="number"
-            step="0.1"
-            defaultValue="1"
-            placeholder="Available volume m3"
-            required
-          />
-          <Input
-            name="availableWeightKg"
-            type="number"
-            step="1"
-            defaultValue="100"
-            placeholder="Available weight kg"
-            required
-          />
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Trip date</span>
+            <Input name="tripDate" type="date" required />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Time window</span>
+            <select
+              name="timeWindow"
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+              defaultValue="flexible"
+            >
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Space size</span>
+            <select
+              name="spaceSize"
+              value={spaceSize}
+              onChange={(event) => setSpaceSize(event.target.value as "S" | "M" | "L" | "XL")}
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+            >
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+            </select>
+          </label>
+          <p className="text-sm text-text-secondary">{sizeDescriptions[spaceSize]}</p>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Available volume (m3)</span>
+            <Input
+              name="availableVolumeM3"
+              type="number"
+              step="0.1"
+              defaultValue="1"
+              placeholder="Available volume m3"
+              required
+            />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Available weight (kg)</span>
+            <Input
+              name="availableWeightKg"
+              type="number"
+              step="1"
+              defaultValue="100"
+              placeholder="Available weight kg"
+              required
+            />
+          </label>
         </div>
       ) : null}
 
@@ -190,63 +235,105 @@ export function CarrierTripWizard() {
             Suggested range ${pricingSuggestion.lowCents / 100} to $
             {pricingSuggestion.highCents / 100}
           </p>
-          <Input
-            name="priceDollars"
-            type="number"
-            step="1"
-            defaultValue={Math.round(pricingSuggestion.midCents / 100).toString()}
-            placeholder="Price in dollars"
-            required
-          />
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Price in dollars</span>
+            <Input
+              name="priceDollars"
+              type="number"
+              step="1"
+              value={priceDollars}
+              onChange={(event) => setPriceDollars(event.target.value)}
+              placeholder="Price in dollars"
+              required
+            />
+          </label>
           <div className="grid gap-2 sm:grid-cols-2">
-            <label className="flex items-center gap-2 text-sm text-text">
-              <input type="checkbox" name="accepts" value="furniture" defaultChecked />
-              Furniture
+            {acceptOptions.map((option) => {
+              const isSelected = accepts.includes(option.value);
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() =>
+                    setAccepts((current) =>
+                      current.includes(option.value)
+                        ? current.filter((value) => value !== option.value)
+                        : [...current, option.value],
+                    )
+                  }
+                  className={`min-h-11 rounded-xl border px-3 py-3 text-left text-sm transition-colors ${
+                    isSelected
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          {accepts.map((value) => (
+            <input key={value} type="hidden" name="accepts" value={value} />
+          ))}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-text">Stairs support</span>
+              <select
+                name="stairsOk"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                defaultValue="no"
+              >
+                <option value="no">No stairs support</option>
+                <option value="yes">Stairs OK</option>
+              </select>
             </label>
-            <label className="flex items-center gap-2 text-sm text-text">
-              <input type="checkbox" name="accepts" value="boxes" defaultChecked />
-              Boxes
-            </label>
-            <label className="flex items-center gap-2 text-sm text-text">
-              <input type="checkbox" name="accepts" value="appliance" defaultChecked />
-              Appliance
-            </label>
-            <label className="flex items-center gap-2 text-sm text-text">
-              <input type="checkbox" name="accepts" value="fragile" />
-              Fragile
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-text">Stairs surcharge (AUD)</span>
+              <Input name="stairsExtraDollars" type="number" step="1" defaultValue="0" />
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <select
-              name="stairsOk"
-              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-              defaultValue="no"
-            >
-              <option value="no">No stairs support</option>
-              <option value="yes">Stairs OK</option>
-            </select>
-            <Input name="stairsExtraDollars" type="number" step="1" defaultValue="0" />
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-text">Helper support</span>
+              <select
+                name="helperAvailable"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                defaultValue="no"
+              >
+                <option value="no">No helper</option>
+                <option value="yes">Helper available</option>
+              </select>
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-text">Helper surcharge (AUD)</span>
+              <Input name="helperExtraDollars" type="number" step="1" defaultValue="0" />
+            </label>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Publish state</span>
             <select
-              name="helperAvailable"
+              name="status"
               className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-              defaultValue="no"
+              defaultValue="active"
             >
-              <option value="no">No helper</option>
-              <option value="yes">Helper available</option>
+              <option value="active">Publish now</option>
+              <option value="draft">Save as draft</option>
             </select>
-            <Input name="helperExtraDollars" type="number" step="1" defaultValue="0" />
-          </div>
-          <select
-            name="status"
-            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-            defaultValue="active"
-          >
-            <option value="active">Publish now</option>
-            <option value="draft">Save as draft</option>
-          </select>
-          <Textarea name="specialNotes" placeholder="Special handling notes" />
+          </label>
+          <label className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-text">Special handling notes</span>
+              <span className="text-xs text-text-secondary">{specialNotes.length}/280</span>
+            </div>
+            <Textarea
+              name="specialNotes"
+              value={specialNotes}
+              maxLength={280}
+              onChange={(event) => setSpecialNotes(event.target.value)}
+              placeholder="Special handling notes"
+            />
+          </label>
         </div>
       ) : null}
 

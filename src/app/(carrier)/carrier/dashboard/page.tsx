@@ -1,6 +1,9 @@
 import Link from "next/link";
 
+import { QuickPostTemplates } from "@/components/carrier/quick-post-templates";
 import { requirePageSessionUser } from "@/lib/auth";
+import { getCarrierByUserId } from "@/lib/data/carriers";
+import { listCarrierTemplates } from "@/lib/data/templates";
 import { listCarrierTrips } from "@/lib/data/trips";
 import { PageIntro } from "@/components/layout/page-intro";
 import { TripChecklist } from "@/components/carrier/trip-checklist";
@@ -9,7 +12,11 @@ import { Card } from "@/components/ui/card";
 
 export default async function CarrierDashboardPage() {
   const user = await requirePageSessionUser();
-  const carrierTrips = await listCarrierTrips(user.id);
+  const [carrier, carrierTrips] = await Promise.all([
+    getCarrierByUserId(user.id),
+    listCarrierTrips(user.id),
+  ]);
+  const templates = carrier ? await listCarrierTemplates(carrier.id) : [];
 
   return (
     <main className="page-shell">
@@ -40,6 +47,8 @@ export default async function CarrierDashboardPage() {
       </div>
 
       <TripChecklist />
+
+      <QuickPostTemplates templates={templates} />
 
       <div className="grid gap-4">
         {carrierTrips.map((trip) => (

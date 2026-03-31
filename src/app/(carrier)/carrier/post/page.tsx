@@ -1,5 +1,5 @@
 import { requirePageSessionUser } from "@/lib/auth";
-import { CarrierTripWizard } from "@/components/carrier/carrier-trip-wizard";
+import { CarrierPostPrefill } from "@/components/carrier/carrier-post-prefill";
 import { PageIntro } from "@/components/layout/page-intro";
 import { Card } from "@/components/ui/card";
 
@@ -15,7 +15,7 @@ export default async function CarrierPostPage() {
       />
 
       <Card className="p-4">
-        <CarrierTripWizard />
+        <CarrierPostPrefill />
       </Card>
     </main>
   );
