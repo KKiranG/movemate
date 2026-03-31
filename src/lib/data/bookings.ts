@@ -1,4 +1,7 @@
-import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
+import {
+  getListingStatusFromCapacity,
+  getRemainingCapacityPctForListing,
+} from "@/lib/booking-capacity";
 import { canTransitionBooking } from "@/lib/status-machine";
 import { hasSupabaseEnv, hasSupabaseAdminEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
@@ -88,8 +91,6 @@ async function getBookingNotificationRecipients(params: {
 
 async function syncListingStatusForBooking(params: {
   listingId: string;
-  nextStatus: Database["public"]["Tables"]["bookings"]["Row"]["status"];
-  bookingId: string;
 }) {
   if (!hasSupabaseEnv()) {
     return;
@@ -98,32 +99,40 @@ async function syncListingStatusForBooking(params: {
   const supabase = hasSupabaseAdminEnv()
     ? createAdminClient()
     : createServerSupabaseClient();
+  const { data: listing, error: listingError } = await supabase
+    .from("capacity_listings")
+    .select("id, available_volume_m3, available_weight_kg")
+    .eq("id", params.listingId)
+    .maybeSingle();
 
-  if (
-    ["confirmed", "picked_up", "in_transit", "delivered", "completed", "disputed"].includes(
-      params.nextStatus,
-    )
-  ) {
-    await supabase
-      .from("capacity_listings")
-      .update({ status: "booked_partial" })
-      .eq("id", params.listingId);
+  if (listingError) {
+    throw new AppError(listingError.message, 500, "listing_capacity_lookup_failed");
+  }
+
+  if (!listing) {
     return;
   }
 
-  if (params.nextStatus === "cancelled") {
-    const { data: activeBookings } = await supabase
-      .from("bookings")
-      .select("id")
-      .eq("listing_id", params.listingId)
-      .neq("status", "cancelled")
-      .neq("id", params.bookingId);
+  const { data: activeBookings, error: activeBookingsError } = await supabase
+    .from("bookings")
+    .select("id, status, item_dimensions, item_weight_kg, item_category")
+    .eq("listing_id", params.listingId)
+    .neq("status", "cancelled");
 
-    await supabase
-      .from("capacity_listings")
-      .update({ status: activeBookings && activeBookings.length > 0 ? "booked_partial" : "active" })
-      .eq("id", params.listingId);
+  if (activeBookingsError) {
+    throw new AppError(activeBookingsError.message, 500, "listing_active_bookings_failed");
   }
+
+  const activeBookingCount = activeBookings?.length ?? 0;
+  const remainingCapacityPct = getRemainingCapacityPctForListing(listing, activeBookings ?? []);
+
+  await supabase
+    .from("capacity_listings")
+    .update({
+      remaining_capacity_pct: remainingCapacityPct,
+      status: getListingStatusFromCapacity(activeBookingCount, remainingCapacityPct),
+    })
+    .eq("id", params.listingId);
 }
 
 export async function listUserBookings(userId: string) {
@@ -237,71 +246,62 @@ export async function createBookingForCustomer(userId: string, input: BookingInp
     throw new AppError("Trip/carrier mismatch.", 400, "carrier_mismatch");
   }
 
-  const pricing = calculateBookingBreakdown({
-    basePriceCents: listing.price_cents,
-    needsStairs: parsed.data.needsStairs,
-    stairsExtraCents: listing.stairs_extra_cents,
-    needsHelper: parsed.data.needsHelper,
-    helperExtraCents: listing.helper_extra_cents,
+  const { data: bookingId, error } = await supabase.rpc("create_booking_atomic", {
+    p_actor_user_id: userId,
+    p_carrier_id: parsed.data.carrierId,
+    p_customer_id: customer.id,
+    p_dropoff_access_notes: parsed.data.dropoffAccessNotes ?? null,
+    p_dropoff_address: parsed.data.dropoffAddress,
+    p_dropoff_contact_name: parsed.data.dropoffContactName ?? null,
+    p_dropoff_contact_phone: parsed.data.dropoffContactPhone ?? null,
+    p_dropoff_lat: parsed.data.dropoffLatitude,
+    p_dropoff_lng: parsed.data.dropoffLongitude,
+    p_dropoff_postcode: parsed.data.dropoffPostcode,
+    p_dropoff_suburb: parsed.data.dropoffSuburb,
+    p_item_category: parsed.data.itemCategory,
+    p_item_description: parsed.data.itemDescription,
+    p_item_dimensions: parsed.data.itemDimensions ?? null,
+    p_item_photo_urls: parsed.data.itemPhotoUrls ?? [],
+    p_item_weight_kg: parsed.data.itemWeightKg ?? null,
+    p_listing_id: parsed.data.listingId,
+    p_needs_helper: parsed.data.needsHelper,
+    p_needs_stairs: parsed.data.needsStairs,
+    p_pickup_access_notes: parsed.data.pickupAccessNotes ?? null,
+    p_pickup_address: parsed.data.pickupAddress,
+    p_pickup_contact_name: parsed.data.pickupContactName ?? null,
+    p_pickup_contact_phone: parsed.data.pickupContactPhone ?? null,
+    p_pickup_lat: parsed.data.pickupLatitude,
+    p_pickup_lng: parsed.data.pickupLongitude,
+    p_pickup_postcode: parsed.data.pickupPostcode,
+    p_pickup_suburb: parsed.data.pickupSuburb,
+    p_special_instructions: parsed.data.specialInstructions ?? null,
   });
 
-  const insertPayload: Database["public"]["Tables"]["bookings"]["Insert"] = {
-    listing_id: parsed.data.listingId,
-    customer_id: customer.id,
-    carrier_id: parsed.data.carrierId,
-    item_description: parsed.data.itemDescription,
-    item_category: parsed.data.itemCategory,
-    item_dimensions: parsed.data.itemDimensions ?? null,
-    item_weight_kg: parsed.data.itemWeightKg ?? null,
-    item_photo_urls: parsed.data.itemPhotoUrls ?? [],
-    needs_stairs: parsed.data.needsStairs,
-    needs_helper: parsed.data.needsHelper,
-    special_instructions: parsed.data.specialInstructions ?? null,
-    pickup_address: parsed.data.pickupAddress,
-    pickup_suburb: parsed.data.pickupSuburb,
-    pickup_postcode: parsed.data.pickupPostcode,
-    pickup_point: `SRID=4326;POINT(${parsed.data.pickupLongitude} ${parsed.data.pickupLatitude})`,
-    pickup_access_notes: parsed.data.pickupAccessNotes ?? null,
-    pickup_contact_name: parsed.data.pickupContactName ?? null,
-    pickup_contact_phone: parsed.data.pickupContactPhone ?? null,
-    dropoff_address: parsed.data.dropoffAddress,
-    dropoff_suburb: parsed.data.dropoffSuburb,
-    dropoff_postcode: parsed.data.dropoffPostcode,
-    dropoff_point: `SRID=4326;POINT(${parsed.data.dropoffLongitude} ${parsed.data.dropoffLatitude})`,
-    dropoff_access_notes: parsed.data.dropoffAccessNotes ?? null,
-    dropoff_contact_name: parsed.data.dropoffContactName ?? null,
-    dropoff_contact_phone: parsed.data.dropoffContactPhone ?? null,
-    base_price_cents: pricing.basePriceCents,
-    stairs_fee_cents: pricing.stairsFeeCents,
-    helper_fee_cents: pricing.helperFeeCents,
-    booking_fee_cents: pricing.bookingFeeCents,
-    total_price_cents: pricing.totalPriceCents,
-    carrier_payout_cents: pricing.carrierPayoutCents,
-    platform_commission_cents: pricing.platformCommissionCents,
-    payment_status: "pending",
-    status: "pending",
-  };
-
-  const { data, error } = await supabase
-    .from("bookings")
-    .insert(insertPayload)
-    .select("*, events:booking_events(*)")
-    .single();
-
   if (error) {
+    if (error.message.includes("listing_not_bookable")) {
+      throw new AppError(
+        "This trip is no longer available for booking.",
+        409,
+        "listing_not_bookable",
+      );
+    }
+
+    if (error.message.includes("listing_not_found")) {
+      throw new AppError("Trip not found.", 404, "trip_not_found");
+    }
+
+    if (error.message.includes("carrier_mismatch")) {
+      throw new AppError("Trip/carrier mismatch.", 400, "carrier_mismatch");
+    }
+
     throw new AppError(error.message, 500, "booking_create_failed");
   }
 
-  await recordBookingEvent({
-    bookingId: data.id,
-    actorRole: "customer",
-    actorUserId: userId,
-    eventType: "booking_created",
-    metadata: {
-      listingId: parsed.data.listingId,
-      totalPriceCents: pricing.totalPriceCents,
-    },
-  });
+  const booking = await getBookingByIdForUser(userId, bookingId);
+
+  if (!booking) {
+    throw new AppError("Booking created but could not be loaded.", 500, "booking_lookup_failed");
+  }
 
   await sendTransactionalEmail({
     to: customer.email,
@@ -322,7 +322,7 @@ export async function createBookingForCustomer(userId: string, input: BookingInp
     });
   }
 
-  return toBooking(data as unknown as BookingJoinedRecord);
+  return booking;
 }
 
 export async function createPaymentIntentForBooking(userId: string, bookingId: string) {
@@ -337,6 +337,15 @@ export async function createPaymentIntentForBooking(userId: string, bookingId: s
   }
 
   const stripe = getStripeServerClient();
+
+  if (booking.stripePaymentIntentId) {
+    const existingIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentIntentId);
+
+    if (existingIntent.status !== "canceled") {
+      return existingIntent;
+    }
+  }
+
   const intent = await stripe.paymentIntents.create({
     amount: booking.pricing.totalPriceCents,
     currency: "aud",
@@ -352,7 +361,6 @@ export async function createPaymentIntentForBooking(userId: string, bookingId: s
     .from("bookings")
     .update({
       stripe_payment_intent_id: intent.id,
-      payment_status: "authorized",
     })
     .eq("id", booking.id);
 
@@ -360,9 +368,10 @@ export async function createPaymentIntentForBooking(userId: string, bookingId: s
     bookingId: booking.id,
     actorRole: "customer",
     actorUserId: userId,
-    eventType: "payment_authorized",
+    eventType: "payment_intent_created",
     metadata: {
       paymentIntentId: intent.id,
+      status: intent.status,
     },
   });
 
@@ -488,8 +497,6 @@ export async function updateBookingStatusForActor(params: {
 
   await syncListingStatusForBooking({
     listingId: data.listing_id,
-    nextStatus: params.nextStatus,
-    bookingId: data.id,
   });
 
   if (params.nextStatus === "completed" && data.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
@@ -499,6 +506,7 @@ export async function updateBookingStatusForActor(params: {
       .from("bookings")
       .update({ payment_status: "captured" })
       .eq("id", data.id);
+    data.payment_status = "captured";
   }
 
   const recipients = await getBookingNotificationRecipients({

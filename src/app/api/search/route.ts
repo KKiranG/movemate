@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       | ItemCategory
       | undefined;
 
-    const rateLimit = enforceRateLimit(
+    const rateLimit = await enforceRateLimit(
       `search:${request.ip ?? "anonymous"}`,
       40,
       60_000,
