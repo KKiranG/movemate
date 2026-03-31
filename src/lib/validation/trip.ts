@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { sanitizeText } from "@/lib/utils";
+
 const categorySet = z.enum([
   "furniture",
   "boxes",
@@ -7,6 +9,29 @@ const categorySet = z.enum([
   "fragile",
   "other",
 ]);
+
+function isTodayOrLater(value: string) {
+  const parsedDate = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return parsedDate >= today;
+}
+
+const futureTripDate = z
+  .string()
+  .min(1)
+  .refine(isTodayOrLater, "Trip date must be today or later.");
+
+const optionalNotes = z.preprocess(
+  (value) => (typeof value === "string" ? sanitizeText(value) : value),
+  z.string().max(280).optional(),
+);
 
 export const tripSchema = z.object({
   originSuburb: z.string().min(2).max(120),
@@ -18,7 +43,7 @@ export const tripSchema = z.object({
   destinationLatitude: z.number().min(-90).max(90),
   destinationLongitude: z.number().min(-180).max(180),
   detourRadiusKm: z.number().min(0).max(30),
-  tripDate: z.string().min(1),
+  tripDate: futureTripDate,
   timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
   spaceSize: z.enum(["S", "M", "L", "XL"]),
   availableVolumeM3: z.number().min(0.1).max(8),
@@ -31,11 +56,11 @@ export const tripSchema = z.object({
   helperAvailable: z.boolean().default(false),
   helperExtraCents: z.number().min(0).default(0),
   status: z.enum(["draft", "active"]).default("active"),
-  specialNotes: z.string().max(280).optional(),
+  specialNotes: optionalNotes,
 });
 
 export const tripUpdateSchema = z.object({
-  tripDate: z.string().min(1),
+  tripDate: futureTripDate,
   timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
   spaceSize: z.enum(["S", "M", "L", "XL"]),
   availableVolumeM3: z.number().min(0.1).max(8),
@@ -43,7 +68,7 @@ export const tripUpdateSchema = z.object({
   detourRadiusKm: z.number().min(0).max(30),
   priceCents: z.number().min(1000).max(100000),
   status: z.enum(["draft", "active", "cancelled"]),
-  specialNotes: z.string().max(280).optional(),
+  specialNotes: optionalNotes,
 });
 
 export type TripInput = z.infer<typeof tripSchema>;

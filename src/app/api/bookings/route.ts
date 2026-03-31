@@ -13,7 +13,10 @@ export async function GET() {
     return NextResponse.json({ bookings });
   } catch (error) {
     const response = toErrorResponse(error);
-    return NextResponse.json({ error: response.message }, { status: response.statusCode });
+    return NextResponse.json(
+      { error: response.message, code: response.code },
+      { status: response.statusCode },
+    );
   }
 }
 
@@ -36,6 +39,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ booking });
   } catch (error) {
     const response = toErrorResponse(error);
-    return NextResponse.json({ error: response.message }, { status: response.statusCode });
+    return NextResponse.json(
+      { error: response.message, code: response.code },
+      { status: response.statusCode },
+    );
   }
 }

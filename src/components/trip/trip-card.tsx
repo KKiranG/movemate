@@ -23,13 +23,18 @@ export function TripCard({ trip, href }: TripCardProps) {
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base text-text">{trip.carrier.businessName}</h3>
               {trip.carrier.isVerified ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-accent">
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
                   <BadgeCheck className="h-3.5 w-3.5" />
                   Verified
                 </span>
               ) : null}
               <Badge>{trip.vehicle.type}</Badge>
             </div>
+            <p className="text-sm text-text-secondary">
+              {trip.carrier.ratingCount > 0
+                ? `★ ${trip.carrier.averageRating.toFixed(1)} (${trip.carrier.ratingCount} reviews)`
+                : "New carrier"}
+            </p>
             <p className="text-sm text-text-secondary">
               {trip.route.via.length > 0
                 ? `${trip.route.label} via ${trip.route.via.join(", ")}`
@@ -63,11 +68,11 @@ export function TripCard({ trip, href }: TripCardProps) {
   }
 
   return (
-    <Link href={href} className="group block">
+    <Link href={href} className="group block active:opacity-95">
       {content}
       <div className="mt-2 flex items-center justify-end gap-2 text-sm font-medium text-accent">
         View trip
-        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
       </div>
     </Link>
   );

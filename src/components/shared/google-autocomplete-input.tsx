@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { Input } from "@/components/ui/input";
 
@@ -26,21 +26,43 @@ interface GoogleAutocompleteInputProps {
   onResolved?: (value: AddressValue) => void;
 }
 
-function loadPlacesScript(apiKey: string) {
-  const existing = document.querySelector<HTMLScriptElement>(
-    'script[data-google-places="true"]',
-  );
+let placesScriptPromise: Promise<void> | null = null;
 
-  if (existing) {
-    return;
+function loadPlacesScript(apiKey: string) {
+  if (window.google?.maps?.places) {
+    return Promise.resolve();
   }
 
-  const script = document.createElement("script");
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-  script.async = true;
-  script.defer = true;
-  script.dataset.googlePlaces = "true";
-  document.head.appendChild(script);
+  if (placesScriptPromise) {
+    return placesScriptPromise;
+  }
+
+  placesScriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-google-places="true"]',
+    );
+
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Failed to load Google Places.")), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.dataset.googlePlaces = "true";
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("error", () => reject(new Error("Failed to load Google Places.")), {
+      once: true,
+    });
+    document.head.appendChild(script);
+  });
+
+  return placesScriptPromise;
 }
 
 function findAddressComponent(
@@ -57,72 +79,243 @@ export function GoogleAutocompleteInput({
   initialResolvedValue,
   onResolved,
 }: GoogleAutocompleteInputProps) {
+  const inputId = useId();
+  const listboxId = `${inputId}-listbox`;
   const inputRef = useRef<HTMLInputElement>(null);
-  const id = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const requestVersionRef = useRef(0);
+  const [query, setQuery] = useState(defaultValue ?? initialResolvedValue?.label ?? "");
+  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (initialResolvedValue) {
-      onResolved?.(initialResolvedValue);
+    if (!initialResolvedValue) {
+      return;
     }
+
+    setQuery(initialResolvedValue.label);
+    onResolved?.(initialResolvedValue);
   }, [initialResolvedValue, onResolved]);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
 
-    if (!apiKey || !inputRef.current) {
+    if (!apiKey) {
       return;
     }
 
-    loadPlacesScript(apiKey);
+    let isMounted = true;
 
-    const interval = window.setInterval(() => {
-      if (!window.google?.maps?.places || !inputRef.current) {
-        return;
-      }
-
-      const autocomplete = new window.google.maps.places.Autocomplete(
-        inputRef.current,
-        {
-          componentRestrictions: { country: "au" },
-          fields: ["address_components", "formatted_address", "geometry"],
-          types: ["geocode"],
-        },
-      );
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-
-        if (!place.formatted_address || !place.geometry?.location) {
+    loadPlacesScript(apiKey)
+      .then(() => {
+        if (!isMounted || !window.google?.maps?.places) {
           return;
         }
 
-        onResolved?.({
-          label: place.formatted_address,
-          suburb:
-            findAddressComponent(place.address_components, "locality") ||
-            findAddressComponent(place.address_components, "sublocality") ||
-            findAddressComponent(place.address_components, "administrative_area_level_2"),
-          postcode: findAddressComponent(place.address_components, "postal_code"),
-          latitude: place.geometry.location.lat(),
-          longitude: place.geometry.location.lng(),
-        });
+        autocompleteServiceRef.current =
+          new window.google.maps.places.AutocompleteService();
+        placesServiceRef.current = new window.google.maps.places.PlacesService(
+          document.createElement("div"),
+        );
+      })
+      .catch(() => {
+        setPredictions([]);
+        setIsOpen(false);
       });
 
-      window.clearInterval(interval);
-    }, 200);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
 
     return () => {
-      window.clearInterval(interval);
+      document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [onResolved]);
+  }, []);
+
+  useEffect(() => {
+    const service = autocompleteServiceRef.current;
+    const trimmedQuery = query.trim();
+
+    if (!service || trimmedQuery.length < 3) {
+      setPredictions([]);
+      setActiveIndex(-1);
+      setIsOpen(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const requestVersion = requestVersionRef.current + 1;
+      requestVersionRef.current = requestVersion;
+
+      service.getPlacePredictions(
+        {
+          input: trimmedQuery,
+          componentRestrictions: { country: "au" },
+          types: ["geocode"],
+        },
+        (results) => {
+          if (requestVersionRef.current !== requestVersion) {
+            return;
+          }
+
+          const nextPredictions = results ?? [];
+          setPredictions(nextPredictions);
+          setActiveIndex(nextPredictions.length > 0 ? 0 : -1);
+          setIsOpen(nextPredictions.length > 0);
+        },
+      );
+    }, 150);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [query]);
+
+  async function resolvePrediction(prediction: google.maps.places.AutocompletePrediction) {
+    const service = placesServiceRef.current;
+
+    if (!service) {
+      return;
+    }
+
+    const details = await new Promise<google.maps.places.PlaceResult | null>((resolve) => {
+      service.getDetails(
+        {
+          placeId: prediction.place_id,
+          fields: ["address_components", "formatted_address", "geometry"],
+        },
+        (result) => resolve(result ?? null),
+      );
+    });
+
+    if (!details?.formatted_address || !details.geometry?.location) {
+      return;
+    }
+
+    const resolvedValue = {
+      label: details.formatted_address,
+      suburb:
+        findAddressComponent(details.address_components, "locality") ||
+        findAddressComponent(details.address_components, "sublocality") ||
+        findAddressComponent(details.address_components, "administrative_area_level_2"),
+      postcode: findAddressComponent(details.address_components, "postal_code"),
+      latitude: details.geometry.location.lat(),
+      longitude: details.geometry.location.lng(),
+    };
+
+    setQuery(resolvedValue.label);
+    setPredictions([]);
+    setActiveIndex(-1);
+    setIsOpen(false);
+    onResolved?.(resolvedValue);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (!predictions.length) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsOpen(true);
+      setActiveIndex((current) => (current + 1) % predictions.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsOpen(true);
+      setActiveIndex((current) => (current <= 0 ? predictions.length - 1 : current - 1));
+      return;
+    }
+
+    if (event.key === "Enter" && isOpen) {
+      event.preventDefault();
+      const prediction = predictions[activeIndex] ?? predictions[0];
+
+      if (prediction) {
+        void resolvePrediction(prediction);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setIsOpen(false);
+      setActiveIndex(-1);
+    }
+  }
+
+  const activeDescendant =
+    isOpen && activeIndex >= 0 ? `${inputId}-option-${activeIndex}` : undefined;
 
   return (
-    <Input
-      id={id}
-      ref={inputRef}
-      name={name}
-      defaultValue={defaultValue ?? initialResolvedValue?.label}
-      placeholder={placeholder}
-    />
+    <div ref={rootRef} className="relative">
+      <Input
+        id={inputId}
+        ref={inputRef}
+        name={name}
+        value={query}
+        placeholder={placeholder}
+        autoComplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls={listboxId}
+        aria-expanded={isOpen}
+        aria-activedescendant={activeDescendant}
+        onChange={(event) => {
+          setQuery(event.target.value);
+        }}
+        onFocus={() => {
+          if (predictions.length > 0) {
+            setIsOpen(true);
+          }
+        }}
+        onKeyDown={handleKeyDown}
+      />
+
+      {isOpen ? (
+        <ul
+          id={listboxId}
+          role="listbox"
+          className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-surface shadow-lg"
+        >
+          {predictions.map((prediction, index) => {
+            const isActive = index === activeIndex;
+
+            return (
+              <li
+                key={prediction.place_id}
+                id={`${inputId}-option-${index}`}
+                role="option"
+                aria-selected={isActive}
+                className={`cursor-pointer px-3 py-3 text-sm text-text ${
+                  isActive ? "bg-accent/10 text-accent" : "active:bg-black/[0.04]"
+                }`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  void resolvePrediction(prediction);
+                }}
+                onMouseEnter={() => setActiveIndex(index)}
+              >
+                {prediction.description}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
   );
 }

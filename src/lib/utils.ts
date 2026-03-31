@@ -30,3 +30,17 @@ export function slugToLabel(value: string) {
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
+
+export function getTodayIsoDate() {
+  const now = new Date();
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().split("T")[0] ?? "";
+}
+
+export function sanitizeText(value: string) {
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[\u0000-\u001F\u007F]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

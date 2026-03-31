@@ -1,16 +1,11 @@
+import requiredProductionEnv from "../../config/required-production-env.json";
+
+const REQUIRED_PRODUCTION_ENV = requiredProductionEnv as string[];
+
 export function assertRequiredEnv() {
   if (process.env.NODE_ENV !== "production") return;
 
-  const required = [
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "STRIPE_SECRET_KEY",
-    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-  ];
-
-  const missing = required.filter((key) => !process.env[key]);
+  const missing = REQUIRED_PRODUCTION_ENV.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(", ")}. App cannot start.`,

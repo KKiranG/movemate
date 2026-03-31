@@ -101,7 +101,7 @@ async function syncListingStatusForBooking(params: {
     : createServerSupabaseClient();
   const { data: listing, error: listingError } = await supabase
     .from("capacity_listings")
-    .select("id, available_volume_m3, available_weight_kg")
+    .select("id, status, available_volume_m3, available_weight_kg")
     .eq("id", params.listingId)
     .maybeSingle();
 
@@ -130,7 +130,10 @@ async function syncListingStatusForBooking(params: {
     .from("capacity_listings")
     .update({
       remaining_capacity_pct: remainingCapacityPct,
-      status: getListingStatusFromCapacity(activeBookingCount, remainingCapacityPct),
+      status:
+        listing.status === "cancelled" || listing.status === "expired" || listing.status === "draft"
+          ? listing.status
+          : getListingStatusFromCapacity(activeBookingCount, remainingCapacityPct),
     })
     .eq("id", params.listingId);
 }

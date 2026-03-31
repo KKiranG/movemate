@@ -61,6 +61,8 @@ export function toCarrierProfile(row: CarrierRow): CarrierProfile {
     email: row.email,
     abn: row.abn ?? undefined,
     bio: row.bio ?? undefined,
+    licencePhotoUrl: row.licence_photo_url,
+    insurancePhotoUrl: row.insurance_photo_url,
     isVerified: row.is_verified,
     verificationStatus: row.verification_status,
     verificationSubmittedAt: row.verification_submitted_at,

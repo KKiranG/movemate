@@ -2,10 +2,11 @@ import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const defaultDate = "2026-03-26";
+import { getTodayIsoDate } from "@/lib/utils";
 
 export function SearchBar() {
+  const defaultDate = getTodayIsoDate();
+
   return (
     <form
       action="/search"

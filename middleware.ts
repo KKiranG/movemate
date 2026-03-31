@@ -4,13 +4,38 @@ import { createServerClient } from "@supabase/ssr";
 import { getAdminEmails, hasSupabaseEnv } from "@/lib/env";
 
 const protectedPrefixes = ["/bookings", "/carrier", "/admin"];
+const csrfProtectedPrefixes = ["/api/bookings", "/api/payments"];
+
+function hasValidOrigin(request: NextRequest) {
+  const requestOrigin = request.headers.get("origin");
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+  if (!requestOrigin || !siteUrl) {
+    return false;
+  }
+
+  try {
+    return new URL(requestOrigin).origin === new URL(siteUrl).origin;
+  } catch {
+    return false;
+  }
+}
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (
+    request.method === "POST" &&
+    pathname !== "/api/payments/webhook" &&
+    csrfProtectedPrefixes.some((prefix) => pathname.startsWith(prefix)) &&
+    !hasValidOrigin(request)
+  ) {
+    return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
+  }
+
   if (!hasSupabaseEnv()) {
     return NextResponse.next();
   }
-
-  const { pathname } = request.nextUrl;
 
   if (!protectedPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
@@ -64,5 +89,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/bookings/:path*", "/carrier/:path*", "/admin/:path*"],
+  matcher: [
+    "/bookings/:path*",
+    "/carrier/:path*",
+    "/admin/:path*",
+    "/api/bookings/:path*",
+    "/api/payments/:path*",
+  ],
 };

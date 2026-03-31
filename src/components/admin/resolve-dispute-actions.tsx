@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,10 +13,14 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
   const [bookingStatus, setBookingStatus] = useState<"keep" | "completed" | "cancelled">("keep");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeAction, setActiveAction] = useState<
+    "investigating" | "resolved" | "closed" | null
+  >(null);
 
   async function submit(status: "investigating" | "resolved" | "closed") {
     setError(null);
     setIsSubmitting(true);
+    setActiveAction(status);
 
     try {
       const response = await fetch(`/api/admin/disputes/${disputeId}`, {
@@ -38,6 +43,7 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
       setError(caught instanceof Error ? caught.message : "Unable to update dispute.");
     } finally {
       setIsSubmitting(false);
+      setActiveAction(null);
     }
   }
 
@@ -47,10 +53,12 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
         value={resolutionNotes}
         onChange={(event) => setResolutionNotes(event.target.value)}
         placeholder="Admin notes, evidence summary, refund/credit decision, next action"
+        disabled={isSubmitting}
       />
       <select
         value={bookingStatus}
         onChange={(event) => setBookingStatus(event.target.value as "keep" | "completed" | "cancelled")}
+        disabled={isSubmitting}
         className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
       >
         <option value="keep">Keep booking status as-is</option>
@@ -59,12 +67,15 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
       </select>
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="secondary" disabled={isSubmitting} onClick={() => submit("investigating")}>
+          {activeAction === "investigating" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Mark investigating
         </Button>
         <Button type="button" disabled={isSubmitting} onClick={() => submit("resolved")}>
+          {activeAction === "resolved" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Resolve dispute
         </Button>
         <Button type="button" variant="secondary" disabled={isSubmitting} onClick={() => submit("closed")}>
+          {activeAction === "closed" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Close
         </Button>
       </div>

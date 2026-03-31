@@ -1,8 +1,15 @@
 import { filterCandidateTrips } from "@/lib/matching/filter";
 import { rankTrips } from "@/lib/matching/rank";
+import { getTodayIsoDate } from "@/lib/utils";
 import type { Booking } from "@/types/booking";
 import type { CarrierProfile, Vehicle } from "@/types/carrier";
 import type { Trip, TripSearchInput } from "@/types/trip";
+
+function getFutureIsoDate(daysFromToday: number) {
+  const date = new Date(`${getTodayIsoDate()}T00:00:00`);
+  date.setDate(date.getDate() + daysFromToday);
+  return date.toISOString().split("T")[0] ?? getTodayIsoDate();
+}
 
 const carriers: CarrierProfile[] = [
   {
@@ -105,7 +112,7 @@ export const demoTrips: Trip[] = [
       via: ["Parramatta", "Strathfield"],
       label: "Penrith → Bondi",
     },
-    tripDate: "2026-03-26",
+    tripDate: getFutureIsoDate(1),
     timeWindow: "afternoon",
     spaceSize: "L",
     availableVolumeM3: 2.5,
@@ -134,7 +141,7 @@ export const demoTrips: Trip[] = [
       via: ["Alexandria"],
       label: "Wetherill Park → Newtown",
     },
-    tripDate: "2026-03-27",
+    tripDate: getFutureIsoDate(2),
     timeWindow: "morning",
     spaceSize: "M",
     availableVolumeM3: 1.1,
@@ -163,7 +170,7 @@ export const demoTrips: Trip[] = [
       via: ["Newtown", "Lidcombe"],
       label: "Surry Hills → Parramatta",
     },
-    tripDate: "2026-03-28",
+    tripDate: getFutureIsoDate(3),
     timeWindow: "evening",
     spaceSize: "M",
     availableVolumeM3: 1,

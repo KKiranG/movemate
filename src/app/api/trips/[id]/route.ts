@@ -3,6 +3,17 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireSessionUser } from "@/lib/auth";
 import { cancelTripForCarrier, getTripById, updateTripForCarrier } from "@/lib/data/trips";
 import { toErrorResponse } from "@/lib/errors";
+import { sanitizeText } from "@/lib/utils";
+import type { TripUpdateInput } from "@/lib/validation/trip";
+
+function sanitizeTripUpdatePayload(payload: Record<string, unknown>): TripUpdateInput {
+  return Object.fromEntries(
+    Object.entries(payload).map(([key, value]) => [
+      key,
+      typeof value === "string" ? sanitizeText(value) : value,
+    ]),
+  ) as TripUpdateInput;
+}
 
 export async function GET(
   _request: NextRequest,
@@ -28,7 +39,9 @@ export async function PATCH(
 ) {
   try {
     const user = await requireSessionUser();
-    const payload = await request.json();
+    const payload = sanitizeTripUpdatePayload(
+      (await request.json()) as Record<string, unknown>,
+    );
     const trip = await updateTripForCarrier(user.id, params.id, payload);
 
     return NextResponse.json({ trip });
