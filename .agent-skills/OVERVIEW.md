@@ -1,63 +1,48 @@
 # moverrr Overview
 
-## What this product is
+## What moverrr is
 
-A **browse-first spare-capacity marketplace** for medium-sized moves in Sydney.
-**Platform target: iOS app.** The web app is used for development and testing only.
+moverrr is a browse-first spare-capacity marketplace for Sydney's awkward-middle moves.
 
-Carriers post:
-- route
-- date
-- time window
-- spare space
-- price
-- handling rules
+Carriers post real trips with spare room.
+Customers browse that inventory and book into it.
 
-Customers:
-- browse trips
-- compare price and savings
-- pick a route-fit option
-- book into it
+The product is iOS-first. The web app exists to develop and validate the native experience.
 
-## What this product is not
+## What moverrr is not
 
 - not a removalist company
-- not a courier service
-- not a quote-comparison engine
-- not a job-bidding marketplace
-- not an AI matching product
+- not a courier dispatch layer
+- not a quote-comparison funnel
+- not a bidding marketplace
+- not an AI-matching product
 
-## Product wedge
+## The wedge
 
-- Sydney metro only
-- awkward-middle jobs (single furniture, appliances, marketplace pickups)
+Current wedge examples:
+- single furniture items
+- appliances
+- marketplace pickups
 - student moves
-- small business overflow / café supply runs
+- small business overflow
 
-## Core objects
+## What matters most right now
 
-- `capacity_listings`: inventory posted by carriers
-- `bookings`: customer claims on that inventory
-- `trip_templates`: carrier saved routes for quick re-posting
-- `saved_searches`: customer demand signals for route alerts
-- `reviews`: post-completion trust
-- `disputes`: manual-first issue handling
+1. recurring carrier supply
+2. transparent customer trust
+3. manageable ops and disputes
+4. clear route-fit inventory
 
-## Build priorities
+## Current shipped surface
 
-1. **Trust** — carrier verified, proof uploaded, disputes handled
-2. **Simplicity** — carrier posting in <60 seconds, customer booking in ~4 steps
-3. **Supply speed** — carrier flow must be radically simple and iOS-optimised
-4. **Customer clarity** — pricing transparent, savings always shown
-5. **Automation** — only after manual ops are proven
-6. **Polish** — last priority
+- browse and search inventory
+- live trip detail and booking creation
+- saved searches for no-result routes
+- carrier onboarding and trip posting
+- trip templates for repeat routes
+- booking progression, disputes, and reviews
+- admin verification and dispute handling
 
-## MVP success criteria
+## Core product question
 
-- 10+ active verified carriers posting usable availability weekly
-- 50+ completed Sydney jobs in the wedge
-- 30%+ of inbound demand matches genuine spare capacity
-
-## Critical validation question
-
-Can we get reliable recurring inventory from Sydney carriers if posting takes under 60 seconds and jobs arrive without negotiation?
+Can moverrr get reliable recurring inventory from Sydney carriers if posting is fast, trust is visible, and customers see transparent browseable supply instead of entering a quote flow?

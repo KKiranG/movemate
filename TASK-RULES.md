@@ -1,101 +1,168 @@
-# moverrr — Task Tracking Rules
+# moverrr — Task System
 
-Hard rules for `todolist.md` and `completed.md`. Every AI session and human working on this project follows these exactly.
-
----
+Hard rules for `todolist.md` and `completed.md`.
+Treat backlog quality as product quality: if the task system is vague, the shipping loop becomes vague too.
 
 ## The Two Files
 
 | File | Purpose |
-|------|---------|
-| `todolist.md` | Single source of truth for what is NOT done yet. Work from top to bottom by priority. |
-| `completed.md` | Permanent log of what IS done. Never delete entries. Only add. |
+| --- | --- |
+| `todolist.md` | Single source of truth for work that is not done yet |
+| `completed.md` | Permanent log of work that is already done |
 
-Both files live at the **project root** (`/Users/kiranghimire/Documents/moverrr/`). Do not move them.
+Both stay at the project root.
 
----
+## Governing Principles
 
-## todolist.md Rules
+1. **One task = one real outcome.**
+   A task should describe a user, ops, trust, or quality outcome, not a random pile of edits.
+2. **Every task needs evidence.**
+   If "done" cannot be verified, the task is underspecified.
+3. **Smallest shippable chunk wins.**
+   Split broad efforts into the smallest slices that can be built, verified, and learned from.
+4. **Backlog clarity beats backlog volume.**
+   A shorter, sharper backlog is better than a long graveyard of vague ideas.
+5. **Docs count as product infrastructure.**
+   If a task changes flows, commands, or guardrails, that documentation work belongs in the same logical unit.
 
-### Format for every item
-```
+## `todolist.md` Rules
+
+### Required format
+
+```md
 - [ ] **ID** — Title
   - **File(s):** exact path(s) or "new file: path"
   - **What:** one sentence describing the change
   - **Why:** one sentence on the user/business impact
-  - **Done when:** specific, verifiable outcome (e.g. "npm run check passes", "returns 400 on invalid input")
+  - **Done when:** specific, verifiable outcome
 ```
 
-### Priority levels (use these headers exactly)
-- `## 🔴 P0 — Production Blocking` — data loss, payment errors, security holes. Fix before any real users.
-- `## 🟠 P1 — User-Facing Bugs` — broken flows, wrong data shown, crashes.
-- `## 🟡 P2 — UX & Conversion` — directly affects carrier posting rate or customer booking rate.
-- `## 🟢 P3 — Enhancements` — operational tools, polish, trust builders.
-- `## ⚪ P4 — Post-MVP / Deferred` — good ideas, not now. Documented so they aren't lost.
+### Priority headers
 
-### Rules
-1. **Never mark an item done in this file.** Move it to `completed.md` and delete it from here.
-2. **Never add vague items.** Every item must have a file path and a "Done when" check.
-3. **No duplicates.** Before adding, search for the item first.
-4. **Sort within each priority section** by estimated impact, highest first.
-5. **Keep P4 items short** — one line each, no implementation detail. They are placeholders.
-6. **After every AI session:** remove items that were completed, add any new items discovered.
-7. **Target 120–180 items total.** Over 200 means we're not shipping fast enough.
-8. **After `npm run check` passes and changes are committed:** move the item immediately.
+Use these headers exactly:
 
-### Item ID convention
-- `A` = API / backend
-- `B` = Browser / frontend UI
-- `C` = iOS / mobile compliance
-- `D` = Database / schema
-- `E` = Enhancement (prefix with S=supply, D=demand, P=platform, A=admin, Q=quality)
-- `V` = Visual / design system
-- `X` = External / infra / devops
+- `## 🔴 P0 — Production Blocking`
+- `## 🟠 P1 — User-Facing Bugs`
+- `## 🟡 P2 — UX & Conversion`
+- `## 🟢 P3 — Enhancements`
+- `## ⚪ P4 — Post-MVP / Deferred`
 
----
+### Quality bar for each item
 
-## completed.md Rules
+Every item should make these clear:
+- where the change will happen
+- what real behavior changes
+- why it matters to the marketplace
+- how to know the task is complete
 
-### Format for every entry
-```
+If a task touches pricing, booking states, payments, mobile UI, or database security, say that explicitly in the item.
+
+### Hard rules
+
+1. Never mark an item done in `todolist.md`; move it out.
+2. Never add vague work like "improve UX" or "make onboarding better."
+3. Check for duplicates before adding new work.
+4. Sort within each priority bucket by business impact.
+5. Keep P4 items intentionally light; they are reminders, not near-term build specs.
+6. If one task changes the shape of another, rewrite the stale task immediately.
+7. Aim for a backlog that is sharp enough to scan in minutes, not hours.
+
+## Task Sizing Rules
+
+Split work when:
+- the task touches more than one user journey
+- the verification plan differs by area
+- the business risk is mixed
+- one part is blocked by a decision and another is not
+
+Good task slices in this repo usually map to one of:
+- a carrier posting friction removal
+- a customer booking clarity fix
+- an admin/trust workflow improvement
+- a backend invariant hardening change
+- a docs/memory alignment update
+
+## `completed.md` Rules
+
+### Required format
+
+```md
 ### `COMP-YYYY-MM-DD-NN` — Short title
 - **When:** YYYY-MM-DD
 - **By:** Human / Codex / Claude / Scheduled task
 - **Files changed:** list of exact paths
 - **Why it mattered:** one sentence on business/user impact
-- **What was done:** 2–5 bullet points, specific enough to understand without reading the code
+- **What was done:** 2–5 concrete bullets
 - **Verification:** how it was confirmed working
 ```
 
-### Rules
-1. **Never delete entries.** Add a `[SUPERSEDED by COMP-...]` note if a later task replaces an earlier one.
-2. **Number sequentially** within each date. Never reuse a number.
-3. **One entry per logical unit of work,** not per file changed. A feature with 8 files changed is one entry.
-4. **Include the "Why it mattered"** — this is the most important line for future context.
-5. **Group by date** with a `## YYYY-MM-DD` heading.
+### Hard rules
 
----
+1. Never delete entries.
+2. Number sequentially within each date.
+3. Use one entry per logical unit of work, not per file.
+4. The "Why it mattered" line is mandatory.
+5. Group entries under a `## YYYY-MM-DD` heading.
 
-## Moving an item
+## Session Loop
 
-When a task is complete:
+Every meaningful work session should follow this order:
 
-1. Delete the item from `todolist.md`
-2. Add an entry to `completed.md` following the format above
-3. Commit both files together: `chore: move [ID] to completed`
+1. Read the current highest-priority relevant task.
+2. Read the related code and project memory before editing.
+3. Implement the smallest complete change.
+4. Verify the change with real evidence.
+5. Move the finished task to `completed.md`.
+6. Add any newly discovered follow-up work back into `todolist.md`.
 
-That's it. No other ceremony.
+## Experiment Loop
 
----
+When a task is exploratory, optimization-heavy, or strategy-shaped, borrow the `autoresearch` discipline:
 
-## Design principles for this project (inform all tasks)
+1. Establish the current baseline.
+2. Change one meaningful variable at a time.
+3. Use a fixed verification lens.
+4. Keep or discard based on evidence, not vibes.
+5. Record the learning, not just the diff.
 
-**Product:** Browse-first spare-capacity marketplace. Carriers post existing trips. Customers book spare space. NOT a removalist company, NOT real-time dispatch, NOT a quote engine.
+For moverrr, common baseline metrics are:
+- time for a carrier to post a trip
+- search-to-book conversion
+- saved-search capture rate on no-result routes
+- dispute resolution time
+- admin review queue time
+- proof-completion rate
 
-**Visual direction:** Perplexity-clean (narrow column, low clutter, information-dense) + Uber-bold (high-contrast numbers, black/white primary palette, confident typography). This is NOT an Uber clone — no maps, no surge pricing, no live tracking at MVP.
+## Anti-Patterns
 
-**iOS-first:** Web is for testing. Every decision is made for iPhone first. 44px tap targets. No hover-only states. `capture="environment"` on proof uploads. Safe area insets on sticky elements.
+Do not add tasks that:
+- bundle product strategy, implementation, and polish into one item
+- describe output without user/business impact
+- assume a solution before the problem is clear
+- drift moverrr toward dispatch, bidding, or quote comparison
+- duplicate work that already exists in another priority bucket
 
-**Pricing model (MVP):** 15% commission from carrier on base price + $5 flat booking fee from customer. Do NOT change this without an explicit task and discussion. Review the flat fee structure after 50+ completed jobs.
+## ID Convention
 
-**Priority order:** Trust → Simplicity → Supply speed → Customer clarity → Automation → Polish.
+- `A` = API / backend
+- `B` = browser / frontend
+- `C` = iOS / mobile compliance
+- `D` = database / schema
+- `E` = enhancement
+- `V` = visual / design system
+- `X` = external / infra / devops
+
+For enhancement work, keep the second letter meaningful:
+- `ES` = supply
+- `ED` = demand
+- `EP` = platform
+- `EA` = admin
+- `EQ` = quality
+
+## Priority Reminder
+
+The real product order is still:
+
+**Trust -> Simplicity -> Supply speed -> Customer clarity -> Automation -> Polish**
+
+If a task list starts optimizing polish ahead of supply, clarity, or trust, the backlog has gone off course.

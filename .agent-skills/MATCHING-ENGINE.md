@@ -1,35 +1,35 @@
 # Matching Engine
 
-## Rule
+## Principle
 
-Matching must stay deterministic and explainable.
+Matching must stay deterministic, explainable, and debuggable.
 
 ## Hard disqualifiers
 
 - pickup outside detour radius
 - dropoff outside detour radius
 - item does not fit available space
-- carrier does not accept the item category
+- carrier does not accept the category
 - listing is inactive or expired
 - carrier is not verified
 
-## Ranking weights
+## Ranking signals
 
-- pickup route fit: 35
-- dropoff route fit: 35
-- carrier reliability: 20
-- price competitiveness: 10
+- pickup route fit
+- dropoff route fit
+- carrier reliability
+- price fit
 
-## Why not AI
+## Why this is not AI matching
 
 - easier to debug
-- easier to tune
-- easier to explain to users
-- better for trust in an early marketplace
+- easier to explain to customers and carriers
+- easier to tune while the marketplace is young
+- better aligned with trust-first product behavior
 
 ## Data sources
 
-- PostGIS for proximity filtering
+- PostGIS distance filters
 - carrier ratings
 - listing price
-- item/category constraints
+- listing rules and capacity constraints
