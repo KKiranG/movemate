@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { requirePageSessionUser } from "@/lib/auth";
+import { getBookingPaymentStateSummary } from "@/lib/booking-presenters";
 import { listUserBookings } from "@/lib/data/bookings";
 import { PageIntro } from "@/components/layout/page-intro";
 import { Card } from "@/components/ui/card";
@@ -16,22 +17,37 @@ async function BookingsListSection({ userId }: { userId: string }) {
       {bookings.map((booking) => (
         <Link key={booking.id} href={`/bookings/${booking.id}`}>
           <Card className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg text-text">{booking.itemDescription}</h2>
-                <p className="mt-2 subtle-text">
-                  {booking.pickupAddress} to {booking.dropoffAddress}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm capitalize text-accent">
-                  {booking.status.replace("_", " ")}
-                </p>
-                <p className="mt-1 font-medium text-text">
-                  {formatCurrency(booking.pricing.totalPriceCents)}
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const paymentSummary = getBookingPaymentStateSummary(booking);
+
+              return (
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg text-text">{booking.itemDescription}</h2>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-text-secondary">
+                      {booking.bookingReference}
+                    </p>
+                    <p className="mt-2 subtle-text">
+                      {booking.pickupAddress} to {booking.dropoffAddress}
+                    </p>
+                    <p className="mt-2 text-sm text-text-secondary">{paymentSummary.badge}</p>
+                    {booking.status === "completed" ? (
+                      <p className="mt-2 text-sm font-medium text-accent">
+                        Rebook from this completed trip
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm capitalize text-accent">
+                      {booking.status.replace("_", " ")}
+                    </p>
+                    <p className="mt-1 font-medium text-text">
+                      {formatCurrency(booking.pricing.totalPriceCents)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </Card>
         </Link>
       ))}

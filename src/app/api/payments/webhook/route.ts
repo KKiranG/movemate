@@ -53,9 +53,17 @@ export async function POST(request: Request) {
         const supabase = createAdminClient();
 
         if (event.type === "payment_intent.payment_failed") {
+          const failureMessage =
+            paymentIntent.last_payment_error?.message ??
+            paymentIntent.last_payment_error?.decline_code ??
+            "Card authorization failed.";
           const { data: updatedRows, error: updateError } = await supabase
             .from("bookings")
-            .update({ payment_status: "failed" })
+            .update({
+              payment_status: "failed",
+              payment_failure_code: paymentIntent.last_payment_error?.decline_code ?? null,
+              payment_failure_reason: failureMessage,
+            })
             .eq("id", bookingId)
             .select("id");
 
@@ -66,6 +74,36 @@ export async function POST(request: Request) {
               {
                 feature: "payments",
                 action: "webhook_payment_failed",
+                tags: { bookingId, eventType: event.type },
+              },
+            );
+          }
+        }
+
+        if (event.type === "payment_intent.canceled") {
+          const { data: updatedRows, error: updateError } = await supabase
+            .from("bookings")
+            .update({
+              payment_status: "authorization_cancelled",
+              payment_failure_code: paymentIntent.cancellation_reason ?? null,
+              payment_failure_reason:
+                paymentIntent.cancellation_reason?.replace(/_/g, " ") ??
+                "The authorization was cancelled before capture.",
+            })
+            .eq("id", bookingId)
+            .select("id");
+
+          if (updateError || !updatedRows || updatedRows.length === 0) {
+            logWebhookContext(
+              "error",
+              "Failed to mark booking payment as authorization cancelled.",
+              baseContext,
+            );
+            captureAppError(
+              updateError ?? new Error(`Booking not found for webhook`),
+              {
+                feature: "payments",
+                action: "webhook_payment_authorization_cancelled",
                 tags: { bookingId, eventType: event.type },
               },
             );

@@ -5,7 +5,13 @@ import { toGeographyPoint } from "@/lib/data/mappers";
 import { hasSupabaseEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
-import type { CreateTripTemplateInput, TripTemplate } from "@/types/carrier";
+import { getNextWeekdayDate } from "@/lib/utils";
+import type {
+  CreateTripTemplateInput,
+  RecurringTemplateSuggestion,
+  TemplateInsight,
+  TripTemplate,
+} from "@/types/carrier";
 import type { Database } from "@/types/database";
 
 const timeWindowSchema = z.enum(["morning", "afternoon", "evening", "flexible"]);
@@ -98,6 +104,8 @@ function toTripTemplate(row: TripTemplateRow): TripTemplate {
     accepts: row.accepts,
     timeWindow: row.time_window,
     notes: row.notes,
+    isArchived: row.is_archived,
+    archivedAt: row.archived_at,
     timesUsed: row.times_used,
     lastUsedAt: row.last_used_at,
     createdAt: row.created_at,
@@ -115,6 +123,7 @@ export async function listCarrierTemplates(carrierId: string) {
     .from("trip_templates")
     .select("*")
     .eq("carrier_id", carrierId)
+    .eq("is_archived", false)
     .order("last_used_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
@@ -269,11 +278,12 @@ export async function createTripFromTemplate(
   const [{ data: template, error: templateError }, { data: vehicle, error: vehicleError }] =
     await Promise.all([
       supabase
-        .from("trip_templates")
-        .select("*")
-        .eq("id", templateId)
-        .eq("carrier_id", carrierId)
-        .maybeSingle(),
+      .from("trip_templates")
+      .select("*")
+      .eq("id", templateId)
+      .eq("carrier_id", carrierId)
+      .eq("is_archived", false)
+      .maybeSingle(),
       supabase
         .from("vehicles")
         .select("id")
@@ -326,6 +336,7 @@ export async function createTripFromTemplate(
     helper_available: template.helper_available,
     helper_extra_cents: template.helper_extra_cents,
     special_notes: template.notes,
+    source_template_id: template.id,
     status: "active",
     remaining_capacity_pct: 100,
   };
@@ -376,4 +387,229 @@ export async function deleteTemplate(templateId: string, carrierId: string) {
   if (error) {
     throw new AppError(error.message, 500, "template_delete_failed");
   }
+}
+
+export async function listCarrierTemplatesIncludingArchived(carrierId: string) {
+  if (!hasSupabaseEnv()) {
+    return [] as TripTemplate[];
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("trip_templates")
+    .select("*")
+    .eq("carrier_id", carrierId)
+    .order("is_archived", { ascending: true })
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    throw new AppError(error.message, 500, "template_query_failed");
+  }
+
+  return (data ?? []).map(toTripTemplate);
+}
+
+export async function updateTemplate(
+  templateId: string,
+  carrierId: string,
+  patch: {
+    name?: string;
+    notes?: string | null;
+    isArchived?: boolean;
+  },
+) {
+  if (!hasSupabaseEnv()) {
+    throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
+  }
+
+  const supabase = createServerSupabaseClient();
+  const nextPatch: Database["public"]["Tables"]["trip_templates"]["Update"] = {};
+
+  if (typeof patch.name === "string") {
+    nextPatch.name = patch.name.trim();
+  }
+
+  if (patch.notes !== undefined) {
+    nextPatch.notes = patch.notes?.trim() ? patch.notes.trim() : null;
+  }
+
+  if (typeof patch.isArchived === "boolean") {
+    nextPatch.is_archived = patch.isArchived;
+    nextPatch.archived_at = patch.isArchived ? new Date().toISOString() : null;
+  }
+
+  const { data, error } = await supabase
+    .from("trip_templates")
+    .update(nextPatch)
+    .eq("id", templateId)
+    .eq("carrier_id", carrierId)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new AppError(error.message, 500, "template_update_failed");
+  }
+
+  return toTripTemplate(data);
+}
+
+export async function duplicateTemplate(templateId: string, carrierId: string) {
+  if (!hasSupabaseEnv()) {
+    throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data: template, error } = await supabase
+    .from("trip_templates")
+    .select("*")
+    .eq("id", templateId)
+    .eq("carrier_id", carrierId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "template_lookup_failed");
+  }
+
+  if (!template) {
+    throw new AppError("Template not found.", 404, "template_not_found");
+  }
+
+  const { data: copy, error: copyError } = await supabase
+    .from("trip_templates")
+    .insert({
+      carrier_id: template.carrier_id,
+      name: `${template.name} copy`,
+      origin_suburb: template.origin_suburb,
+      origin_postcode: template.origin_postcode,
+      origin_point: template.origin_point,
+      destination_suburb: template.destination_suburb,
+      destination_postcode: template.destination_postcode,
+      destination_point: template.destination_point,
+      space_size: template.space_size,
+      available_volume_m3: template.available_volume_m3,
+      max_weight_kg: template.max_weight_kg,
+      detour_radius_km: template.detour_radius_km,
+      suggested_price_cents: template.suggested_price_cents,
+      stairs_ok: template.stairs_ok,
+      stairs_extra_cents: template.stairs_extra_cents,
+      helper_extra_cents: template.helper_extra_cents,
+      helper_available: template.helper_available,
+      accepts: template.accepts,
+      time_window: template.time_window,
+      notes: template.notes,
+      is_archived: false,
+      archived_at: null,
+      times_used: 0,
+      last_used_at: null,
+    })
+    .select("*")
+    .single();
+
+  if (copyError) {
+    throw new AppError(copyError.message, 500, "template_duplicate_failed");
+  }
+
+  return toTripTemplate(copy);
+}
+
+export async function getCarrierTemplateInsights(carrierId: string) {
+  if (!hasSupabaseEnv()) {
+    return {
+      insights: [] as TemplateInsight[],
+      suggestions: [] as RecurringTemplateSuggestion[],
+    };
+  }
+
+  const supabase = createServerSupabaseClient();
+  const [templates, listings] = await Promise.all([
+    listCarrierTemplatesIncludingArchived(carrierId),
+    supabase
+      .from("capacity_listings")
+      .select("id, source_template_id, trip_date, bookings(id, status, carrier_payout_cents)")
+      .eq("carrier_id", carrierId)
+      .not("source_template_id", "is", null),
+  ]);
+
+  if (listings.error) {
+    throw new AppError(listings.error.message, 500, "template_insights_lookup_failed");
+  }
+
+  const insightMap = new Map<string, TemplateInsight>();
+
+  for (const template of templates) {
+    insightMap.set(template.id, {
+      templateId: template.id,
+      tripCount: 0,
+      bookingCount: 0,
+      completionRatePct: 0,
+      totalEarningsCents: 0,
+    });
+  }
+
+  const routeGroups = new Map<
+    string,
+    { templateIds: string[]; weekdays: number[] }
+  >();
+
+  for (const listing of listings.data ?? []) {
+    const templateId = listing.source_template_id as string | null;
+
+    if (!templateId || !insightMap.has(templateId)) {
+      continue;
+    }
+
+    const insight = insightMap.get(templateId)!;
+    const bookings =
+      ((listing.bookings as Array<{ id: string; status: string; carrier_payout_cents: number }> | null) ??
+        []);
+
+    insight.tripCount += 1;
+    insight.bookingCount += bookings.length;
+    insight.totalEarningsCents += bookings
+      .filter((booking) => booking.status === "completed")
+      .reduce((sum, booking) => sum + Number(booking.carrier_payout_cents ?? 0), 0);
+
+    const completedCount = bookings.filter((booking) => booking.status === "completed").length;
+
+    if (insight.tripCount > 0) {
+      const nextCompletedTrips =
+        (insight.completionRatePct / 100) * (insight.tripCount - 1) + (completedCount > 0 ? 1 : 0);
+      insight.completionRatePct = Math.round((nextCompletedTrips / insight.tripCount) * 100);
+    }
+
+    const template = templates.find((item) => item.id === templateId);
+
+    if (template) {
+      const routeLabel = `${template.originSuburb} → ${template.destinationSuburb}`;
+      const nextGroup = routeGroups.get(routeLabel) ?? { templateIds: [], weekdays: [] };
+      nextGroup.templateIds.push(templateId);
+      nextGroup.weekdays.push(new Date(`${listing.trip_date}T00:00:00`).getDay());
+      routeGroups.set(routeLabel, nextGroup);
+    }
+  }
+
+  const suggestions = Array.from(routeGroups.entries())
+    .filter(([, group]) => group.templateIds.length >= 2)
+    .map(([routeLabel, group]) => {
+      const weekdayCounts = group.weekdays.reduce<Record<number, number>>((accumulator, weekday) => {
+        accumulator[weekday] = (accumulator[weekday] ?? 0) + 1;
+        return accumulator;
+      }, {});
+      const nextWeekday = Number(
+        Object.entries(weekdayCounts).sort((left, right) => right[1] - left[1])[0]?.[0] ?? "5",
+      );
+
+      return {
+        routeLabel,
+        templateIds: Array.from(new Set(group.templateIds)),
+        templateCount: group.templateIds.length,
+        nextWeekday: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][nextWeekday],
+        nextTripDate: getNextWeekdayDate(nextWeekday),
+      } satisfies RecurringTemplateSuggestion;
+    });
+
+  return {
+    insights: Array.from(insightMap.values()),
+    suggestions,
+  };
 }

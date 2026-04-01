@@ -1,17 +1,17 @@
-import {
-  getListingStatusFromCapacity,
-  getRemainingCapacityPctForListing,
-} from "@/lib/booking-capacity";
+import { createHash } from "node:crypto";
+
 import { canTransitionBooking } from "@/lib/status-machine";
 import { hasSupabaseEnv, hasSupabaseAdminEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
-import { sendTransactionalEmail } from "@/lib/notifications";
+import { sendBookingTransactionalEmail } from "@/lib/notifications";
 import { getStripeServerClient } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { toBooking, type BookingJoinedRecord } from "@/lib/data/mappers";
 import { bookingSchema, type BookingInput } from "@/lib/validation/booking";
 import type { Database } from "@/types/database";
+import type { BookingCancellationReasonCode } from "@/types/booking";
+import { getConfirmedBookingChecklist } from "@/lib/booking-presenters";
 
 async function getBookingRowForUser(userId: string, bookingId: string) {
   const supabase = createServerSupabaseClient();
@@ -59,7 +59,7 @@ async function recordBookingEvent(params: {
     return;
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = getPrivilegedSupabaseClient();
   await supabase.from("booking_events").insert({
     booking_id: params.bookingId,
     actor_role: params.actorRole,
@@ -67,6 +67,16 @@ async function recordBookingEvent(params: {
     event_type: params.eventType,
     metadata: params.metadata ?? {},
   });
+}
+
+function getPrivilegedSupabaseClient() {
+  return hasSupabaseAdminEnv()
+    ? createAdminClient()
+    : createServerSupabaseClient();
+}
+
+function createBookingRequestHash(input: BookingInput) {
+  return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 
 async function getBookingNotificationRecipients(params: {
@@ -96,46 +106,14 @@ async function syncListingStatusForBooking(params: {
     return;
   }
 
-  const supabase = hasSupabaseAdminEnv()
-    ? createAdminClient()
-    : createServerSupabaseClient();
-  const { data: listing, error: listingError } = await supabase
-    .from("capacity_listings")
-    .select("id, status, available_volume_m3, available_weight_kg")
-    .eq("id", params.listingId)
-    .maybeSingle();
+  const supabase = getPrivilegedSupabaseClient();
+  const { error } = await supabase.rpc("recalculate_listing_capacity", {
+    p_listing_id: params.listingId,
+  });
 
-  if (listingError) {
-    throw new AppError(listingError.message, 500, "listing_capacity_lookup_failed");
+  if (error) {
+    throw new AppError(error.message, 500, "listing_capacity_recalculation_failed");
   }
-
-  if (!listing) {
-    return;
-  }
-
-  const { data: activeBookings, error: activeBookingsError } = await supabase
-    .from("bookings")
-    .select("id, status, item_dimensions, item_weight_kg, item_category")
-    .eq("listing_id", params.listingId)
-    .neq("status", "cancelled");
-
-  if (activeBookingsError) {
-    throw new AppError(activeBookingsError.message, 500, "listing_active_bookings_failed");
-  }
-
-  const activeBookingCount = activeBookings?.length ?? 0;
-  const remainingCapacityPct = getRemainingCapacityPctForListing(listing, activeBookings ?? []);
-
-  await supabase
-    .from("capacity_listings")
-    .update({
-      remaining_capacity_pct: remainingCapacityPct,
-      status:
-        listing.status === "cancelled" || listing.status === "expired" || listing.status === "draft"
-          ? listing.status
-          : getListingStatusFromCapacity(activeBookingCount, remainingCapacityPct),
-    })
-    .eq("id", params.listingId);
 }
 
 export async function listUserBookings(userId: string) {
@@ -205,7 +183,11 @@ export async function getBookingByIdForUser(userId: string, bookingId: string) {
   return row ? toBooking(row) : null;
 }
 
-export async function createBookingForCustomer(userId: string, input: BookingInput) {
+export async function createBookingForCustomer(
+  userId: string,
+  input: BookingInput,
+  options?: { idempotencyKey?: string | null },
+) {
   if (!hasSupabaseEnv()) {
     throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
   }
@@ -249,6 +231,12 @@ export async function createBookingForCustomer(userId: string, input: BookingInp
     throw new AppError("Trip/carrier mismatch.", 400, "carrier_mismatch");
   }
 
+  const { data: carrierProfile } = await supabase
+    .from("carriers")
+    .select("business_name")
+    .eq("id", parsed.data.carrierId)
+    .maybeSingle();
+
   const { data: bookingId, error } = await supabase.rpc("create_booking_atomic", {
     p_actor_user_id: userId,
     p_carrier_id: parsed.data.carrierId,
@@ -278,6 +266,9 @@ export async function createBookingForCustomer(userId: string, input: BookingInp
     p_pickup_postcode: parsed.data.pickupPostcode,
     p_pickup_suburb: parsed.data.pickupSuburb,
     p_special_instructions: parsed.data.specialInstructions ?? null,
+    p_client_idempotency_key: options?.idempotencyKey?.trim() || null,
+    p_idempotency_request_hash:
+      options?.idempotencyKey?.trim() ? createBookingRequestHash(parsed.data) : null,
   });
 
   if (error) {
@@ -297,6 +288,14 @@ export async function createBookingForCustomer(userId: string, input: BookingInp
       throw new AppError("Trip/carrier mismatch.", 400, "carrier_mismatch");
     }
 
+    if (error.message.includes("idempotency_key_reused")) {
+      throw new AppError(
+        "This retry key was already used for a different booking request.",
+        409,
+        "idempotency_key_reused",
+      );
+    }
+
     throw new AppError(error.message, 500, "booking_create_failed");
   }
 
@@ -306,10 +305,30 @@ export async function createBookingForCustomer(userId: string, input: BookingInp
     throw new AppError("Booking created but could not be loaded.", 500, "booking_lookup_failed");
   }
 
-  await sendTransactionalEmail({
+  await sendBookingTransactionalEmail({
+    bookingId: booking.id,
+    bookingStatus: booking.status,
+    emailType: "booking_created_customer",
     to: customer.email,
-    subject: "Booking received",
-    html: `<p>Your moverrr booking has been created and is awaiting carrier confirmation.</p>`,
+    subject: `Booking received: ${booking.bookingReference}`,
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;line-height:1.5">
+        <h1 style="font-size:20px;margin-bottom:16px">Booking confirmed in moverrr</h1>
+        <p>Your booking <strong>${booking.bookingReference}</strong> is now waiting on carrier confirmation.</p>
+        <div style="border:1px solid #e5e5e5;border-radius:12px;padding:16px;margin:16px 0">
+          <p style="margin:0 0 8px"><strong>Route:</strong> ${listing.origin_suburb} to ${listing.destination_suburb}</p>
+          <p style="margin:0 0 8px"><strong>Pickup window:</strong> ${listing.trip_date} · ${listing.time_window}</p>
+          <p style="margin:0 0 8px"><strong>Carrier:</strong> ${carrierProfile?.business_name ?? "Verified moverrr carrier"}</p>
+          <p style="margin:0"><strong>Total paid:</strong> ${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(booking.pricing.totalPriceCents / 100)}</p>
+        </div>
+        <p style="margin-bottom:8px"><strong>Preparation checklist</strong></p>
+        <ul style="padding-left:20px;margin-top:0">
+          <li>Keep access notes and contact numbers handy.</li>
+          <li>Make sure the item is ready inside the agreed pickup window.</li>
+          <li>Keep this reference for support: ${booking.bookingReference}</li>
+        </ul>
+      </div>
+    `,
   });
 
   const recipients = await getBookingNotificationRecipients({
@@ -318,10 +337,24 @@ export async function createBookingForCustomer(userId: string, input: BookingInp
   });
 
   if (recipients.carrierEmail) {
-    await sendTransactionalEmail({
+    await sendBookingTransactionalEmail({
+      bookingId: booking.id,
+      bookingStatus: booking.status,
+      emailType: "booking_created_carrier",
       to: recipients.carrierEmail,
-      subject: "New booking request received",
-      html: "<p>A customer has booked into one of your moverrr trips. Please review and confirm the booking.</p>",
+      subject: `New booking request: ${booking.bookingReference}`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;line-height:1.5">
+          <h1 style="font-size:20px;margin-bottom:16px">New booking request</h1>
+          <p>Booking <strong>${booking.bookingReference}</strong> has been created on one of your moverrr trips.</p>
+          <div style="border:1px solid #e5e5e5;border-radius:12px;padding:16px;margin:16px 0">
+            <p style="margin:0 0 8px"><strong>Route:</strong> ${listing.origin_suburb} to ${listing.destination_suburb}</p>
+            <p style="margin:0 0 8px"><strong>Trip window:</strong> ${listing.trip_date} · ${listing.time_window}</p>
+            <p style="margin:0"><strong>Customer total:</strong> ${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(booking.pricing.totalPriceCents / 100)}</p>
+          </div>
+          <p>Please review the booking in your dashboard and confirm it as soon as possible.</p>
+        </div>
+      `,
     });
   }
 
@@ -342,28 +375,49 @@ export async function createPaymentIntentForBooking(userId: string, bookingId: s
   const stripe = getStripeServerClient();
 
   if (booking.stripePaymentIntentId) {
-    const existingIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentIntentId);
+    try {
+      const existingIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentIntentId);
 
-    if (existingIntent.status !== "canceled") {
-      return existingIntent;
+      const isCompatibleIntent =
+        existingIntent.status !== "canceled" &&
+        existingIntent.amount === booking.pricing.totalPriceCents &&
+        existingIntent.currency === "aud" &&
+        existingIntent.metadata?.bookingId === booking.id;
+
+      if (isCompatibleIntent) {
+        return existingIntent;
+      }
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.toLowerCase().includes("no such payment_intent")) {
+        throw error;
+      }
     }
   }
 
-  const intent = await stripe.paymentIntents.create({
-    amount: booking.pricing.totalPriceCents,
-    currency: "aud",
-    capture_method: "manual",
-    metadata: {
-      bookingId: booking.id,
-      listingId: booking.listingId,
+  const intent = await stripe.paymentIntents.create(
+    {
+      amount: booking.pricing.totalPriceCents,
+      currency: "aud",
+      capture_method: "manual",
+      metadata: {
+        bookingId: booking.id,
+        bookingReference: booking.bookingReference,
+        listingId: booking.listingId,
+      },
     },
-  });
+    {
+      idempotencyKey: `booking:${booking.id}`,
+    },
+  );
 
   const supabase = createServerSupabaseClient();
   await supabase
     .from("bookings")
     .update({
       stripe_payment_intent_id: intent.id,
+      payment_status: "pending",
+      payment_failure_code: null,
+      payment_failure_reason: null,
     })
     .eq("id", booking.id);
 
@@ -389,6 +443,8 @@ export async function updateBookingStatusForActor(params: {
   pickupProofPhotoUrl?: string;
   deliveryProofPhotoUrl?: string;
   cancellationReason?: string;
+  cancellationReasonCode?: BookingCancellationReasonCode;
+  skipStatusEmails?: boolean;
 }) {
   if (!hasSupabaseEnv()) {
     throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
@@ -471,6 +527,7 @@ export async function updateBookingStatusForActor(params: {
   if (params.nextStatus === "cancelled") {
     patch.cancelled_at = new Date().toISOString();
     patch.cancellation_reason = params.cancellationReason ?? "Cancelled by user";
+    patch.cancellation_reason_code = params.cancellationReasonCode ?? null;
   }
 
   const supabase =
@@ -502,6 +559,28 @@ export async function updateBookingStatusForActor(params: {
     listingId: data.listing_id,
   });
 
+  if (
+    params.nextStatus === "cancelled" &&
+    data.stripe_payment_intent_id &&
+    process.env.STRIPE_SECRET_KEY
+  ) {
+    try {
+      const stripe = getStripeServerClient();
+      const intent = await stripe.paymentIntents.retrieve(data.stripe_payment_intent_id);
+
+      if (intent.status !== "canceled" && intent.status !== "succeeded") {
+        await stripe.paymentIntents.cancel(data.stripe_payment_intent_id);
+        await supabase
+          .from("bookings")
+          .update({ payment_status: "authorization_cancelled" })
+          .eq("id", data.id);
+        data.payment_status = "authorization_cancelled";
+      }
+    } catch {
+      // Best effort: the booking cancellation is already persisted.
+    }
+  }
+
   if (params.nextStatus === "completed" && data.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
     const stripe = getStripeServerClient();
     await stripe.paymentIntents.capture(data.stripe_payment_intent_id);
@@ -531,22 +610,37 @@ export async function updateBookingStatusForActor(params: {
       ? [recipients.customerEmail]
       : [recipients.customerEmail, recipients.carrierEmail];
 
-  await Promise.all(
-    emailTargets
-      .filter((email): email is string => Boolean(email))
-      .map((email) =>
-        sendTransactionalEmail({
-          to: email,
-          subject: subjectByStatus[params.nextStatus] ?? "Booking updated",
-          html: `<p>Your moverrr booking is now marked as ${params.nextStatus.replace("_", " ")}.</p>`,
-        }),
-      ),
-  );
+  if (!params.skipStatusEmails) {
+    const checklistHtml =
+      params.nextStatus === "confirmed"
+        ? `<ul>${getConfirmedBookingChecklist()
+            .map((item) => `<li>${item}</li>`)
+            .join("")}</ul>`
+        : "";
+
+    await Promise.all(
+      emailTargets
+        .filter((email): email is string => Boolean(email))
+        .map((email) =>
+          sendBookingTransactionalEmail({
+            bookingId: data.id,
+            bookingStatus: params.nextStatus,
+            emailType: "booking_status_update",
+            to: email,
+            subject: `${subjectByStatus[params.nextStatus] ?? "Booking updated"}: ${data.booking_reference}`,
+            html:
+              params.nextStatus === "confirmed"
+                ? `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is confirmed.</p><p>Preparation checklist:</p>${checklistHtml}`
+                : `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is now marked as ${params.nextStatus.replace("_", " ")}.</p>`,
+          }),
+        ),
+    );
+  }
 
   return toBooking(data as unknown as BookingJoinedRecord);
 }
 
-export async function listAdminBookings(params?: { page?: number; pageSize?: number }) {
+export async function listAdminBookings(params?: { page?: number; pageSize?: number; query?: string }) {
   if (!hasSupabaseAdminEnv()) {
     return [];
   }
@@ -557,15 +651,217 @@ export async function listAdminBookings(params?: { page?: number; pageSize?: num
   const to = from + pageSize - 1;
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("bookings")
     .select("*, events:booking_events(*)")
     .order("created_at", { ascending: false })
     .range(from, to);
+
+  const searchQuery = params?.query?.trim();
+
+  if (searchQuery) {
+    query = query.ilike("booking_reference", `%${searchQuery}%`);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new AppError(error.message, 500, "admin_booking_query_failed");
   }
 
   return ((data ?? []) as unknown as BookingJoinedRecord[]).map(toBooking);
+}
+
+export async function expirePendingBookings(params?: {
+  limit?: number;
+  now?: string;
+}) {
+  if (!hasSupabaseAdminEnv()) {
+    return [] as string[];
+  }
+
+  const supabase = createAdminClient();
+  const now = params?.now ?? new Date().toISOString();
+  const { data: staleBookings, error } = await supabase
+    .from("bookings")
+    .select("id, stripe_payment_intent_id")
+    .eq("status", "pending")
+    .lte("pending_expires_at", now)
+    .order("pending_expires_at", { ascending: true })
+    .limit(params?.limit ?? 100);
+
+  if (error) {
+    throw new AppError(error.message, 500, "pending_booking_expiry_lookup_failed");
+  }
+
+  const expiredIds: string[] = [];
+
+  for (const row of staleBookings ?? []) {
+    const booking = await updateBookingStatusForActor({
+      userId: "system-expiry-runner",
+      bookingId: row.id,
+      nextStatus: "cancelled",
+      actorRole: "admin",
+      cancellationReason: "Expired after the 2-hour pending response window.",
+      skipStatusEmails: true,
+    });
+
+    await recordBookingEvent({
+      bookingId: row.id,
+      actorRole: "admin",
+      actorUserId: null,
+      eventType: "pending_booking_expired",
+      metadata: {
+        reason: "Expired after the 2-hour pending response window.",
+        expiredAt: now,
+      },
+    });
+
+    if (row.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const stripe = getStripeServerClient();
+        const intent = await stripe.paymentIntents.retrieve(row.stripe_payment_intent_id);
+
+        if (intent.status !== "canceled" && intent.status !== "succeeded") {
+          await stripe.paymentIntents.cancel(row.stripe_payment_intent_id);
+        }
+      } catch {
+        // Best effort: booking has already been cancelled and capacity restored.
+      }
+    }
+
+    const recipients = await getBookingNotificationRecipients({
+      customerId: booking.customerId,
+      carrierId: booking.carrierId,
+    });
+
+    const emailTargets = [recipients.customerEmail, recipients.carrierEmail];
+
+    await Promise.all(
+      emailTargets
+        .filter((email): email is string => Boolean(email))
+        .map((email) =>
+          sendBookingTransactionalEmail({
+            bookingId: booking.id,
+            bookingStatus: "cancelled",
+            emailType: "pending_booking_expired",
+            to: email,
+            subject: `Pending booking expired: ${booking.bookingReference}`,
+            html: `<p>Booking <strong>${booking.bookingReference}</strong> expired after the 2-hour carrier response window and has been cancelled. Capacity has been released back to the trip.</p>`,
+          }),
+        ),
+    );
+
+    expiredIds.push(row.id);
+  }
+
+  return expiredIds;
+}
+
+export async function getCarrierPayoutDashboard(userId: string) {
+  const bookings = await listCarrierBookings(userId);
+
+  const upcomingExpectedPayoutCents = bookings
+    .filter((booking) => ["confirmed", "picked_up", "in_transit", "delivered"].includes(booking.status))
+    .reduce((sum, booking) => sum + booking.pricing.carrierPayoutCents, 0);
+  const completedButUnreleasedCents = bookings
+    .filter((booking) => booking.status === "completed" && booking.paymentStatus !== "captured")
+    .reduce((sum, booking) => sum + booking.pricing.carrierPayoutCents, 0);
+  const refundedJobs = bookings.filter((booking) =>
+    ["refunded", "authorization_cancelled"].includes(booking.paymentStatus ?? "pending"),
+  );
+  const historyByMonth = Array.from(
+    bookings
+      .filter((booking) => booking.paymentStatus === "captured" || booking.paymentStatus === "refunded")
+      .reduce((map, booking) => {
+        const monthKey = (booking.completedAt ?? booking.updatedAt ?? booking.createdAt ?? "").slice(0, 7);
+        const current = map.get(monthKey) ?? {
+          month: monthKey,
+          releasedCents: 0,
+          refundedCents: 0,
+          jobCount: 0,
+        };
+
+        if (booking.paymentStatus === "captured") {
+          current.releasedCents += booking.pricing.carrierPayoutCents;
+        }
+
+        if (booking.paymentStatus === "refunded" || booking.paymentStatus === "authorization_cancelled") {
+          current.refundedCents += booking.pricing.carrierPayoutCents;
+        }
+
+        current.jobCount += 1;
+        map.set(monthKey, current);
+        return map;
+      }, new Map<string, { month: string; releasedCents: number; refundedCents: number; jobCount: number }>())
+      .values(),
+  ).filter((entry) => Boolean(entry.month));
+
+  return {
+    upcomingExpectedPayoutCents,
+    completedButUnreleasedCents,
+    refundedJobs,
+    historyByMonth,
+  };
+}
+
+export async function getCarrierPerformanceStats(userId: string) {
+  const [bookings, carrierRows] = await Promise.all([
+    listCarrierBookings(userId),
+    createServerSupabaseClient()
+      .from("carriers")
+      .select("id, average_rating, rating_count")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+
+  const totalBookings = bookings.length;
+  const confirmedBookings = bookings.filter((booking) =>
+    ["confirmed", "picked_up", "in_transit", "delivered", "completed"].includes(booking.status),
+  ).length;
+  const completedBookings = bookings.filter((booking) => booking.status === "completed").length;
+  const disputedBookings = bookings.filter((booking) => booking.status === "disputed").length;
+  const routeUsage = Array.from(
+    bookings.reduce((map, booking) => {
+      const key = `${booking.pickupSuburb ?? "Unknown"} -> ${booking.dropoffSuburb ?? "Unknown"}`;
+      map.set(key, (map.get(key) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  return {
+    acceptanceRatePct: totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0,
+    completionRatePct: confirmedBookings > 0 ? Math.round((completedBookings / confirmedBookings) * 100) : 0,
+    averageRating: Number(carrierRows.data?.average_rating ?? 0),
+    ratingCount: carrierRows.data?.rating_count ?? 0,
+    disputeCount: disputedBookings,
+    repeatRoutes: routeUsage,
+  };
+}
+
+export async function getCarrierLaneInsights(userId: string) {
+  const bookings = await listCarrierBookings(userId);
+
+  return Array.from(
+    bookings
+      .filter((booking) => booking.status === "completed")
+      .reduce((map, booking) => {
+        const key = `${booking.pickupSuburb ?? "Unknown"} -> ${booking.dropoffSuburb ?? "Unknown"}`;
+        const current = map.get(key) ?? {
+          corridor: key,
+          jobs: 0,
+          earningsCents: 0,
+        };
+
+        current.jobs += 1;
+        current.earningsCents += booking.pricing.carrierPayoutCents;
+        map.set(key, current);
+        return map;
+      }, new Map<string, { corridor: string; jobs: number; earningsCents: number }>())
+      .values(),
+  )
+    .sort((a, b) => b.earningsCents - a.earningsCents)
+    .slice(0, 3);
 }

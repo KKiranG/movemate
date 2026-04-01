@@ -17,6 +17,7 @@
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --font-system:
     -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --focus-ring: rgba(0, 102, 255, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,7 +69,7 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid rgba(0, 102, 255, 0.35);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -98,16 +99,59 @@ select:focus-visible {
   }
 
   .section-label {
-    @apply text-xs font-medium uppercase tracking-[0.18em] text-text-secondary;
+    @apply text-caption uppercase tracking-[0.18em] text-text-secondary;
   }
 
   .subtle-text {
-    @apply text-sm leading-6 text-text-secondary;
+    @apply text-body text-text-secondary;
+  }
+
+  .type-heading {
+    @apply text-heading text-text;
+  }
+
+  .type-body {
+    @apply text-body text-text;
+  }
+
+  .type-caption {
+    @apply text-caption text-text-secondary;
+  }
+
+  .safe-bottom {
+    padding-bottom: calc(1rem + var(--safe-area-bottom));
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@media print {
+  header,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+    padding-bottom: 0;
+  }
+
+  .page-shell {
+    max-width: none;
+    padding: 0;
+  }
+
+  .surface-card,
+  .rounded-xl,
+  .border {
+    box-shadow: none !important;
+    background: white !important;
   }
 }

@@ -9,6 +9,9 @@ export const carrierOnboardingSchema = z.object({
   bio: z.string().max(400).optional(),
   licencePhotoUrl: z.string().url().optional(),
   insurancePhotoUrl: z.string().url().optional(),
+  vehiclePhotoUrl: z.string().url().optional(),
+  licenceExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  insuranceExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   serviceSuburbs: z.array(z.string().min(2)).max(20).default([]),
 });
 

@@ -3,14 +3,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireSessionUser } from "@/lib/auth";
 import {
   createSavedSearch,
-  listUserSavedSearches,
+  listUserSavedSearchesWithOptions,
 } from "@/lib/data/saved-searches";
 import { toErrorResponse } from "@/lib/errors";
 
 export async function GET() {
   try {
     const user = await requireSessionUser();
-    const savedSearches = await listUserSavedSearches(user.id);
+    const savedSearches = await listUserSavedSearchesWithOptions(user.id, {
+      includeInactive: true,
+    });
 
     return NextResponse.json({ savedSearches });
   } catch (error) {

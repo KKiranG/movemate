@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "media",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -29,6 +30,11 @@ const config: Config = {
         ],
         heading: ["var(--font-heading)", "-apple-system", "sans-serif"],
         mono: ["SFMono-Regular", "ui-monospace", "monospace"],
+      },
+      fontSize: {
+        heading: ["1.25rem", { lineHeight: "1.3", fontWeight: "600" }],
+        body: ["0.9375rem", { lineHeight: "1.6" }],
+        caption: ["0.75rem", { lineHeight: "1.4", fontWeight: "500" }],
       },
       maxWidth: {
         content: "640px",

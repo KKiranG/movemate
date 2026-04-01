@@ -8,7 +8,10 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-xl border border-border bg-surface shadow-card", className)}
+      className={cn(
+        "rounded-xl border border-border bg-surface shadow-card transition-shadow",
+        className,
+      )}
       {...props}
     />
   );

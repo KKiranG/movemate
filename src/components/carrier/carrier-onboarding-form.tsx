@@ -1,48 +1,207 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { CheckCircle2, RotateCcw } from "lucide-react";
 
+import { FileSelectionPreview } from "@/components/ui/file-selection-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { CarrierProfile } from "@/types/carrier";
+
+const AUTOSAVE_KEY = "moverrr:carrier-onboarding:draft";
+
+type DraftState = {
+  businessName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  abn: string;
+  serviceSuburbs: string;
+  bio: string;
+  vehicleType: string;
+  regoPlate: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleVolumeM3: string;
+  vehicleWeightKg: string;
+  licenceExpiryDate: string;
+  insuranceExpiryDate: string;
+};
+
+const DEFAULT_DRAFT = (defaultEmail: string): DraftState => ({
+  businessName: "",
+  contactName: "",
+  phone: "",
+  email: defaultEmail,
+  abn: "",
+  serviceSuburbs: "",
+  bio: "",
+  vehicleType: "",
+  regoPlate: "",
+  vehicleMake: "",
+  vehicleModel: "",
+  vehicleVolumeM3: "",
+  vehicleWeightKg: "",
+  licenceExpiryDate: "",
+  insuranceExpiryDate: "",
+});
+
+function readDraft(defaultEmail: string) {
+  if (typeof window === "undefined") {
+    return DEFAULT_DRAFT(defaultEmail);
+  }
+
+  const raw = window.localStorage.getItem(AUTOSAVE_KEY);
+
+  if (!raw) {
+    return DEFAULT_DRAFT(defaultEmail);
+  }
+
+  try {
+    return {
+      ...DEFAULT_DRAFT(defaultEmail),
+      ...(JSON.parse(raw) as Partial<DraftState>),
+    };
+  } catch {
+    return DEFAULT_DRAFT(defaultEmail);
+  }
+}
+
+function getVerificationBlockers(carrier?: CarrierProfile | null) {
+  if (!carrier) {
+    return [
+      "Complete business details, vehicle details, and both verification documents.",
+      "Add document expiry dates so we can remind you before they lapse.",
+    ];
+  }
+
+  if (carrier.verificationStatus === "rejected") {
+    return [
+      carrier.verificationNotes ?? "Admin review flagged an issue with the submission.",
+      "Replace the rejected document or details, then resubmit this form.",
+    ];
+  }
+
+  if (carrier.verificationStatus === "submitted") {
+    return [
+      "Your application is under review.",
+      carrier.verificationNotes ?? "We will contact you if any document or detail needs changes.",
+    ];
+  }
+
+  return [];
+}
 
 export function CarrierOnboardingForm({
   action,
   defaultEmail,
+  existingCarrier,
 }: {
   action: (formData: FormData) => Promise<void>;
   defaultEmail: string;
+  existingCarrier?: CarrierProfile | null;
 }) {
   const [pending, startTransition] = useTransition();
+  const [draft, setDraft] = useState<DraftState>(() => DEFAULT_DRAFT(defaultEmail));
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [uploadPercent, setUploadPercent] = useState(0);
   const [uploadedDocuments, setUploadedDocuments] = useState<{
     licence: boolean;
     insurance: boolean;
-  }>({ licence: false, insurance: false });
-  const [businessName, setBusinessName] = useState("");
-  const [abn, setAbn] = useState("");
-  const [phone, setPhone] = useState("");
-  const [vehicleType, setVehicleType] = useState("");
-  const [hasLicenceFile, setHasLicenceFile] = useState(false);
-  const [hasInsuranceFile, setHasInsuranceFile] = useState(false);
+    vehicle: boolean;
+  }>({ licence: false, insurance: false, vehicle: false });
+  const [licenceFile, setLicenceFile] = useState<File | null>(null);
+  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
+  const [vehicleFile, setVehicleFile] = useState<File | null>(null);
+  const [licencePreview, setLicencePreview] = useState<string | null>(null);
+  const [insurancePreview, setInsurancePreview] = useState<string | null>(null);
+  const [vehiclePreview, setVehiclePreview] = useState<string | null>(null);
+  const blockers = getVerificationBlockers(existingCarrier);
+
+  useEffect(() => {
+    const nextDraft = readDraft(defaultEmail);
+    const hasDraft = JSON.stringify(nextDraft) !== JSON.stringify(DEFAULT_DRAFT(defaultEmail));
+
+    if (hasDraft) {
+      setShowResumeBanner(true);
+    } else {
+      setDraft({
+        ...nextDraft,
+        businessName: existingCarrier?.businessName ?? nextDraft.businessName,
+        contactName: existingCarrier?.contactName ?? nextDraft.contactName,
+        phone: existingCarrier?.phone ?? nextDraft.phone,
+        email: existingCarrier?.email ?? nextDraft.email,
+        abn: existingCarrier?.abn ?? nextDraft.abn,
+        serviceSuburbs: existingCarrier?.serviceSuburbs.join(", ") ?? nextDraft.serviceSuburbs,
+        bio: existingCarrier?.bio ?? nextDraft.bio,
+        licenceExpiryDate: existingCarrier?.licenceExpiryDate ?? nextDraft.licenceExpiryDate,
+        insuranceExpiryDate:
+          existingCarrier?.insuranceExpiryDate ?? nextDraft.insuranceExpiryDate,
+      });
+    }
+  }, [defaultEmail, existingCarrier]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draft));
+  }, [draft]);
+
+  useEffect(() => {
+    const objectUrl = licenceFile && licenceFile.type.startsWith("image/")
+      ? URL.createObjectURL(licenceFile)
+      : null;
+    setLicencePreview(objectUrl);
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [licenceFile]);
+
+  useEffect(() => {
+    const objectUrl = insuranceFile && insuranceFile.type.startsWith("image/")
+      ? URL.createObjectURL(insuranceFile)
+      : null;
+    setInsurancePreview(objectUrl);
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [insuranceFile]);
+
+  useEffect(() => {
+    const objectUrl = vehicleFile && vehicleFile.type.startsWith("image/")
+      ? URL.createObjectURL(vehicleFile)
+      : null;
+    setVehiclePreview(objectUrl);
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [vehicleFile]);
 
   const sections = [
     {
       label: "Business details",
-      complete: Boolean(businessName.trim() && abn.trim() && phone.trim()),
+      complete: Boolean(draft.businessName.trim() && draft.abn.trim() && draft.phone.trim()),
       reason: "We need legal business details to verify who is posting trips.",
     },
     {
       label: "Documents uploaded",
-      complete: Boolean(hasLicenceFile && hasInsuranceFile),
+      complete: Boolean(licenceFile && insuranceFile),
       reason: "Licence and insurance are required before verification can start.",
     },
     {
       label: "Vehicle added",
-      complete: Boolean(vehicleType),
+      complete: Boolean(draft.vehicleType),
       reason: "Vehicle details tell customers what spare capacity is available.",
     },
   ];
@@ -50,14 +209,14 @@ export function CarrierOnboardingForm({
   const progressPct = Math.round((completedCount / sections.length) * 100);
   const isReadyToSubmit = completedCount === sections.length;
 
-  async function uploadDocument(file: File | null) {
+  async function uploadDocument(file: File | null, bucket: "carrier-documents" | "vehicle-photos") {
     if (!file) {
       return "";
     }
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("bucket", "carrier-documents");
+    formData.append("bucket", bucket);
 
     const response = await fetch("/api/upload", {
       method: "POST",
@@ -72,38 +231,52 @@ export function CarrierOnboardingForm({
     return payload.path as string;
   }
 
+  function resumeDraft() {
+    setDraft(readDraft(defaultEmail));
+    setShowResumeBanner(false);
+  }
+
+  function resetDraft() {
+    const empty = DEFAULT_DRAFT(defaultEmail);
+    setDraft(empty);
+    setShowResumeBanner(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(empty));
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setMessage(null);
-    const currentTarget = event.currentTarget;
-    const formData = new FormData(currentTarget);
+    const formData = new FormData(event.currentTarget);
 
     try {
-      const licence = currentTarget.licence.files?.[0] ?? null;
-      const insurance = currentTarget.insurance.files?.[0] ?? null;
       setUploadPercent(10);
-      setUploadedDocuments({ licence: false, insurance: false });
-      const licencePhotoUrl = await uploadDocument(licence);
-      setUploadPercent(55);
-      setUploadedDocuments((current) => ({ ...current, licence: Boolean(licencePhotoUrl) }));
-      const insurancePhotoUrl = await uploadDocument(insurance);
+      const licencePhotoUrl = await uploadDocument(licenceFile, "carrier-documents");
+      setUploadPercent(35);
+      const insurancePhotoUrl = await uploadDocument(insuranceFile, "carrier-documents");
+      setUploadPercent(65);
+      const vehiclePhotoUrl = await uploadDocument(vehicleFile, "vehicle-photos");
       setUploadPercent(100);
-      setUploadedDocuments((current) => ({
-        ...current,
+      setUploadedDocuments({
+        licence: Boolean(licencePhotoUrl),
         insurance: Boolean(insurancePhotoUrl),
-      }));
+        vehicle: Boolean(vehiclePhotoUrl),
+      });
       formData.set("licencePhotoUrl", licencePhotoUrl);
       formData.set("insurancePhotoUrl", insurancePhotoUrl);
+      formData.set("vehiclePhotoUrl", vehiclePhotoUrl);
 
       startTransition(async () => {
         try {
           await action(formData);
           setMessage("Carrier onboarding saved. Your verification is ready for admin review.");
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem(AUTOSAVE_KEY);
+          }
         } catch (caught) {
-          setError(
-            caught instanceof Error ? caught.message : "Unable to save onboarding.",
-          );
+          setError(caught instanceof Error ? caught.message : "Unable to save onboarding.");
         }
       });
     } catch (caught) {
@@ -113,6 +286,37 @@ export function CarrierOnboardingForm({
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
+      {showResumeBanner ? (
+        <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
+          <p className="text-sm font-medium text-text">Resume your application</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            We restored your saved business and vehicle details. You will need to reattach files
+            before submitting.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Button type="button" onClick={resumeDraft}>
+              Resume saved draft
+            </Button>
+            <Button type="button" variant="secondary" onClick={resetDraft}>
+              Start fresh
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {blockers.length > 0 ? (
+        <div className="rounded-xl border border-warning/20 bg-warning/10 p-4">
+          <p className="section-label">Verification blockers</p>
+          <div className="mt-3 grid gap-2">
+            {blockers.map((blocker) => (
+              <div key={blocker} className="rounded-xl border border-warning/20 bg-white/60 px-3 py-2 text-sm text-text">
+                {blocker}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="space-y-3 rounded-xl border border-border p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -128,20 +332,6 @@ export function CarrierOnboardingForm({
             className="h-full rounded-full bg-accent transition-all"
             style={{ width: `${progressPct}%` }}
           />
-        </div>
-        <div className="grid gap-2">
-          {sections.filter((section) => !section.complete).map((section) => (
-            <div
-              key={section.label}
-              className="flex items-start gap-2 rounded-xl bg-error/5 px-3 py-2"
-            >
-              <span className="mt-1 h-2.5 w-2.5 flex-none rounded-full bg-error" />
-              <div>
-                <p className="text-sm font-medium text-text">{section.label}</p>
-                <p className="text-sm text-text-secondary">{section.reason}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -163,15 +353,19 @@ export function CarrierOnboardingForm({
           <span className="text-sm font-medium text-text">Business name</span>
           <Input
             name="businessName"
-            placeholder="Business name"
-            value={businessName}
-            onChange={(event) => setBusinessName(event.target.value)}
+            value={draft.businessName}
+            onChange={(event) => setDraft((current) => ({ ...current, businessName: event.target.value }))}
             required
           />
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Contact name</span>
-          <Input name="contactName" placeholder="Contact name" required />
+          <Input
+            name="contactName"
+            value={draft.contactName}
+            onChange={(event) => setDraft((current) => ({ ...current, contactName: event.target.value }))}
+            required
+          />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -179,15 +373,19 @@ export function CarrierOnboardingForm({
           <span className="text-sm font-medium text-text">Phone</span>
           <Input
             name="phone"
-            placeholder="+61 400 000 000"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
+            value={draft.phone}
+            onChange={(event) => setDraft((current) => ({ ...current, phone: event.target.value }))}
             required
           />
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Email</span>
-          <Input name="email" defaultValue={defaultEmail} required />
+          <Input
+            name="email"
+            value={draft.email}
+            onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
+            required
+          />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -195,20 +393,28 @@ export function CarrierOnboardingForm({
           <span className="text-sm font-medium text-text">ABN</span>
           <Input
             name="abn"
-            placeholder="ABN"
-            value={abn}
-            onChange={(event) => setAbn(event.target.value)}
+            value={draft.abn}
+            onChange={(event) => setDraft((current) => ({ ...current, abn: event.target.value }))}
             required
           />
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Service suburbs</span>
-          <Input name="serviceSuburbs" placeholder="Penrith, Parramatta, Bondi" />
+          <Input
+            name="serviceSuburbs"
+            value={draft.serviceSuburbs}
+            onChange={(event) => setDraft((current) => ({ ...current, serviceSuburbs: event.target.value }))}
+          />
         </label>
       </div>
       <label className="grid gap-2">
         <span className="text-sm font-medium text-text">Business bio</span>
-        <Textarea name="bio" placeholder="What kind of jobs do you usually take?" />
+        <Textarea
+          name="bio"
+          value={draft.bio}
+          onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
+          placeholder="What kind of jobs do you usually take?"
+        />
       </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -217,8 +423,8 @@ export function CarrierOnboardingForm({
           <select
             name="vehicleType"
             className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-            value={vehicleType}
-            onChange={(event) => setVehicleType(event.target.value)}
+            value={draft.vehicleType}
+            onChange={(event) => setDraft((current) => ({ ...current, vehicleType: event.target.value }))}
           >
             <option value="">Select vehicle type</option>
             <option value="van">Van</option>
@@ -230,17 +436,29 @@ export function CarrierOnboardingForm({
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Rego plate</span>
-          <Input name="regoPlate" placeholder="Rego plate" />
+          <Input
+            name="regoPlate"
+            value={draft.regoPlate}
+            onChange={(event) => setDraft((current) => ({ ...current, regoPlate: event.target.value }))}
+          />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Vehicle make</span>
-          <Input name="vehicleMake" placeholder="Make" />
+          <Input
+            name="vehicleMake"
+            value={draft.vehicleMake}
+            onChange={(event) => setDraft((current) => ({ ...current, vehicleMake: event.target.value }))}
+          />
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Vehicle model</span>
-          <Input name="vehicleModel" placeholder="Model" />
+          <Input
+            name="vehicleModel"
+            value={draft.vehicleModel}
+            onChange={(event) => setDraft((current) => ({ ...current, vehicleModel: event.target.value }))}
+          />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -250,7 +468,8 @@ export function CarrierOnboardingForm({
             name="vehicleVolumeM3"
             type="number"
             step="0.1"
-            placeholder="Volume m3"
+            value={draft.vehicleVolumeM3}
+            onChange={(event) => setDraft((current) => ({ ...current, vehicleVolumeM3: event.target.value }))}
             required
           />
         </label>
@@ -260,8 +479,30 @@ export function CarrierOnboardingForm({
             name="vehicleWeightKg"
             type="number"
             step="1"
-            placeholder="Weight kg"
+            value={draft.vehicleWeightKg}
+            onChange={(event) => setDraft((current) => ({ ...current, vehicleWeightKg: event.target.value }))}
             required
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Licence expiry date</span>
+          <Input
+            name="licenceExpiryDate"
+            type="date"
+            value={draft.licenceExpiryDate}
+            onChange={(event) => setDraft((current) => ({ ...current, licenceExpiryDate: event.target.value }))}
+          />
+        </label>
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-text">Insurance expiry date</span>
+          <Input
+            name="insuranceExpiryDate"
+            type="date"
+            value={draft.insuranceExpiryDate}
+            onChange={(event) => setDraft((current) => ({ ...current, insuranceExpiryDate: event.target.value }))}
           />
         </label>
       </div>
@@ -275,10 +516,19 @@ export function CarrierOnboardingForm({
           name="licence"
           type="file"
           accept="image/*,image/heic,image/heif,application/pdf"
-          onChange={(event) => setHasLicenceFile(Boolean(event.target.files?.[0]))}
+          onChange={(event) => setLicenceFile(event.target.files?.[0] ?? null)}
           required
         />
       </label>
+      {licenceFile ? (
+        <FileSelectionPreview
+          file={licenceFile}
+          imageUrl={licencePreview}
+          label="Licence preview"
+          onRemove={() => setLicenceFile(null)}
+        />
+      ) : null}
+
       <label className="flex flex-col gap-2">
         <span className="flex items-center gap-2 text-sm font-medium text-text">
           Insurance document
@@ -290,21 +540,54 @@ export function CarrierOnboardingForm({
           name="insurance"
           type="file"
           accept="image/*,image/heic,image/heif,application/pdf"
-          onChange={(event) => setHasInsuranceFile(Boolean(event.target.files?.[0]))}
+          onChange={(event) => setInsuranceFile(event.target.files?.[0] ?? null)}
           required
         />
       </label>
+      {insuranceFile ? (
+        <FileSelectionPreview
+          file={insuranceFile}
+          imageUrl={insurancePreview}
+          label="Insurance preview"
+          onRemove={() => setInsuranceFile(null)}
+        />
+      ) : null}
+
+      <label className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-text">Vehicle photo (optional)</span>
+        <Input
+          name="vehiclePhoto"
+          type="file"
+          accept="image/*,image/heic,image/heif"
+          capture="environment"
+          onChange={(event) => setVehicleFile(event.target.files?.[0] ?? null)}
+        />
+      </label>
+      {vehicleFile ? (
+        <FileSelectionPreview
+          file={vehicleFile}
+          imageUrl={vehiclePreview}
+          label="Vehicle photo"
+          onRemove={() => setVehicleFile(null)}
+        />
+      ) : null}
 
       {error ? <p className="text-sm text-error">{error}</p> : null}
       {message ? <p className="text-sm text-success">{message}</p> : null}
       {!isReadyToSubmit ? (
         <p className="text-sm text-text-secondary">
-          Complete all sections to submit for verification.
+          Complete all sections and reattach documents to submit for verification.
         </p>
       ) : null}
-      <Button type="submit" disabled={pending || !isReadyToSubmit}>
-        {pending ? "Saving..." : "Submit for verification"}
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" variant="secondary" onClick={resetDraft}>
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Start fresh
+        </Button>
+        <Button type="submit" disabled={pending || !isReadyToSubmit}>
+          {pending ? "Saving..." : "Submit for verification"}
+        </Button>
+      </div>
     </form>
   );
 }

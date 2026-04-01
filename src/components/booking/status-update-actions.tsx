@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FileSelectionPreview } from "@/components/ui/file-selection-preview";
 import { Textarea } from "@/components/ui/textarea";
+import { BOOKING_CANCELLATION_REASONS } from "@/lib/constants";
 import type { BookingStatus } from "@/types/booking";
 
 const transitions: Record<BookingStatus, BookingStatus[]> = {
@@ -29,8 +31,24 @@ export function StatusUpdateActions({
   const router = useRouter();
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [cancellationReasonCode, setCancellationReasonCode] = useState("carrier_unavailable");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!proofFile || !proofFile.type.startsWith("image/")) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(proofFile);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [proofFile]);
 
   async function uploadProofIfNeeded() {
     if (!proofFile) {
@@ -86,6 +104,7 @@ export function StatusUpdateActions({
           pickupProofPhotoUrl,
           deliveryProofPhotoUrl,
           cancellationReason: cancellationReason.trim() || undefined,
+          cancellationReasonCode,
         }),
       });
       const payload = await response.json();
@@ -135,15 +154,35 @@ export function StatusUpdateActions({
               />
             </label>
           </div>
-          {proofFile ? <p className="text-sm text-text-secondary">{proofFile.name}</p> : null}
+          {proofFile ? (
+            <FileSelectionPreview
+              file={proofFile}
+              imageUrl={previewUrl}
+              label="Proof attachment"
+              onRemove={() => setProofFile(null)}
+            />
+          ) : null}
         </div>
       ) : null}
       {transitions[currentStatus].includes("cancelled") ? (
-        <Textarea
-          value={cancellationReason}
-          onChange={(event) => setCancellationReason(event.target.value)}
-          placeholder="Why was this booking cancelled?"
-        />
+        <div className="space-y-2">
+          <select
+            value={cancellationReasonCode}
+            onChange={(event) => setCancellationReasonCode(event.target.value)}
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+          >
+            {BOOKING_CANCELLATION_REASONS.map((reason) => (
+              <option key={reason.value} value={reason.value}>
+                {reason.label}
+              </option>
+            ))}
+          </select>
+          <Textarea
+            value={cancellationReason}
+            onChange={(event) => setCancellationReason(event.target.value)}
+            placeholder="Add optional context for ops and the customer."
+          />
+        </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
         {transitions[currentStatus].map((status) => (

@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get("from") ?? "";
     const to = searchParams.get("to") ?? "";
     const when = searchParams.get("when") ?? undefined;
+    const isReturnTrip = searchParams.get("backload") === "1";
     const what = (searchParams.get("what") ?? undefined) as
       | ItemCategory
       | undefined;
@@ -33,7 +34,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const results = await searchTrips({ from, to, when, what });
+    const searchResponse = await searchTrips({
+      from,
+      to,
+      when,
+      what,
+      isReturnTrip,
+    });
 
     await trackAnalyticsEvent({
       eventName: "search_submitted",
@@ -42,11 +49,12 @@ export async function GET(request: NextRequest) {
         from,
         to,
         what: what ?? null,
-        resultCount: results.length,
+        isReturnTrip,
+        resultCount: searchResponse.results.length,
       },
     });
 
-    return NextResponse.json({ results });
+    return NextResponse.json(searchResponse);
   } catch (error) {
     const response = toErrorResponse(error);
     return NextResponse.json({ error: response.message }, { status: response.statusCode });

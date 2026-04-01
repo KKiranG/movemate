@@ -89,18 +89,30 @@ export async function createSavedSearch(
 }
 
 export async function listUserSavedSearches(userId: string) {
+  return listUserSavedSearchesWithOptions(userId, { includeInactive: false });
+}
+
+export async function listUserSavedSearchesWithOptions(
+  userId: string,
+  options?: { includeInactive?: boolean },
+) {
   if (!hasSupabaseEnv()) {
     return [] as SavedSearch[];
   }
 
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("saved_searches")
     .select("*")
     .eq("user_id", userId)
-    .eq("is_active", true)
     .gte("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false });
+
+  if (!options?.includeInactive) {
+    query = query.eq("is_active", true);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new AppError(error.message, 500, "saved_search_query_failed");
@@ -140,4 +152,51 @@ export async function deactivateSavedSearch(id: string) {
   if (error) {
     throw new AppError(error.message, 500, "saved_search_deactivate_failed");
   }
+}
+
+export async function updateSavedSearch(
+  id: string,
+  userId: string,
+  params: Partial<{
+    fromSuburb: string;
+    fromPostcode: string;
+    toSuburb: string;
+    toPostcode: string;
+    itemCategory: string;
+    dateFrom: string;
+    dateTo: string;
+    notifyEmail: string;
+    isActive: boolean;
+  }>,
+) {
+  if (!hasSupabaseEnv()) {
+    throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
+  }
+
+  const supabase = createServerSupabaseClient();
+  const patch: Database["public"]["Tables"]["saved_searches"]["Update"] = {
+    from_suburb: params.fromSuburb,
+    from_postcode: params.fromPostcode ?? undefined,
+    to_suburb: params.toSuburb,
+    to_postcode: params.toPostcode ?? undefined,
+    item_category: params.itemCategory ?? undefined,
+    date_from: params.dateFrom ?? undefined,
+    date_to: params.dateTo ?? undefined,
+    notify_email: params.notifyEmail,
+    is_active: params.isActive,
+  };
+
+  const { data, error } = await supabase
+    .from("saved_searches")
+    .update(patch)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new AppError(error.message, 500, "saved_search_update_failed");
+  }
+
+  return toSavedSearch(data);
 }

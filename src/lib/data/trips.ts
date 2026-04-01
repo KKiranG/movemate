@@ -7,7 +7,8 @@ import { geocodeAddress } from "@/lib/maps/geocode";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { toGeographyPoint, toTrip, toTripSearchResult, type ListingJoinedRecord } from "@/lib/data/mappers";
 import { tripSchema, tripUpdateSchema, type TripInput, type TripUpdateInput } from "@/lib/validation/trip";
-import type { Trip, TripSearchInput, TripSearchResult } from "@/types/trip";
+import { getDateOffsetIso } from "@/lib/utils";
+import type { Trip, TripSearchInput, TripSearchResponse, TripSearchResult } from "@/types/trip";
 
 type SearchRpcRow = {
   listing_id: string;
@@ -38,6 +39,59 @@ async function queryTripsByIds(ids: string[]) {
   return ((data ?? []) as unknown as ListingJoinedRecord[]).map(toTrip);
 }
 
+async function queryTripsByDateWindow(params: {
+  from: string;
+  to: string;
+  what?: string;
+  isReturnTrip?: boolean;
+  dates: string[];
+}) {
+  if (!hasSupabaseEnv() || params.dates.length === 0) {
+    return [] as TripSearchResult[];
+  }
+
+  const query = getJoinedTripsQuery()
+    .in("status", ["active", "booked_partial"])
+    .lte("publish_at", new Date().toISOString())
+    .in("trip_date", params.dates)
+    .ilike("origin_suburb", `%${params.from}%`)
+    .ilike("destination_suburb", `%${params.to}%`)
+    .order("trip_date", { ascending: true })
+    .limit(SEARCH_PAGE_SIZE);
+
+  if (params.what) {
+    if (params.what === "furniture") {
+      query.eq("accepts_furniture", true);
+    }
+
+    if (params.what === "boxes") {
+      query.eq("accepts_boxes", true);
+    }
+
+    if (params.what === "appliance") {
+      query.eq("accepts_appliances", true);
+    }
+
+    if (params.what === "fragile") {
+      query.eq("accepts_fragile", true);
+    }
+  }
+
+  if (params.isReturnTrip) {
+    query.eq("is_return_trip", true);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new AppError(error.message, 500, "trip_search_failed");
+  }
+
+  return ((data ?? []) as unknown as ListingJoinedRecord[]).map((record) =>
+    toTripSearchResult(toTrip(record), 42),
+  );
+}
+
 export async function listPublicTrips(limit = SEARCH_PAGE_SIZE) {
   if (!hasSupabaseEnv()) {
     return [] as Trip[];
@@ -46,6 +100,7 @@ export async function listPublicTrips(limit = SEARCH_PAGE_SIZE) {
   const query = getJoinedTripsQuery();
   const { data, error } = await query
     .in("status", ["active", "booked_partial"])
+    .lte("publish_at", new Date().toISOString())
     .order("trip_date", { ascending: true })
     .limit(limit);
 
@@ -98,18 +153,40 @@ async function geocodeSearchInput(input: TripSearchInput) {
 }
 
 const cachedTextSearch = unstable_cache(
-  async (from: string, to: string, when?: string) => {
+  async (from: string, to: string, when?: string, what?: string, isReturnTrip?: boolean) => {
     if (!hasSupabaseEnv()) {
       return [] as TripSearchResult[];
     }
 
-    const query = getJoinedTripsQuery();
-    const { data, error } = await query
+    const query = getJoinedTripsQuery()
       .in("status", ["active", "booked_partial"])
+      .lte("publish_at", new Date().toISOString())
       .ilike("origin_suburb", `%${from}%`)
       .ilike("destination_suburb", `%${to}%`)
       .order("trip_date", { ascending: true })
       .limit(SEARCH_PAGE_SIZE);
+
+    if (what === "furniture") {
+      query.eq("accepts_furniture", true);
+    }
+
+    if (what === "boxes") {
+      query.eq("accepts_boxes", true);
+    }
+
+    if (what === "appliance") {
+      query.eq("accepts_appliances", true);
+    }
+
+    if (what === "fragile") {
+      query.eq("accepts_fragile", true);
+    }
+
+    if (isReturnTrip) {
+      query.eq("is_return_trip", true);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new AppError(error.message, 500, "trip_search_failed");
@@ -125,13 +202,49 @@ const cachedTextSearch = unstable_cache(
 
 export async function searchTrips(input: TripSearchInput) {
   if (!hasSupabaseEnv()) {
-    return [] as TripSearchResult[];
+    return {
+      results: [] as TripSearchResult[],
+      geocodingAvailable: false,
+      fallbackUsed: false,
+      fallbackReason: "supabase_unavailable",
+      nearbyDateOptions: [],
+    } satisfies TripSearchResponse;
   }
 
   const geocoded = await geocodeSearchInput(input);
+  const nearbyDates = input.when
+    ? [-3, -2, -1, 1, 2, 3].map((offset) => getDateOffsetIso(input.when!, offset))
+    : [];
 
   if (!geocoded) {
-    return cachedTextSearch(input.from, input.to, input.when);
+    const results = await cachedTextSearch(
+      input.from,
+      input.to,
+      input.when,
+      input.what,
+      input.isReturnTrip,
+    );
+    const fallbackResults =
+      results.length === 0 && input.when && input.includeNearbyDates !== false
+        ? await queryTripsByDateWindow({
+            from: input.from,
+            to: input.to,
+            what: input.what,
+            isReturnTrip: input.isReturnTrip,
+            dates: nearbyDates,
+          })
+        : [];
+
+    return {
+      results: results.length > 0 ? results : fallbackResults,
+      geocodingAvailable: false,
+      fallbackUsed: results.length === 0 && fallbackResults.length > 0,
+      fallbackReason: results.length === 0 && fallbackResults.length > 0 ? "nearby_dates" : "geocoding_unavailable",
+      nearbyDateOptions:
+        results.length === 0 && fallbackResults.length > 0
+          ? Array.from(new Set(fallbackResults.map((trip) => trip.tripDate)))
+          : [],
+    } satisfies TripSearchResponse;
   }
 
   const supabase = createServerSupabaseClient();
@@ -152,8 +265,7 @@ export async function searchTrips(input: TripSearchInput) {
   const matches = (data ?? []) as unknown as SearchRpcRow[];
   const trips = await queryTripsByIds(matches.map((match) => match.listing_id));
   const tripMap = new Map(trips.map((trip) => [trip.id, trip]));
-
-  return matches
+  const exactMatches = matches
     .map((match) => {
       const trip = tripMap.get(match.listing_id);
 
@@ -174,6 +286,36 @@ export async function searchTrips(input: TripSearchInput) {
       });
     })
     .filter((trip): trip is TripSearchResult => Boolean(trip));
+
+  const filteredExactMatches = input.isReturnTrip
+    ? exactMatches.filter((trip) => trip.isReturnTrip)
+    : exactMatches;
+
+  if (filteredExactMatches.length > 0 || !input.when || input.includeNearbyDates === false) {
+    return {
+      results: filteredExactMatches,
+      geocodingAvailable: true,
+      fallbackUsed: false,
+      fallbackReason: null,
+      nearbyDateOptions: [],
+    } satisfies TripSearchResponse;
+  }
+
+  const fallbackResults = await queryTripsByDateWindow({
+    from: input.from,
+    to: input.to,
+    what: input.what,
+    isReturnTrip: input.isReturnTrip,
+    dates: nearbyDates,
+  });
+
+  return {
+    results: fallbackResults,
+    geocodingAvailable: true,
+    fallbackUsed: fallbackResults.length > 0,
+    fallbackReason: fallbackResults.length > 0 ? "nearby_dates" : null,
+    nearbyDateOptions: Array.from(new Set(fallbackResults.map((trip) => trip.tripDate))),
+  } satisfies TripSearchResponse;
 }
 
 export async function listCarrierTrips(userId: string) {
@@ -195,6 +337,25 @@ export async function listCarrierTrips(userId: string) {
   const query = getJoinedTripsQuery();
   const { data, error } = await query
     .eq("carrier_id", carrier.id)
+    .order("trip_date", { ascending: true });
+
+  if (error) {
+    throw new AppError(error.message, 500, "carrier_trip_query_failed");
+  }
+
+  return ((data ?? []) as unknown as ListingJoinedRecord[]).map(toTrip);
+}
+
+export async function listPublicTripsForCarrier(carrierId: string) {
+  if (!hasSupabaseEnv()) {
+    return [] as Trip[];
+  }
+
+  const query = getJoinedTripsQuery();
+  const { data, error } = await query
+    .eq("carrier_id", carrierId)
+    .in("status", ["active", "booked_partial"])
+    .lte("publish_at", new Date().toISOString())
     .order("trip_date", { ascending: true });
 
   if (error) {
@@ -286,7 +447,9 @@ export async function createTripForCarrier(userId: string, input: TripInput) {
     helper_available: parsed.data.helperAvailable,
     helper_extra_cents: parsed.data.helperExtraCents,
     special_notes: parsed.data.specialNotes ?? null,
+    is_return_trip: parsed.data.isReturnTrip,
     status: parsed.data.status,
+    publish_at: parsed.data.publishAt ?? null,
   };
 
   const { data, error } = await supabase
@@ -382,7 +545,9 @@ export async function updateTripForCarrier(
       available_weight_kg: parsed.data.availableWeightKg,
       detour_radius_km: parsed.data.detourRadiusKm,
       price_cents: parsed.data.priceCents,
+      is_return_trip: parsed.data.isReturnTrip,
       status: parsed.data.status,
+      publish_at: parsed.data.publishAt ?? null,
       special_notes: parsed.data.specialNotes?.trim() ? parsed.data.specialNotes.trim() : null,
     })
     .eq("id", tripId)

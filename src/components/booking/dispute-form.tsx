@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FileSelectionPreview } from "@/components/ui/file-selection-preview";
 import { Textarea } from "@/components/ui/textarea";
+import { DISPUTE_CATEGORY_GUIDANCE } from "@/lib/constants";
 
 const categories = [
   { value: "damage", label: "Damage" },
   { value: "no_show", label: "No show" },
-  { value: "late", label: "Late" },
-  { value: "wrong_item", label: "Wrong item" },
+  { value: "late", label: "Timing issue" },
+  { value: "wrong_item", label: "Wrong items" },
   { value: "overcharge", label: "Overcharge" },
   { value: "other", label: "Other" },
 ] as const;
@@ -21,8 +23,24 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
   const [category, setCategory] = useState<(typeof categories)[number]["value"]>("damage");
   const [description, setDescription] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const guidance = DISPUTE_CATEGORY_GUIDANCE[category];
+
+  useEffect(() => {
+    if (!photoFile || !photoFile.type.startsWith("image/")) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(photoFile);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [photoFile]);
 
   async function uploadProofIfNeeded() {
     if (!photoFile) {
@@ -91,10 +109,14 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
           </option>
         ))}
       </select>
+      <div className="rounded-xl border border-border bg-black/[0.02] p-3">
+        <p className="text-sm font-medium text-text">{guidance.heading}</p>
+        <p className="mt-1 text-sm text-text-secondary">{guidance.evidence}</p>
+      </div>
       <Textarea
         value={description}
         onChange={(event) => setDescription(event.target.value)}
-        placeholder="Describe what happened, when it happened, and what outcome you need."
+        placeholder={guidance.prompt}
       />
       <div className="space-y-2">
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -120,7 +142,14 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
             />
           </label>
         </div>
-        {photoFile ? <p className="text-sm text-text-secondary">{photoFile.name}</p> : null}
+        {photoFile ? (
+          <FileSelectionPreview
+            file={photoFile}
+            imageUrl={previewUrl}
+            label="Evidence attachment"
+            onRemove={() => setPhotoFile(null)}
+          />
+        ) : null}
       </div>
       {error ? <p className="text-sm text-error">{error}</p> : null}
       <Button type="submit" disabled={isSubmitting}>

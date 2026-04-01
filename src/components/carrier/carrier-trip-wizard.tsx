@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -10,7 +10,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DETOUR_RADIUS_PRESETS,
+  SPACE_SIZE_DESCRIPTIONS,
+  SPACE_SIZE_LABELS,
+  SPECIAL_NOTES_PRESETS,
+} from "@/lib/constants";
 import { suggestPrice } from "@/lib/pricing/suggest";
+import type { RoutePriceGuidance } from "@/types/trip";
 
 const steps = ["Route", "When & space", "Price & rules"] as const;
 const acceptOptions = [
@@ -19,12 +26,6 @@ const acceptOptions = [
   { value: "appliance", label: "Appliance" },
   { value: "fragile", label: "Fragile" },
 ] as const;
-const sizeDescriptions: Record<"S" | "M" | "L" | "XL", string> = {
-  S: "1-2 boxes or a compact marketplace pickup",
-  M: "One furniture piece like a desk, chair, or washing machine",
-  L: "Several bulky items or a light studio move",
-  XL: "Large pieces that take most of the spare bay",
-};
 
 export function CarrierTripWizard({
   initialOrigin = null,
@@ -48,6 +49,9 @@ export function CarrierTripWizard({
   const [spaceSize, setSpaceSize] = useState<"S" | "M" | "L" | "XL">(initialSpaceSize);
   const [accepts, setAccepts] = useState<string[]>(["furniture", "boxes", "appliance"]);
   const [specialNotes, setSpecialNotes] = useState("");
+  const [detourRadiusKm, setDetourRadiusKm] = useState(initialDetourRadiusKm ?? "5");
+  const [isReturnTrip, setIsReturnTrip] = useState(false);
+  const [priceGuidance, setPriceGuidance] = useState<RoutePriceGuidance | null>(null);
 
   const pricingSuggestion = useMemo(
     () =>
@@ -56,13 +60,44 @@ export function CarrierTripWizard({
         spaceSize,
         needsStairs: false,
         needsHelper: false,
-        isReturn: true,
+        isReturn: isReturnTrip,
       }),
-    [spaceSize],
+    [spaceSize, isReturnTrip],
   );
   const [priceDollars, setPriceDollars] = useState(
     initialPriceDollars ?? Math.round(pricingSuggestion.midCents / 100).toString(),
   );
+
+  useEffect(() => {
+    if (!origin?.suburb || !destination?.suburb) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void fetch(
+      `/api/trips/price-guidance?${new URLSearchParams({
+        from: origin.suburb,
+        to: destination.suburb,
+        spaceSize,
+      }).toString()}`,
+    )
+      .then((response) => response.json())
+      .then((payload) => {
+        if (!isCancelled) {
+          setPriceGuidance(payload.guidance ?? null);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setPriceGuidance(null);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [origin?.suburb, destination?.suburb, spaceSize]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,14 +124,14 @@ export function CarrierTripWizard({
           destinationPostcode: destination.postcode,
           destinationLatitude: destination.latitude,
           destinationLongitude: destination.longitude,
-          detourRadiusKm: Number(formData.get("detourRadiusKm")),
+          detourRadiusKm: Number(detourRadiusKm),
           tripDate: formData.get("tripDate"),
           timeWindow: formData.get("timeWindow"),
           spaceSize,
           availableVolumeM3: Number(formData.get("availableVolumeM3")),
           availableWeightKg: Number(formData.get("availableWeightKg")),
           priceCents: Math.round(Number(formData.get("priceDollars")) * 100),
-          suggestedPriceCents: pricingSuggestion.midCents,
+          suggestedPriceCents: priceGuidance?.medianCents ?? pricingSuggestion.midCents,
           accepts,
           stairsOk: formData.get("stairsOk") === "yes",
           stairsExtraCents:
@@ -104,6 +139,7 @@ export function CarrierTripWizard({
           helperAvailable: formData.get("helperAvailable") === "yes",
           helperExtraCents:
             Math.round(Number(formData.get("helperExtraDollars") || 0) * 100),
+          isReturnTrip,
           status: formData.get("status"),
           specialNotes: formData.get("specialNotes"),
         }),
@@ -114,7 +150,7 @@ export function CarrierTripWizard({
         throw new Error(payload.error ?? "Unable to create trip.");
       }
 
-      router.push("/carrier/trips?posted=1");
+      router.push(`/carrier/post?successTripId=${payload.trip.id}`);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to create trip.");
@@ -123,15 +159,23 @@ export function CarrierTripWizard({
     }
   }
 
+  function appendPresetNote(note: string) {
+    setSpecialNotes((current) =>
+      current.includes(note)
+        ? current
+        : `${current.trim()}${current.trim() ? " " : ""}${note}`.trim(),
+    );
+  }
+
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit}>
+    <form className="grid gap-4 pb-28" onSubmit={handleSubmit}>
       <div className="flex gap-2 overflow-x-auto">
         {steps.map((label, index) => (
           <button
             key={label}
             type="button"
             onClick={() => setStepIndex(index)}
-            className={`min-h-11 rounded-xl border px-3 py-2 text-sm transition-colors ${
+            className={`min-h-[44px] min-w-[44px] rounded-xl border px-3 py-2 text-sm transition-colors ${
               index === stepIndex
                 ? "border-accent bg-accent/10 text-accent"
                 : "border-border text-text-secondary active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -156,17 +200,57 @@ export function CarrierTripWizard({
             initialResolvedValue={initialDestination}
             onResolved={setDestination}
           />
-          <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">Detour radius (km)</span>
+          <label className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border px-3 py-3 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
+            <div>
+              <span className="block text-sm font-medium text-text">Return trip / backload</span>
+              <span className="text-xs text-text-secondary">
+                Highlight this as a lower-cost backload for customers.
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={isReturnTrip}
+              onChange={(event) => setIsReturnTrip(event.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+          </label>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-text">Detour radius</span>
+              <span className="text-xs text-text-secondary">
+                Controls how far pickups can sit off your route
+              </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {DETOUR_RADIUS_PRESETS.map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => setDetourRadiusKm(String(preset.value))}
+                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                    detourRadiusKm === String(preset.value)
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                  }`}
+                >
+                  <span className="block font-medium">{preset.label}</span>
+                  <span className="block text-xs opacity-80">{preset.tone}</span>
+                </button>
+              ))}
+            </div>
             <Input
               name="detourRadiusKm"
               type="number"
               step="1"
-              defaultValue={initialDetourRadiusKm ?? "10"}
+              value={detourRadiusKm}
+              onChange={(event) => setDetourRadiusKm(event.target.value)}
               placeholder="Detour radius km"
               required
             />
-          </label>
+            <p className="text-sm text-text-secondary">
+              A wider detour radius increases match volume but also adds more route deviation.
+            </p>
+          </div>
         </div>
       ) : null}
 
@@ -197,13 +281,16 @@ export function CarrierTripWizard({
               onChange={(event) => setSpaceSize(event.target.value as "S" | "M" | "L" | "XL")}
               className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
             >
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
+              <option value="S">Small</option>
+              <option value="M">Medium</option>
+              <option value="L">Large</option>
+              <option value="XL">Extra large</option>
             </select>
           </label>
-          <p className="text-sm text-text-secondary">{sizeDescriptions[spaceSize]}</p>
+          <div className="rounded-xl border border-border p-3">
+            <p className="text-sm font-medium text-text">{SPACE_SIZE_LABELS[spaceSize]}</p>
+            <p className="mt-1 text-sm text-text-secondary">{SPACE_SIZE_DESCRIPTIONS[spaceSize]}</p>
+          </div>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Available volume (m3)</span>
             <Input
@@ -231,10 +318,22 @@ export function CarrierTripWizard({
 
       {stepIndex === 2 ? (
         <div className="grid gap-4">
-          <p className="text-sm text-text-secondary">
-            Suggested range ${pricingSuggestion.lowCents / 100} to $
-            {pricingSuggestion.highCents / 100}
-          </p>
+          <div className="rounded-xl border border-success/20 bg-success/5 p-4">
+            <p className="section-label">Price rationale</p>
+            <h3 className="mt-1 text-lg text-text">
+              Similar Sydney jobs: ${(priceGuidance?.lowCents ?? pricingSuggestion.lowCents) / 100} to $
+              {(priceGuidance?.highCents ?? pricingSuggestion.highCents) / 100}
+            </h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              {priceGuidance?.explanation ??
+                "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
+            </p>
+            <p className="mt-2 text-xs text-text-secondary">
+              {priceGuidance?.usedFallback
+                ? "Using the Sydney fallback guide until we have at least 5 route examples."
+                : `Built from ${priceGuidance?.exampleCount ?? 0} moverrr examples on a similar corridor.`}
+            </p>
+          </div>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Price in dollars</span>
             <Input
@@ -262,7 +361,7 @@ export function CarrierTripWizard({
                         : [...current, option.value],
                     )
                   }
-                  className={`min-h-11 rounded-xl border px-3 py-3 text-left text-sm transition-colors ${
+                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
                     isSelected
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -321,10 +420,22 @@ export function CarrierTripWizard({
               <option value="draft">Save as draft</option>
             </select>
           </label>
-          <label className="flex flex-col gap-2">
+          <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-text">Special handling notes</span>
               <span className="text-xs text-text-secondary">{specialNotes.length}/280</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {SPECIAL_NOTES_PRESETS.map((note) => (
+                <button
+                  key={note}
+                  type="button"
+                  onClick={() => appendPresetNote(note)}
+                  className="min-h-[44px] rounded-full border border-border px-3 py-2 text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                >
+                  {note.replace(/\.$/, "")}
+                </button>
+              ))}
             </div>
             <Textarea
               name="specialNotes"
@@ -333,32 +444,37 @@ export function CarrierTripWizard({
               onChange={(event) => setSpecialNotes(event.target.value)}
               placeholder="Special handling notes"
             />
-          </label>
+          </div>
         </div>
       ) : null}
 
       {error ? <p className="text-sm text-error">{error}</p> : null}
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={stepIndex === 0}
-          onClick={() => setStepIndex((value) => Math.max(0, value - 1))}
-        >
-          Back
-        </Button>
-        {stepIndex < steps.length - 1 ? (
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="mx-auto flex w-full max-w-content gap-3 pb-[env(safe-area-inset-bottom)]">
           <Button
             type="button"
-            onClick={() => setStepIndex((value) => Math.min(steps.length - 1, value + 1))}
+            variant="secondary"
+            disabled={stepIndex === 0}
+            className="flex-1"
+            onClick={() => setStepIndex((value) => Math.max(0, value - 1))}
           >
-            Next
+            Back
           </Button>
-        ) : (
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save trip"}
-          </Button>
-        )}
+          {stepIndex < steps.length - 1 ? (
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => setStepIndex((value) => Math.min(steps.length - 1, value + 1))}
+            >
+              Next
+            </Button>
+          ) : (
+            <Button type="submit" disabled={isSubmitting} className="flex-1">
+              {isSubmitting ? "Saving..." : "Save trip"}
+            </Button>
+          )}
+        </div>
       </div>
     </form>
   );

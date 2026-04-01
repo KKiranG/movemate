@@ -21,11 +21,16 @@ export interface CarrierProfile {
   bio?: string;
   licencePhotoUrl?: string | null;
   insurancePhotoUrl?: string | null;
+  vehiclePhotoUrl?: string | null;
   isVerified: boolean;
   verificationStatus: VerificationStatus;
   verificationSubmittedAt?: string | null;
   verifiedAt?: string | null;
   verificationNotes?: string | null;
+  internalNotes?: string | null;
+  internalTags?: string[];
+  licenceExpiryDate?: string | null;
+  insuranceExpiryDate?: string | null;
   averageRating: number;
   ratingCount: number;
   serviceSuburbs: string[];
@@ -58,6 +63,8 @@ export interface TripTemplate {
   accepts: string[];
   timeWindow: "morning" | "afternoon" | "evening" | "flexible";
   notes?: string | null;
+  isArchived: boolean;
+  archivedAt?: string | null;
   timesUsed: number;
   lastUsedAt?: string | null;
   createdAt: string;
@@ -103,4 +110,34 @@ export interface Vehicle {
   regoPlate?: string | null;
   regoState?: string | null;
   isActive: boolean;
+}
+
+export interface CarrierDashboardActivityItem {
+  id: string;
+  type:
+    | "trip_posted"
+    | "booking_requested"
+    | "booking_confirmed"
+    | "review_received"
+    | "payout_ready";
+  title: string;
+  description: string;
+  occurredAt: string;
+  href?: string;
+}
+
+export interface RecurringTemplateSuggestion {
+  routeLabel: string;
+  templateIds: string[];
+  templateCount: number;
+  nextWeekday: string;
+  nextTripDate: string;
+}
+
+export interface TemplateInsight {
+  templateId: string;
+  tripCount: number;
+  bookingCount: number;
+  completionRatePct: number;
+  totalEarningsCents: number;
 }

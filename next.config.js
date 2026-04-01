@@ -19,6 +19,13 @@ function assertRequiredEnvForBuild() {
 assertRequiredEnvForBuild();
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  env: {
+    SENTRY_RELEASE:
+      process.env.SENTRY_RELEASE ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      "local",
+  },
+};
 
 module.exports = nextConfig;

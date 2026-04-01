@@ -1,6 +1,10 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+import { hasSupabaseAdminEnv } from "@/lib/env";
+import { captureAppMessage } from "@/lib/sentry";
+import { createAdminClient } from "@/lib/supabase/admin";
+
 const windows = new Map<string, number[]>();
 const ratelimitCache = new Map<string, Ratelimit>();
 
@@ -66,14 +70,63 @@ function getRedisRateLimit(limit: number, windowMs: number) {
   return ratelimit;
 }
 
+async function getRateLimitOverride(key: string) {
+  if (!hasSupabaseAdminEnv()) {
+    return null;
+  }
+
+  const supabase = createAdminClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("rate_limit_overrides")
+    .select("override_limit, window_ms")
+    .eq("actor_value", key)
+    .gt("expires_at", now)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return data
+    ? {
+        limit: data.override_limit,
+        windowMs: data.window_ms,
+      }
+    : null;
+}
+
 export async function enforceRateLimit(key: string, limit: number, windowMs: number) {
-  const ratelimit = getRedisRateLimit(limit, windowMs);
+  const override = await getRateLimitOverride(key);
+  const effectiveLimit = override?.limit ?? limit;
+  const effectiveWindowMs = override?.windowMs ?? windowMs;
+  const ratelimit = getRedisRateLimit(effectiveLimit, effectiveWindowMs);
 
   if (!ratelimit) {
-    return inMemoryRateLimit(key, limit, windowMs);
+    const result = inMemoryRateLimit(key, effectiveLimit, effectiveWindowMs);
+
+    if (!result.allowed) {
+      captureAppMessage("Rate limit blocked request", {
+        feature: "rate_limit",
+        action: "blocked_in_memory",
+        tags: { key },
+      });
+    }
+
+    return result;
   }
 
   const { success, reset } = await ratelimit.limit(key);
+
+  if (!success) {
+    captureAppMessage("Rate limit blocked request", {
+      feature: "rate_limit",
+      action: "blocked_redis",
+      tags: { key },
+    });
+  }
 
   return {
     allowed: success,
