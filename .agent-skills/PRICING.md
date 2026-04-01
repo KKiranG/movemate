@@ -2,32 +2,35 @@
 
 ## Model
 
-- carrier sets base price
-- customer pays base price plus flat booking fee
-- platform keeps 15 percent of carrier price plus booking fee
+- carrier sets the base price
+- customer pays base price plus applicable extras plus the flat booking fee
+- platform keeps `15%` of base price plus the booking fee
 
-## Customer-visible rule
+## Critical invariant
 
-Pricing must be transparent.
+Commission applies to `basePriceCents` only.
+It does not apply to stairs or helper fees.
 
-Always show:
+## Customer-visible rules
+
+Pricing should stay transparent.
+Always make these legible:
 - carrier price
+- stairs or helper extras
 - booking fee
 - customer total
-- dedicated-move comparison
-- savings percentage or dollar amount
+- why this is cheaper than a dedicated move
 
-## Guidance
+## Suggested pricing inputs
 
-Suggested carrier price depends on:
-- distance
+- route distance
 - space size
 - stairs
 - helper
 - whether the trip is already happening anyway
 
-## Do not do in MVP
+## Do not add in MVP
 
-- dynamic surge pricing
+- surge pricing
 - opaque algorithmic pricing
 - hidden fees

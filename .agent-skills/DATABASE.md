@@ -7,26 +7,36 @@
 - `capacity_listings`
 - `customers`
 - `bookings`
+- `trip_templates`
+- `saved_searches`
 - `reviews`
 - `disputes`
+- `booking_events`
 
-## Important database rules
+## Important functions and derived truth
 
-- use PostGIS geography types for location fields
-- store listing inventory in `capacity_listings`
-- bookings reference both listing and carrier
-- ratings aggregate onto carriers manually or via jobs later
-- `updated_at` should be auto-maintained
+- `create_booking_atomic`
+- `recalculate_listing_capacity`
+- `remaining_capacity_pct`
 
-## Security
+## Hard rules
 
-- enable RLS on all marketplace tables
-- public can read active listings
-- carriers can manage only their own supply records
-- customers can manage only their own profile and bookings
-- involved parties can read disputes
+- enable RLS on every new marketplace table
+- add a GIST index to every geography column
+- keep admin-only privileged operations behind `createAdminClient()`
+- use sequential migrations in `supabase/migrations/`
+- preserve booking and inventory consistency when statuses change
 
-## Notes
+## Design principles
 
-- service-role admin workflows can bypass RLS
-- matching logic should live close to the database for spatial efficiency
+- PostGIS is the spatial backbone
+- marketplace truth should stay explicit, not inferred from vague flags
+- booking history and dispute history should stay auditable
+- schema changes should reinforce explainability, not hide business logic
+
+## Common mistakes
+
+- creating a table without policies
+- forgetting the geography index
+- mixing app-layer guard logic into a pure state helper
+- changing booking or listing behavior without syncing capacity logic

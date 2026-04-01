@@ -1,176 +1,161 @@
-# moverrr — Claude Agent Guidance
+# CLAUDE.md
 
-## What This Product Is (Non-Negotiable)
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-moverrr is a **browse-first spare-capacity marketplace**.
-Carriers post existing trips with spare space. Customers browse and book into those trips.
-Revenue: 15% platform commission on carrier price + $5 flat booking fee per job.
+## Product Thesis
 
-**This is NOT:**
-- A removalist booking platform
-- A courier dispatch service
-- A quote-comparison engine
-- A product with AI matching or bidding
+moverrr is an iOS-first, browse-first spare-capacity marketplace.
+Carriers post trips that are already happening and sell the spare room.
+Customers browse that real inventory and book into it.
 
-If a feature request pushes toward any of these, stop and ask before building.
+This product is explicitly **not**:
+- a removalist booking business
+- a courier dispatch system
+- a quote-comparison funnel
+- a bidding marketplace
+- an AI-matching product
 
----
+If a request pushes moverrr toward one of those shapes, stop and ask before building.
 
-## iOS-First Design Contract
+## Founder Operating Stance
 
-This product ships as an **iOS native app**. The web app is for development testing only.
+Use this priority order when making tradeoffs:
 
-Every UI decision must work natively on iPhone first.
+**Trust -> Simplicity -> Supply speed -> Customer clarity -> Automation -> Polish**
+
+That means:
+- recurring carrier supply matters more than broad feature count
+- manual-first operations are acceptable if they buy speed and learning
+- a clear savings story matters more than clever algorithms
+- the smallest shippable version is usually the right version
+
+The value proposition that must stay legible:
+
+> "You save because your item fits into a trip that is already happening, and you accepted some flexibility."
+
+## Working Rhythm
+
+Serious work in this repo follows this sequence:
+
+1. **Read first.** Understand the current code, the relevant docs, and the real shipped behavior before proposing changes.
+2. **Keep modes separate.** Explore, plan, implement, and verify are different jobs. Do not collapse them into one fuzzy pass.
+3. **Never delegate understanding.** You can delegate research or execution, but the coordinating agent must still synthesize the problem and decide the change.
+4. **Verify before claiming done.** Passing narration is not enough. Run `npm run check` and targeted flow verification for the area you touched.
+5. **Keep memory in sync.** If a product rule, flow, command, or invariant changes, update the relevant `.claude/rules/`, `.claude/skills/`, or `.agent-skills/` file in the same task.
+
+Stale documentation is a product bug.
+
+## Core Invariants
+
+### iOS-first contract
+
+This ships as an iOS native app. The web app is a development surface.
+
+Non-negotiable UI rules:
 
 | Rule | Enforcement |
-|------|------------|
-| All tap targets | `min-h-[44px] min-w-[44px]` — no exceptions |
-| Touch feedback | Every tap target needs `active:` state alongside any `hover:` |
-| Camera inputs | Proof upload must use `capture="environment"` for direct rear camera |
-| Safe area | Sticky/fixed elements: `pb-[env(safe-area-inset-bottom)]` |
+| --- | --- |
+| All tap targets | `min-h-[44px] min-w-[44px]` |
+| Touch feedback | Every `hover:` state needs an `active:` sibling |
+| Proof/photo capture | `capture="environment"` |
+| File types | Include `image/heic,image/heif` |
+| Sticky/fixed UI | Respect `env(safe-area-inset-bottom)` |
 | Scroll containers | `overscroll-behavior: contain` |
-| No hover-only states | `hover:` without `active:` sibling is a bug |
-| File types | Always include `image/heic` and `image/heif` — iOS camera default |
-| Viewport | Test at 375px (iPhone SE) minimum |
+| Minimum viewport | test at `375px` width |
 
----
+### Pricing
 
-## Commission Math (Do Not Change Without Discussion)
+Do not change commission math without an explicit discussion.
 
-```
+```text
 Customer pays:   base + stairs_fee + helper_fee + $5 booking_fee
-Carrier earns:   base + stairs_fee + helper_fee − (base × 15%)
-Platform earns:  (base × 15%) + $5 booking_fee
+Carrier earns:   base + stairs_fee + helper_fee - (base * 15%)
+Platform earns:  (base * 15%) + $5 booking_fee
 ```
 
-**Commission applies only to `basePriceCents`, NOT to `stairsFeeCents` or `helperFeeCents`.** This is intentional.
+Critical rule: commission applies only to `basePriceCents`, never to stairs or helper fees.
 
-Implementation: `src/lib/pricing/breakdown.ts`
-Tests: `src/lib/__tests__/breakdown.test.ts` (verify identity: `total = payout + commission + bookingFee`)
+Primary files:
+- `src/lib/pricing/breakdown.ts`
+- `src/lib/__tests__/breakdown.test.ts`
 
----
+### Booking and dispute flow
 
-## Booking State Machine Rules
+- The pure transition map lives in `src/lib/status-machine.ts`.
+- Actor and business guards live in `src/lib/data/bookings.ts`.
+- `disputed -> completed` requires the dispute to be `resolved` or `closed` in the application layer.
+- Booking creation must use the atomic RPC path, not a two-step read-then-write flow.
+- `remaining_capacity_pct` must stay correct whenever a booking is created or cancelled.
 
-Transitions defined in `src/lib/status-machine.ts` (pure — no DB access).
-Guards enforced in `updateBookingStatusForActor` in `src/lib/data/bookings.ts`.
+### Matching
 
-**Critical guard:** `disputed → completed` requires `disputes.status = 'resolved'` or `'closed'`.
-Check this in the application layer, not the state machine.
+Matching stays deterministic and explainable.
+No AI bidding, no opaque ranking, no hidden negotiation logic.
 
-**Booking creation must use the atomic RPC** (`create_booking_atomic`), never two-step read-then-write.
-This prevents inventory oversell on concurrent bookings.
+Primary files:
+- `src/lib/matching/filter.ts`
+- `src/lib/matching/score.ts`
+- `src/lib/matching/rank.ts`
 
----
+### Graceful degradation
 
-## Intentional Graceful Degradation (Do Not "Fix" These)
+These local-development fallbacks are intentional and should not be "fixed" into hard failures:
 
-These are deliberate for local development — not bugs:
+- `hasSupabaseEnv()` may return empty arrays instead of throwing
+- email sending may return `{ skipped: true }` when config is missing
+- rate limiting may fall back to an in-memory `Map`
 
-- `hasSupabaseEnv()` returning `false` → return empty arrays, not errors
-- `sendTransactionalEmail()` with no Resend config → returns `{ skipped: true }`, does not throw
-- `enforceRateLimit()` → falls back to in-memory `Map` when `UPSTASH_REDIS_REST_URL` is absent
+Production startup validation lives in `src/lib/env.ts` and `next.config.js`.
 
-In production, `assertRequiredEnv()` (called from `next.config.js`) will catch missing vars at startup.
+### Database and admin access
 
----
+- Every new table must have RLS
+- Every geography column must have a GIST index
+- Admin-only operations use `createAdminClient()`
+- Migrations go in `supabase/migrations/` with sequential names
+- Do not bypass RLS for convenience in non-admin code
 
-## Database Rules
+## Verification Minimum
 
-1. **RLS on every new table** — no exceptions, ever
-2. **GIST index on every geography column** — PostGIS spatial queries need it
-3. **Admin operations use `createAdminClient()`** (service-role) — never bypass RLS for non-admin code
-4. **New migrations go in `supabase/migrations/`** — sequential naming (`NNN_description.sql`)
-5. **`remaining_capacity_pct` must be updated** whenever a booking is created or cancelled
-
----
-
-## Code Conventions
-
-```typescript
-// Errors: always AppError with statusCode + code
-throw new AppError(400, 'listing_not_bookable', 'This listing is no longer available')
-
-// At API boundary:
-return toErrorResponse(error)
-
-// Validation: always Zod, always before DB operations
-const parsed = tripSchema.parse(body)
-
-// API route guard — first line after handler signature:
-const user = await requireSessionUser(request)  // or requireAdminUser
-
-// Analytics: fire-and-forget, never await in critical path
-trackAnalyticsEvent('booking_created', { bookingId })  // no await
-
-// Email: fire-and-forget, but CHECK result.error for Sentry
-const result = await sendTransactionalEmail(...)
-if (result.error) captureAppError(result.error, { context: 'booking_email' })
-```
-
----
-
-## Before Finishing Any Task
+Before finishing any meaningful task:
 
 ```bash
-npm run check          # lint + typecheck — must pass clean
+npm run check
 ```
 
-Then verify manually:
-- [ ] No new `hover:` classes without matching `active:` state
-- [ ] No new tables created without RLS policies
-- [ ] Commission logic in `breakdown.ts` unchanged (if touching pricing)
-- [ ] Any new `<input type="file">` in proof/photo flows has `capture="environment"`
-- [ ] Any new interactive element in carrier flow has `min-h-[44px]`
+Then run targeted verification for the area you changed:
+- frontend: mobile viewport at 375px, active states, safe area, proof uploads
+- backend/API: hit the path directly and test at least one edge case
+- booking/pricing/payments: re-check the pricing identity and status/capacity invariants
+- database: verify RLS, indexes, and migration intent
+- docs/agent memory: check for duplication, stale references, and drift
 
----
+Do not report work as done if verification did not happen. State what you verified and what you could not verify.
 
-## Priority Order
+## Project Memory Map
 
-When deciding what matters most:
+Use the smallest layer that fits the job:
 
-**Trust → Simplicity → Supply speed → Customer clarity → Automation → Polish**
+- `CLAUDE.md`
+  Global product truth and repo-wide invariants.
+- `.claude/rules/*.md`
+  Scoped memory that should only load when relevant files are touched.
+- `.agent-skills/*.md`
+  Concise domain references for flows, constraints, and subsystem truth.
+- `.claude/skills/<skill>/SKILL.md`
+  Reusable runbooks for repeatable workflows.
+- `.claude/agents.md`
+  Agent system overview and role guidance.
+- `.claude/agents/*.md`
+  Declarative role briefs for specialized agents.
 
-The carrier posting their first trip is more important than a beautiful landing page.
-A disputed booking resolved quickly is more important than advanced analytics.
+## Start Here
 
----
+When the task touches a specific area, read the matching memory before coding:
 
-## What Success Looks Like (MVP)
+- UI or mobile polish -> `.claude/rules/frontend-ios.md`
+- backend, pricing, booking, matching, API, or migrations -> `.claude/rules/backend-marketplace-invariants.md`
+- admin, trust, ops, payments, or notifications -> `.claude/rules/operations-and-trust.md`
+- docs, prompts, skills, or project memory -> `.claude/rules/docs-and-memory.md`
 
-- 10+ active verified carriers posting usable availability weekly
-- 50+ completed Sydney metro jobs in the wedge (single furniture, bulky items, marketplace pickups)
-- 30%+ of inbound demand matches genuine spare capacity
-- Disputes manageable without full-time ops
-- Several carriers prefer moverrr over existing channels (Facebook groups, Airtasker)
-
----
-
-## Key Files Reference
-
-| Purpose | File |
-|---------|------|
-| Booking creation (atomic) | `src/lib/data/bookings.ts` |
-| Commission math | `src/lib/pricing/breakdown.ts` |
-| State machine (pure) | `src/lib/status-machine.ts` |
-| Dispute resolution | `src/lib/data/admin.ts` |
-| Payment webhook | `src/app/api/payments/webhook/route.ts` |
-| Trip validation | `src/lib/validation/trip.ts` |
-| Upload endpoint | `src/app/api/upload/route.ts` |
-| Rate limiting | `src/lib/rate-limit.ts` |
-| Carrier wizard | `src/components/carrier/carrier-trip-wizard.tsx` |
-| Global styles | `src/app/globals.css` |
-| Tailwind config | `tailwind.config.ts` |
-| Env validation | `src/lib/env.ts` |
-| Notifications | `src/lib/notifications.ts` |
-| Auth helpers | `src/lib/auth.ts` |
-| Matching score | `src/lib/matching/score.ts` |
-| DB migrations | `supabase/migrations/` |
-
----
-
-## Agent Roles
-
-See `.claude/agents.md` for agent definitions and their exact scopes.
-See `.agent-skills/` for concise domain knowledge files agents should read before working on a feature.
-See `.claude/skills/` for step-by-step runbooks for complex autonomous tasks.
+Then read the relevant `.agent-skills/` file and, if needed, invoke the matching skill under `.claude/skills/`.

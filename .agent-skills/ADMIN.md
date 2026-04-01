@@ -2,22 +2,38 @@
 
 ## Why admin exists
 
-MVP is manual-first by design.
+Admin is not a nice-to-have in moverrr.
+It is the trust and exception-handling layer that makes an early marketplace survivable.
 
-Admin needs to:
+Admin exists to:
 - verify carriers
-- review bookings
-- monitor stuck states
-- inspect disputes
-- override edge cases
+- review disputes
+- inspect stuck bookings
+- monitor payment and payout issues
+- handle operational edge cases faster than automation can
 
-## Admin UX
+## Working stance
 
-- simple tables or cards
-- no unnecessary analytics before operational basics exist
-- easy access to proof photos and timestamps
-- clear action buttons for approve, reject, resolve
+Manual-first is correct at this stage.
+If a human can resolve a case faster and more safely than automation, prefer the human path.
 
-## Early marketplace principle
+## Admin UX priorities
 
-Human review is cheaper than building the wrong automation too early.
+- clear queue states
+- visible timestamps
+- proof photos and documents easy to inspect
+- obvious next actions
+- auditability over dashboard theatrics
+
+## When editing admin surfaces
+
+Optimize for:
+- speed of understanding
+- low-risk actions
+- explicit labels
+- recovery from mistakes
+
+Avoid:
+- analytics-heavy screens that hide the next operational action
+- ambiguous action labels
+- irreversible flows without strong confirmation

@@ -1,53 +1,51 @@
 # Carrier Flow
 
-## Onboarding
+## Why carrier flow matters most
 
-1. Sign up with email and password.
-2. Enter business and contact details.
-3. Register at least one vehicle.
-4. Upload licence and insurance.
-5. Wait for manual verification.
+Carrier supply is the engine of the marketplace.
+If posting or managing trips feels slow, confusing, or risky, the browse-first model collapses.
 
-## Post Capacity
+## Current carrier journey
 
-Three-screen wizard:
+### Onboarding
 
-1. Route
-   - origin suburb
-   - destination suburb
-   - detour radius
-2. When and space
-   - trip date
-   - time window
-   - space size
-   - max weight
-3. Price and rules
-   - carrier-set price
-   - accepted item types
-   - stairs
-   - helper
-   - special notes
+1. sign up
+2. add business and contact details
+3. register at least one vehicle
+4. upload licence and insurance
+5. wait for verification
 
-## Dashboard Jobs To Be Done
+### Post capacity
 
-- see active listings
-- review bookings on each trip
+The carrier posting flow stays intentionally compact:
+
+1. route
+2. timing and space
+3. price and handling rules
+
+### Dashboard jobs to be done
+
+- see active trips
+- understand what is booked
+- post again quickly
 - upload pickup and delivery proof
-- track upcoming payouts
+- track payout status
 
-## Trip Templates (Quick Post)
+### Templates
 
-Carriers can save common routes as templates. From the dashboard:
-1. Tap "Post" next to a template
-2. Confirm date, time window, and price
-3. Trip is posted immediately
-
-To create a template: from any trip detail page, tap "Save as template".
-Templates are private to each carrier.
+Trip templates are already part of the product.
+They exist to remove repeat-route friction, not to become a complex scheduling system.
 
 ## UX principles
 
-- mobile-first
-- minimal admin overhead
-- clear price guidance
-- no unnecessary chat
+- carrier actions must work cleanly on mobile
+- posting should feel fast and low-cognitive-load
+- proof capture should be camera-first
+- the product should not require chat or negotiation to complete core tasks
+
+## Common mistakes
+
+- adding optionality that slows the wizard
+- hiding next actions inside cards with weak affordance
+- making template flows feel like a mini dispatch system
+- breaking touch targets or proof capture while polishing UI

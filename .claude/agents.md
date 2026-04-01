@@ -1,182 +1,60 @@
-# moverrr — Agent Definitions
+# moverrr — Agent System
 
-Agents operating on this codebase must read `CLAUDE.md` first. This file defines role boundaries.
+This repo now uses a layered Claude-style setup:
 
----
+- `CLAUDE.md` for always-on product truth
+- `.claude/rules/` for file-scoped memory
+- `.agent-skills/` for subsystem knowledge
+- `.claude/skills/` for reusable workflows
+- `.claude/agents/` for specialized role briefs
 
-## BugFixer
+The goal is not "more instructions." The goal is sharper operating contracts.
 
-**Purpose:** Fix bugs in business logic, API routes, and database layer without touching UI.
+## Shared Rules For Every Agent
 
-**Scope — can modify:**
-- `src/lib/` (all business logic, matching, pricing, data access)
-- `src/app/api/` (all API routes)
-- `supabase/migrations/` (schema changes and function rewrites)
-- `src/types/` (TypeScript type definitions)
+1. Read `CLAUDE.md` first.
+2. Read the relevant `.claude/rules/*.md` file before touching that area.
+3. Read the matching `.agent-skills/*.md` file for domain context.
+4. Use a specialized skill when the work is a repeatable workflow.
+5. Never delegate understanding.
+6. Verify before reporting completion.
+7. If truth changed, update the matching docs in the same task.
 
-**Must NOT touch:**
-- Component JSX in `src/components/`
-- Page JSX in `src/app/**/page.tsx` or `src/app/**/layout.tsx`
-- CSS classes or Tailwind configuration
-- Design tokens
+## Role Map
 
-**Required reads before starting:**
-- `CLAUDE.md`
-- `.agent-skills/DATABASE.md`
-- `.agent-skills/PAYMENTS.md`
-- `.agent-skills/API-ROUTES.md`
+| Agent | Use when | Primary reads |
+| --- | --- | --- |
+| `founder-critic` | feature shaping, prioritization, scope drift, marketplace strategy | `CLAUDE.md`, `.agent-skills/OVERVIEW.md`, `.agent-skills/PRICING.md` |
+| `repo-explorer` | architecture tracing, codebase surveys, exact-file questions | relevant `.claude/rules/*.md`, relevant `.agent-skills/*.md` |
+| `feature-implementer` | bounded build work across code, schema, and UI | relevant rules, domain skill, relevant workflow skill |
+| `verifier` | independent validation after meaningful changes | `CLAUDE.md`, `.agent-skills/VERIFICATION.md`, matching workflow skill |
+| `docs-keeper` | documentation cleanup, memory alignment, stale-instruction fixes | `.claude/rules/docs-and-memory.md`, relevant `.agent-skills/*.md` |
 
-**Completion check:**
-```bash
-npm run check   # must pass clean — no lint or typecheck errors
-```
+## Delegation Rules
 
----
+- Use explorers for evidence gathering, not for final decisions.
+- Use implementers for bounded execution, not for fuzzy strategy.
+- Use verifiers after non-trivial work, especially backend, payments, booking, migrations, or multi-file UI changes.
+- Use the founder critic before green-lighting features that may distort the product wedge.
+- Use the docs keeper when flows, invariants, or commands changed and memory needs to stay current.
 
-## FrontendPolisher
+## Important Lessons Borrowed From Frontier Agent Systems
 
-**Purpose:** Improve UI components for iOS-first UX — touch targets, interaction states, visual polish.
+- Split explore, plan, implement, and verify instead of doing everything in one pass.
+- Prefer small, explicit role definitions over one giant "smart agent."
+- Keep always-loaded instructions lean; move deep detail into scoped rules and on-demand skills.
+- Treat documentation, prompts, and skills as part of the product operating system.
+- Use evidence-backed verification, not ceremonial "looks good" reviews.
 
-**Scope — can modify:**
-- `src/components/` (all component files)
-- `src/app/**/page.tsx` and `src/app/**/layout.tsx` (page structure)
-- `src/app/globals.css` (global styles)
-- `tailwind.config.ts` (design tokens)
+## Actual Role Files
 
-**Must NOT touch:**
-- `src/lib/` (business logic — no behavior changes)
-- `src/app/api/` (API routes)
-- `supabase/migrations/` (database)
+The role briefs live here:
 
-**iOS contract — verify before finishing:**
-- All interactive elements in carrier flow: `min-h-[44px]`
-- No `hover:` class without matching `active:` state
-- Proof upload `<input type="file">` has `capture="environment"`
-- Scroll containers have `overscroll-behavior: contain`
+- `.claude/agents/founder-critic.md`
+- `.claude/agents/repo-explorer.md`
+- `.claude/agents/feature-implementer.md`
+- `.claude/agents/verifier.md`
+- `.claude/agents/docs-keeper.md`
 
-**Required reads before starting:**
-- `CLAUDE.md` (iOS-first section)
-- `.agent-skills/DESIGN-SYSTEM.md`
-- `.agent-skills/CUSTOMER-FLOW.md`
-- `.agent-skills/CARRIER-FLOW.md`
-
-**Completion check:**
-```bash
-npm run check
-# Then: Chrome DevTools → iPhone SE (375x667) → verify touch targets visually
-```
-
----
-
-## FeatureBuilder
-
-**Purpose:** Implement a named feature end-to-end (schema → API → UI).
-
-**Scope:** Full stack — can modify any file needed for the feature.
-
-**Must NOT:**
-- Introduce AI-based matching, bidding, or quote-comparison patterns
-- Skip RLS on any new database table
-- Modify the commission calculation in `src/lib/pricing/breakdown.ts` without explicit approval
-- Add new npm packages without checking if functionality already exists in the codebase
-
-**Process:**
-1. Read `CLAUDE.md` and all relevant `.agent-skills/` files
-2. Read the skill file in `.claude/skills/` for this feature if one exists
-3. Write migration first, test it locally, then write application code
-4. Update the relevant `.agent-skills/` file if the feature changes a user flow
-5. Run `npm run check` before finishing
-
-**Completion check:**
-```bash
-npm run check
-# Manually test happy path + empty state + error state
-```
-
----
-
-## DatabaseMigrator
-
-**Purpose:** Write and apply database migrations — schema changes, new tables, function rewrites, index optimization.
-
-**Scope — can modify:**
-- `supabase/migrations/` (SQL migration files only)
-- `src/types/database.ts` (type definitions to match schema)
-
-**Must NOT:**
-- Modify application code in `src/lib/` or `src/app/`
-- Write migrations that drop columns without confirming with user first
-- Create tables without RLS policies
-
-**Migration checklist:**
-- [ ] File named `NNN_description.sql` sequentially after last migration
-- [ ] New tables have `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
-- [ ] New tables have RLS policies for relevant roles (carrier/customer/admin)
-- [ ] Geography columns have `CREATE INDEX ... USING GIST`
-- [ ] `src/types/database.ts` updated to match new schema
-
-**Required reads:**
-- `CLAUDE.md` (database rules section)
-- `.agent-skills/DATABASE.md`
-
----
-
-## TestWriter
-
-**Purpose:** Write tests for business logic without modifying source files.
-
-**Scope — creates files in:**
-- `src/lib/__tests__/` (unit tests for lib/ functions)
-- `src/app/api/__tests__/` (integration tests for API routes)
-
-**Must NOT:**
-- Modify any source file
-- Add test utilities to non-test directories
-
-**Framework:** Vitest (`vitest.config.ts` at root)
-
-**Priority test targets (in order):**
-1. `src/lib/pricing/breakdown.ts` — commission math identity test
-2. `src/lib/status-machine.ts` — all valid and invalid transitions
-3. `src/lib/matching/score.ts` — disqualification paths + score ranges
-4. `src/lib/pricing/suggest.ts` — space size calculations
-5. Atomic booking RPC — concurrent booking test
-
-**Required reads:**
-- `CLAUDE.md`
-- The `.agent-skills/` file for the domain being tested
-
----
-
-## AdminOps
-
-**Purpose:** Handle admin-side operational tasks — verification queue, dispute resolution, reporting.
-
-**Scope — can modify:**
-- `src/app/(admin)/` (admin pages)
-- `src/components/admin/` (admin components)
-- `src/app/api/admin/` (admin API routes)
-- `src/lib/data/admin.ts` (admin data functions)
-
-**Must NOT:**
-- Bypass RLS for non-admin queries
-- Modify carrier or customer-facing flows
-
-**Required reads:**
-- `CLAUDE.md`
-- `.agent-skills/ADMIN.md`
-- `.agent-skills/PAYMENTS.md` (for refund operations)
-
----
-
-## Notes for All Agents
-
-**The product insight that must never be lost:**
-
-> "The customer should understand why the offer is cheap: 'You save because your item fits an existing route and you chose a flexible window.'"
-
-Clarity of value proposition is core infrastructure, not copywriting.
-
-**When in doubt about scope:** Stop. Ask. Don't guess toward generic behavior.
-
-**Priority order:** Trust → Simplicity → Supply speed → Customer clarity → Automation → Polish
+Keep the overview here human-readable.
+Keep the role-specific behavior in the actual agent files.
