@@ -126,6 +126,22 @@ export function StatusUpdateActions({
   const transitions = (ALLOWED_BOOKING_TRANSITIONS[currentStatus] ?? []).filter((status) =>
     CARRIER_MANAGED_TRANSITIONS.has(status),
   );
+  const proofChecklist =
+    transitions.includes("picked_up") && !transitions.includes("delivered")
+      ? {
+          title: "Pickup proof pack",
+          helper:
+            "Capture the loaded item, visible condition, and a clear handoff view before you mark pickup complete.",
+          label: "Pickup proof photo",
+        }
+      : transitions.includes("delivered")
+        ? {
+            title: "Delivery proof pack",
+            helper:
+              "Capture the delivered item and handoff area, then keep any access, mismatch, or damage evidence ready for the issue flow.",
+            label: "Delivery proof photo",
+          }
+        : null;
 
   if (transitions.length === 0) {
     return null;
@@ -133,8 +149,12 @@ export function StatusUpdateActions({
 
   return (
     <div className="space-y-2">
-      {transitions.some((status) => status === "picked_up" || status === "delivered") ? (
+      {proofChecklist ? (
         <div className="space-y-2">
+          <div className="rounded-xl border border-border bg-black/[0.02] p-3 text-sm text-text-secondary dark:bg-white/[0.04]">
+            <p className="font-medium text-text">{proofChecklist.title}</p>
+            <p className="mt-1">{proofChecklist.helper}</p>
+          </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white active:opacity-80">
               <Camera className="h-4 w-4" />
@@ -162,7 +182,7 @@ export function StatusUpdateActions({
             <FileSelectionPreview
               file={proofFile}
               imageUrl={previewUrl}
-              label="Proof attachment"
+              label={proofChecklist.label}
               onRemove={() => setProofFile(null)}
             />
           ) : null}
@@ -184,7 +204,7 @@ export function StatusUpdateActions({
           <Textarea
             value={cancellationReason}
             onChange={(event) => setCancellationReason(event.target.value)}
-            placeholder="Add optional context for ops and the customer."
+            placeholder="Add short factual context for ops and the customer."
           />
           {confirmCancellation ? (
             <div className="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-text">
@@ -240,6 +260,10 @@ export function StatusUpdateActions({
           </Button>
         ))}
       </div>
+      <p className="text-xs text-text-secondary">
+        If access is blocked, the item mismatches the booking, or someone pushes payment
+        off-platform, capture evidence right away and keep the report inside moverrr.
+      </p>
       {error ? <p className="text-sm text-error">{error}</p> : null}
     </div>
   );

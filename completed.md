@@ -1,10 +1,102 @@
 # moverrr — Completed Work Log
 
-> Last updated: `2026-04-01`
+> Last updated: `2026-04-02`
 >
 > Purpose: keep a durable record of what is already done, where it lives, why it was changed, and when it landed, so completed work can be removed from the active backlog without losing context.
 
 ---
+
+## 2026-04-02 — Frontier Operating System, Trust Surfaces, and Verification Harnesses
+
+### `COMP-2026-04-02-36` — Frontier operating system, scoped rules, and reusable verifier workflows
+- Moved from active backlog: `FRONTIER-UPGRADES-and-learnings.md` operating-system sweep
+- When: `2026-04-02`
+- Where:
+  - `CLAUDE.md`
+  - `TASK-RULES.md`
+  - `.agent-skills/VERIFICATION.md`
+  - `.claude/operating-system.md`
+  - `.claude/capability-index.md`
+  - `.claude/command-catalog.md`
+  - `.claude/agents.md`
+  - `.claude/agents/*.md`
+  - `.claude/rules/*.md`
+  - `.claude/skills/*/SKILL.md`
+  - `EXPERIMENT-LEDGER.md`
+  - `package.json`
+- Why:
+  - The frontier learnings only become useful if they are turned into the repo's actual operating system instead of staying as inspiration docs.
+- What changed:
+  - Added a canonical instruction map, precedence order, rule-naming convention, trust boundary, worktree policy, delegation triggers, plan template, permission matrix, verification report format, and adversarial probe checklist.
+  - Added scoped rules for search and matching, payments and payouts, Supabase schema, analytics and metrics, customer trust, carrier growth, and admin operations.
+  - Added new specialist role briefs and repeatable skills for release readiness, dispute review, saved-search demand review, carrier-quality review, admin queue review, metrics review, copy drift, postmortems, experiments, and surface-specific verification.
+  - Added a capability index, command catalog, experiment ledger, and a webhook replay command alias so repeatable workflows are discoverable instead of hidden.
+  - Consolidated the frontier source material by deleting `FRONTIER-UPGRADES-35.md` and `airtasker-airbnb-learning.md` in favor of the combined `FRONTIER-UPGRADES-and-learnings.md`.
+- Verification:
+  - `npm run check`
+  - `npm run test`
+
+### `COMP-2026-04-02-37` — Search, trip, booking, carrier, and founder-ops trust surfaces were upgraded from the frontier brief
+- Moved from active backlog: `FRONTIER-UPGRADES-and-learnings.md` marketplace/product sweep
+- When: `2026-04-02`
+- Where:
+  - `src/app/(customer)/search/page.tsx`
+  - `src/app/(customer)/trip/[id]/page.tsx`
+  - `src/app/(customer)/bookings/[id]/page.tsx`
+  - `src/app/(customer)/carrier/[id]/page.tsx`
+  - `src/app/(carrier)/carrier/dashboard/page.tsx`
+  - `src/app/(carrier)/carrier/payouts/page.tsx`
+  - `src/app/(carrier)/carrier/trips/[id]/page.tsx`
+  - `src/app/(admin)/admin/dashboard/page.tsx`
+  - `src/app/(admin)/admin/payments/page.tsx`
+  - `src/components/trip/trip-card.tsx`
+  - `src/components/trip/trip-detail-summary.tsx`
+  - `src/components/booking/*.tsx`
+  - `src/components/carrier/*.tsx`
+  - `src/components/admin/review-queue.tsx`
+  - `src/lib/data/admin.ts`
+  - `src/lib/data/bookings.ts`
+  - `src/lib/data/carriers.ts`
+  - `src/lib/trip-presenters.ts`
+  - `src/lib/validation/booking.ts`
+  - `src/lib/validation/trip.ts`
+- Why:
+  - The browse-first marketplace gets stronger when trust, fit, pricing clarity, and next actions are visible on the surfaces customers, carriers, and the founder actually use every day.
+- What changed:
+  - Reworked search cards and search ordering so results explain fit, show human capacity, timing certainty, trust stacks, and truthful customer totals while downranking weaker inventory and offering nearby alternatives when supply is thin.
+  - Rebuilt trip detail around the real trip first: route, timing, vehicle, remaining capacity, spare-capacity explanation, included vs not included boundaries, access compatibility, privacy limits, customer prep, and clearer payment and next-step expectations.
+  - Tightened booking and dispute surfaces with fuller breakdowns, held-funds reassurance, missing-step guidance, scam-report actions, stronger off-platform boundaries, proof-pack guidance, and richer booking-state cues.
+  - Expanded carrier posting and profile flows with publish-readiness checks, item-fit warnings, stronger presets and repost paths, post-publish operational guidance, layered trust badges, and proof-backed credibility signals.
+  - Added a founder-ops cockpit and richer payment or payout surfaces so weak listings, verification blockers, risky bookings, and payout blockers are visible in one operational view.
+- Verification:
+  - `npm run check`
+  - `npm run test`
+
+### `COMP-2026-04-02-38` — Payment webhook replay, booking guard regressions, and optional live integration harnesses were added
+- Moved from active backlog: `FRONTIER-UPGRADES-and-learnings.md` verification and reliability sweep
+- When: `2026-04-02`
+- Where:
+  - `src/app/api/payments/webhook/route.ts`
+  - `src/app/api/payments/webhook/__tests__/`
+  - `src/lib/stripe/payment-intent-events.ts`
+  - `src/lib/__tests__/webhook-events.test.ts`
+  - `src/lib/__tests__/booking-atomic-rpc.test.ts`
+  - `src/lib/__tests__/booking-status-regression.test.ts`
+  - `src/lib/__tests__/bookings.integration.test.ts`
+  - `src/lib/__tests__/helpers/supabase-rest-harness.ts`
+  - `scripts/replay-payment-webhook.ts`
+  - `scripts/fixtures/payment-webhooks/authorized-then-captured.json`
+- Why:
+  - Payment and booking trust needs replayable evidence, not memory, especially around concurrency, status guards, and webhook-driven state transitions.
+- What changed:
+  - Extracted Stripe payment-intent event application into a reusable helper and refactored the webhook route to run through the same event logic used by tests and replay tooling.
+  - Added webhook replay fixtures, route tests, and a CLI replay path so payment event sequences can be debugged locally from known data instead of anecdotal failure reports.
+  - Added regression coverage for atomic booking guarantees, dispute-to-completed guards, booking status transitions, and repeated-event behavior.
+  - Added an opt-in live Supabase integration harness for booking invariants so race and state-machine behavior can also be checked against a real backend when the required env is available.
+- Verification:
+  - `npm run check`
+  - `npm run test`
+  - `src/lib/__tests__/bookings.integration.test.ts` remains opt-in and is skipped without `RUN_SUPABASE_INTEGRATION=1` plus the required Supabase admin env.
 
 ## 2026-04-01 — Production Safety, Booking Integrity, and MVP UX Hardening
 

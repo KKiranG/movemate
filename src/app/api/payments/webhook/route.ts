@@ -1,9 +1,11 @@
-import Stripe from "stripe";
 import { NextResponse } from "next/server";
 
 import { verifyStripeWebhookSignature } from "@/lib/stripe/webhooks";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { captureAppError } from "@/lib/sentry";
+import {
+  applyPaymentIntentEvent,
+  createSupabaseBookingPaymentRepository,
+} from "@/lib/stripe/payment-intent-events";
 
 function logWebhookContext(
   level: "info" | "warn" | "error",
@@ -28,153 +30,19 @@ export async function POST(request: Request) {
     const event = verifyStripeWebhookSignature(body, signature);
 
     if (event.type.startsWith("payment_intent.")) {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      const bookingId = paymentIntent.metadata?.bookingId;
-      const baseContext = {
-        eventId: event.id,
-        eventType: event.type,
-        bookingId: bookingId ?? null,
-        paymentIntentId: paymentIntent.id,
-        paymentIntentStatus: paymentIntent.status,
-      };
-
-      if (!bookingId) {
-        logWebhookContext("warn", "Missing booking metadata on payment intent event.", baseContext);
-      }
-
-      if (bookingId) {
-        const supabase = createAdminClient();
-
-        if (event.type === "payment_intent.payment_failed") {
-          const failureMessage =
-            paymentIntent.last_payment_error?.message ??
-            paymentIntent.last_payment_error?.decline_code ??
-            "Card authorization failed.";
-          const { data: updatedRows, error: updateError } = await supabase
-            .from("bookings")
-            .update({
-              payment_status: "failed",
-              payment_failure_code: paymentIntent.last_payment_error?.decline_code ?? null,
-              payment_failure_reason: failureMessage,
-            })
-            .eq("id", bookingId)
-            .select("id");
-
-          if (updateError || !updatedRows || updatedRows.length === 0) {
-            logWebhookContext("error", "Failed to mark booking payment as failed.", baseContext);
-            captureAppError(
-              updateError ?? new Error(`Booking not found for webhook`),
-              {
-                feature: "payments",
-                action: "webhook_payment_failed",
-                tags: { bookingId, eventType: event.type },
-              },
-            );
-          }
-        }
-
-        if (event.type === "payment_intent.canceled") {
-          const { data: updatedRows, error: updateError } = await supabase
-            .from("bookings")
-            .update({
-              payment_status: "authorization_cancelled",
-              payment_failure_code: paymentIntent.cancellation_reason ?? null,
-              payment_failure_reason:
-                paymentIntent.cancellation_reason?.replace(/_/g, " ") ??
-                "The authorization was cancelled before capture.",
-            })
-            .eq("id", bookingId)
-            .select("id");
-
-          if (updateError || !updatedRows || updatedRows.length === 0) {
-            logWebhookContext(
-              "error",
-              "Failed to mark booking payment as authorization cancelled.",
-              baseContext,
-            );
-            captureAppError(
-              updateError ?? new Error(`Booking not found for webhook`),
-              {
-                feature: "payments",
-                action: "webhook_payment_authorization_cancelled",
-                tags: { bookingId, eventType: event.type },
-              },
-            );
-          }
-        }
-
-        if (event.type === "payment_intent.amount_capturable_updated") {
-          const { data: bookingRow } = await supabase
-            .from("bookings")
-            .select("id, payment_status")
-            .eq("id", bookingId)
-            .maybeSingle();
-
-          if (bookingRow?.payment_status === "captured") {
-            logWebhookContext("info", "Skipping capturable update for already captured booking.", baseContext);
-          } else {
-            const { data: updatedRows, error: updateError } = await supabase
-              .from("bookings")
-              .update({ payment_status: "authorized" })
-              .eq("id", bookingId)
-              .select("id");
-
-            if (updateError || !updatedRows || updatedRows.length === 0) {
-              logWebhookContext(
-                "error",
-                "Failed to mark booking payment as authorized from capturable update.",
-                baseContext,
-              );
-              captureAppError(
-                updateError ?? new Error(`Booking not found for webhook`),
-                {
-                  feature: "payments",
-                  action: "webhook_payment_authorized",
-                  tags: { bookingId, eventType: event.type },
-                },
-              );
-            } else {
-              logWebhookContext("info", "Booking payment marked authorized.", baseContext);
-            }
-          }
-        }
-
-        if (event.type === "payment_intent.succeeded") {
-          const { data: bookingRow } = await supabase
-            .from("bookings")
-            .select("id, payment_status")
-            .eq("id", bookingId)
-            .maybeSingle();
-
-          if (bookingRow?.payment_status === "captured") {
-            logWebhookContext("info", "Skipping payment succeeded update for already captured booking.", baseContext);
-          } else {
-            const { data: updatedRows, error: updateError } = await supabase
-              .from("bookings")
-              .update({
-                payment_status: "captured",
-                payment_failure_code: null,
-                payment_failure_reason: null,
-              })
-              .eq("id", bookingId)
-              .select("id");
-
-            if (updateError || !updatedRows || updatedRows.length === 0) {
-              logWebhookContext("error", "Failed to mark booking payment as captured.", baseContext);
-              captureAppError(
-                updateError ?? new Error(`Booking not found for webhook`),
-                {
-                  feature: "payments",
-                  action: "webhook_payment_captured",
-                  tags: { bookingId, eventType: event.type },
-                },
-              );
-            } else {
-              logWebhookContext("info", "Booking payment marked captured.", baseContext);
-            }
-          }
-        }
-      }
+      await applyPaymentIntentEvent(event, {
+        repository: createSupabaseBookingPaymentRepository(),
+        log: logWebhookContext,
+        reportError: (error, context) =>
+          captureAppError(error, {
+            feature: "payments",
+            action: context.action,
+            tags: {
+              bookingId: context.bookingId,
+              eventType: context.eventType,
+            },
+          }),
+      });
     }
 
     return NextResponse.json({ received: true, type: event.type });

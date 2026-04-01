@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgeCheck, Truck } from "lucide-react";
+import { ArrowRight, BadgeCheck, ShieldCheck, Truck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -8,8 +8,13 @@ import { getCapacityIndicator } from "@/lib/data/listings";
 import {
   ITEM_CATEGORY_LABELS,
   SPACE_SIZE_DESCRIPTIONS,
-  SPACE_SIZE_LABELS,
 } from "@/lib/constants";
+import {
+  getBaseCustomerPriceCents,
+  getHumanCapacityLabel,
+  getTripFitSummary,
+  getTripTrustSignals,
+} from "@/lib/trip-presenters";
 import { formatCurrency, formatDate, formatSavings } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
 
@@ -26,9 +31,39 @@ const VEHICLE_TYPE_LABELS: Record<Trip["vehicle"]["type"], string> = {
   trailer: "Trailer",
 };
 
+const SPACE_SIZE_EXAMPLES: Record<Trip["spaceSize"], string> = {
+  S: "Usually suits 2 boxes or a compact marketplace pickup",
+  M: "Usually suits 1 appliance, desk, or mattress-sized item",
+  L: "Usually suits several bulky items or a light studio move",
+  XL: "Usually suits large furniture or most of a spare bay",
+};
+
+function getTimingBadge(trip: Trip) {
+  if (trip.timeWindow === "flexible") {
+    return "Flexible across the day";
+  }
+
+  const tripDay = new Date(`${trip.tripDate}T12:00:00`);
+  const dayLabel = Number.isNaN(tripDay.getTime())
+    ? null
+    : [0, 6].includes(tripDay.getDay())
+      ? "Weekend run"
+      : null;
+
+  const windowLabel =
+    trip.timeWindow === "morning"
+      ? "Fixed morning window"
+      : trip.timeWindow === "afternoon"
+        ? "Fixed afternoon window"
+        : "Fixed evening window";
+
+  return dayLabel ? `${dayLabel} · ${windowLabel}` : windowLabel;
+}
+
 export function TripCard({ trip, href }: TripCardProps) {
   const capacityIndicator = getCapacityIndicator(trip.remainingCapacityPct);
   const isFullyBooked = trip.remainingCapacityPct <= 0 || trip.status === "booked_full";
+  const trustSignals = getTripTrustSignals(trip);
   const searchHref = `/search?${new URLSearchParams({
     from: trip.route.originSuburb,
     to: trip.route.destinationSuburb,
@@ -52,6 +87,7 @@ export function TripCard({ trip, href }: TripCardProps) {
                 </span>
               ) : null}
               <Badge>{VEHICLE_TYPE_LABELS[trip.vehicle.type]}</Badge>
+              <Badge>{getTimingBadge(trip)}</Badge>
               {trip.isReturnTrip ? (
                 <Badge className="border-success/20 bg-success/10 text-success">
                   Return trip
@@ -72,10 +108,31 @@ export function TripCard({ trip, href }: TripCardProps) {
                 : trip.route.label}
             </p>
             <TimeBar timeWindow={trip.timeWindow} />
+            <p className="rounded-xl border border-accent/10 bg-accent/5 px-3 py-2 text-sm text-text">
+              {getTripFitSummary(trip)}
+            </p>
             <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
               <span>{formatDate(trip.tripDate)}</span>
-              <span>Space {SPACE_SIZE_LABELS[trip.spaceSize]}</span>
+              <span>{getHumanCapacityLabel(trip)}</span>
               <span>Picks up within {trip.detourRadiusKm}km of the route</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+              {trustSignals.map((signal) => (
+                <span
+                  key={signal}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 ${
+                    signal === "ID checked"
+                      ? "border-success/20 bg-success/10 text-success"
+                      : "border-border"
+                  }`}
+                >
+                  {signal === "ID checked" ? <ShieldCheck className="h-3.5 w-3.5" /> : null}
+                  {signal}
+                </span>
+              ))}
+              <span className="inline-flex rounded-full border border-border px-2 py-1">
+                {SPACE_SIZE_EXAMPLES[trip.spaceSize]}
+              </span>
             </div>
             <div className="hidden space-y-2 sm:block">
               <p className="text-sm text-text-secondary">{SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}</p>
@@ -84,7 +141,7 @@ export function TripCard({ trip, href }: TripCardProps) {
               </p>
             </div>
             <details className="sm:hidden">
-              <summary className="inline-flex min-h-[44px] cursor-pointer items-center text-sm font-medium text-accent">
+              <summary className="inline-flex min-h-[44px] cursor-pointer items-center text-sm font-medium text-accent active:opacity-80">
                 More info
               </summary>
               <div className="space-y-2 pb-1">
@@ -103,8 +160,9 @@ export function TripCard({ trip, href }: TripCardProps) {
         </div>
         <div className="text-right">
           <p className="text-2xl font-medium text-text">
-            {formatCurrency(trip.priceCents)}
+            {formatCurrency(getBaseCustomerPriceCents(trip))}
           </p>
+          <p className="text-sm text-text-secondary">Starting total incl. booking fee</p>
           {trip.savingsPct > 5 ? (
             <>
               <p className="text-sm text-text-secondary line-through">
@@ -120,11 +178,15 @@ export function TripCard({ trip, href }: TripCardProps) {
           {capacityIndicator ? (
             <p className="mt-2 text-xs text-text-secondary">{capacityIndicator.description}</p>
           ) : null}
+          <p className="mt-2 text-xs text-text-secondary">
+            Optional add-ons shown before checkout: stairs and helper only if you need them.
+          </p>
         </div>
       </div>
       <div className="mt-4 flex items-center justify-end">
-        <span className="inline-flex min-h-[44px] items-center rounded-xl bg-accent px-4 text-sm font-medium text-white active:bg-[#0047b3]">
+        <span className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-accent px-4 text-sm font-medium text-white active:bg-[#0047b3]">
           {isFullyBooked ? "Fully booked - see similar trips" : "Book into this trip"}
+          <ArrowRight className="h-4 w-4" />
         </span>
       </div>
     </Card>

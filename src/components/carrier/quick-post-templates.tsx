@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { getTripPublishReadiness } from "@/lib/validation/trip";
 import type { TripTemplate } from "@/types/carrier";
 
 function getTomorrowIsoDate() {
@@ -24,15 +25,38 @@ export function QuickPostTemplates({
   const router = useRouter();
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [tripDate, setTripDate] = useState(getTomorrowIsoDate());
-  const [timeWindow, setTimeWindow] = useState<TripTemplate["timeWindow"]>("flexible");
+  const [timeWindow, setTimeWindow] =
+    useState<TripTemplate["timeWindow"]>("flexible");
   const [priceDollars, setPriceDollars] = useState("0");
   const [error, setError] = useState<string | null>(null);
   const [successTripId, setSuccessTripId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activeTemplate = useMemo(
-    () => templates.find((template) => template.id === activeTemplateId) ?? null,
+    () =>
+      templates.find((template) => template.id === activeTemplateId) ?? null,
     [activeTemplateId, templates],
+  );
+  const publishIssues = useMemo(
+    () =>
+      activeTemplate
+        ? getTripPublishReadiness({
+            status: "active",
+            spaceSize: activeTemplate.spaceSize,
+            availableVolumeM3: Number(activeTemplate.availableVolumeM3 ?? 0),
+            availableWeightKg: Number(activeTemplate.maxWeightKg ?? 0),
+            accepts: activeTemplate.accepts as Array<
+              "furniture" | "boxes" | "appliance" | "fragile" | "other"
+            >,
+            specialNotes: activeTemplate.notes,
+            helperAvailable: activeTemplate.helperAvailable,
+            stairsOk: activeTemplate.stairsOk,
+          })
+        : [],
+    [activeTemplate],
+  );
+  const blockingPublishIssues = publishIssues.filter(
+    (issue) => issue.severity === "blocking",
   );
 
   function openComposer(template: TripTemplate) {
@@ -54,15 +78,18 @@ export function QuickPostTemplates({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/trips/templates/${activeTemplate.id}/post`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tripDate,
-          timeWindow,
-          priceCents: Math.round(Number(priceDollars) * 100),
-        }),
-      });
+      const response = await fetch(
+        `/api/trips/templates/${activeTemplate.id}/post`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tripDate,
+            timeWindow,
+            priceCents: Math.round(Number(priceDollars) * 100),
+          }),
+        },
+      );
       const payload = await response.json();
 
       if (!response.ok) {
@@ -73,7 +100,9 @@ export function QuickPostTemplates({
       router.refresh();
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Unable to post trip from template.",
+        caught instanceof Error
+          ? caught.message
+          : "Unable to post trip from template.",
       );
     } finally {
       setIsSubmitting(false);
@@ -86,32 +115,48 @@ export function QuickPostTemplates({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="section-label">Quick Post</p>
-            <h2 className="mt-1 text-lg text-text">Post from a saved route in one tap</h2>
+            <h2 className="mt-1 text-lg text-text">
+              Post from a saved route in one tap
+            </h2>
           </div>
-          <Button asChild variant="ghost" className="min-h-[44px] active:opacity-80">
+          <Button
+            asChild
+            variant="ghost"
+            className="min-h-[44px] active:opacity-80"
+          >
             <Link href="/carrier/trips">Manage trips</Link>
           </Button>
         </div>
 
         {templates.length === 0 ? (
           <p className="subtle-text">
-            Save a route as a template from any trip detail page to quick-post it later.
+            Save a route as a template from any trip detail page to quick-post
+            it later.
           </p>
         ) : (
           <div className="grid gap-3">
             {templates.map((template) => (
-              <div key={template.id} className="rounded-xl border border-border p-3">
+              <div
+                key={template.id}
+                className="rounded-xl border border-border p-3"
+              >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-medium text-text">{template.name}</p>
                     <p className="mt-1 text-sm text-text-secondary">
-                      {template.originSuburb} to {template.destinationSuburb} · Space {template.spaceSize}
+                      {template.originSuburb} to {template.destinationSuburb} ·
+                      Space {template.spaceSize}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-3 text-xs text-text-secondary">
-                      <span>Last price {formatCurrency(template.suggestedPriceCents)}</span>
+                      <span>
+                        Last price{" "}
+                        {formatCurrency(template.suggestedPriceCents)}
+                      </span>
                       <span>
                         Last posted{" "}
-                        {template.lastUsedAt ? formatDate(template.lastUsedAt) : "Not posted yet"}
+                        {template.lastUsedAt
+                          ? formatDate(template.lastUsedAt)
+                          : "Not posted yet"}
                       </span>
                     </div>
                   </div>
@@ -126,9 +171,42 @@ export function QuickPostTemplates({
                 </div>
                 {activeTemplateId === template.id ? (
                   <div className="mt-3 grid gap-3 rounded-xl bg-black/[0.02] p-3 dark:bg-white/[0.04]">
+                    {activeTemplate?.id === template.id ? (
+                      <div className="rounded-xl border border-border bg-background p-3">
+                        <p className="text-sm font-medium text-text">
+                          Publish readiness
+                        </p>
+                        {publishIssues.length > 0 ? (
+                          <div className="mt-2 grid gap-2">
+                            {publishIssues.map((issue) => (
+                              <div
+                                key={issue.code}
+                                className={`rounded-xl border px-3 py-2 text-sm ${
+                                  issue.severity === "blocking"
+                                    ? "border-warning/20 bg-warning/10 text-text"
+                                    : "border-border bg-surface text-text-secondary"
+                                }`}
+                              >
+                                <p className="font-medium text-text">
+                                  {issue.message}
+                                </p>
+                                <p className="mt-1">{issue.hint}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-sm text-text-secondary">
+                            This template is aligned well enough to quick-post
+                            live inventory.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
                     <div className="grid gap-3 sm:grid-cols-3">
                       <label className="grid gap-2">
-                        <span className="text-sm font-medium text-text">Trip date</span>
+                        <span className="text-sm font-medium text-text">
+                          Trip date
+                        </span>
                         <Input
                           type="date"
                           value={tripDate}
@@ -136,11 +214,15 @@ export function QuickPostTemplates({
                         />
                       </label>
                       <label className="grid gap-2">
-                        <span className="text-sm font-medium text-text">Time window</span>
+                        <span className="text-sm font-medium text-text">
+                          Time window
+                        </span>
                         <select
                           value={timeWindow}
                           onChange={(event) =>
-                            setTimeWindow(event.target.value as TripTemplate["timeWindow"])
+                            setTimeWindow(
+                              event.target.value as TripTemplate["timeWindow"],
+                            )
                           }
                           className="min-h-[44px] rounded-xl border border-border bg-surface px-3 text-sm text-text"
                         >
@@ -151,20 +233,26 @@ export function QuickPostTemplates({
                         </select>
                       </label>
                       <label className="grid gap-2">
-                        <span className="text-sm font-medium text-text">Price (AUD)</span>
+                        <span className="text-sm font-medium text-text">
+                          Price (AUD)
+                        </span>
                         <Input
                           type="number"
                           min="10"
                           step="1"
                           value={priceDollars}
-                          onChange={(event) => setPriceDollars(event.target.value)}
+                          onChange={(event) =>
+                            setPriceDollars(event.target.value)
+                          }
                         />
                       </label>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
-                        disabled={isSubmitting}
+                        disabled={
+                          isSubmitting || blockingPublishIssues.length > 0
+                        }
                         className="min-h-[44px] active:opacity-80"
                         onClick={quickPost}
                       >
@@ -190,7 +278,10 @@ export function QuickPostTemplates({
         {successTripId ? (
           <p className="text-sm text-success">
             Trip posted!{" "}
-            <Link href={`/carrier/trips/${successTripId}`} className="font-medium underline">
+            <Link
+              href={`/carrier/trips/${successTripId}`}
+              className="inline-flex min-h-[44px] items-center font-medium underline"
+            >
               View your listing
             </Link>
           </p>

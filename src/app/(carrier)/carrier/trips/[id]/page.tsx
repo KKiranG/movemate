@@ -28,7 +28,21 @@ function buildRepostHref(trip: NonNullable<Awaited<ReturnType<typeof getTripById
     space: trip.spaceSize,
     price: Math.round(trip.priceCents / 100).toString(),
     detour: trip.detourRadiusKm.toString(),
+    tripDate: trip.tripDate,
+    timeWindow: trip.timeWindow,
+    volume: trip.availableVolumeM3.toString(),
+    weight: trip.availableWeightKg.toString(),
+    accepts: trip.rules.accepts.join(","),
+    isReturn: trip.isReturnTrip ? "1" : "0",
+    stairsOk: trip.rules.stairsOk ? "1" : "0",
+    stairsExtra: (trip.rules.stairsExtraCents / 100).toString(),
+    helperAvailable: trip.rules.helperAvailable ? "1" : "0",
+    helperExtra: (trip.rules.helperExtraCents / 100).toString(),
   });
+
+  if (trip.rules.specialNotes) {
+    params.set("notes", trip.rules.specialNotes);
+  }
 
   if (trip.route.originPostcode) {
     params.set("originPostcode", trip.route.originPostcode);
@@ -57,6 +71,83 @@ function buildRepostHref(trip: NonNullable<Awaited<ReturnType<typeof getTripById
   return `/carrier/post?${params.toString()}`;
 }
 
+function getBookingOperationsSummary(booking: CarrierBooking) {
+  if (booking.status === "pending") {
+    return {
+      tone: "border-warning/20 bg-warning/10",
+      eyebrow: "Pending decision",
+      title: "Confirm or decline before the pending hold expires",
+      description:
+        "This request is still waiting on the carrier decision. Keep payment, contact, and any price changes on moverrr while it is pending.",
+    };
+  }
+
+  if (booking.status === "confirmed") {
+    return {
+      tone: "border-border bg-black/[0.02] dark:bg-white/[0.04]",
+      eyebrow: "Next required action",
+      title: "Pickup proof is the next trust checkpoint",
+      description:
+        "Capture pickup proof before moving the booking into transit. Important operational replies should still land within 24 hours.",
+    };
+  }
+
+  if (booking.status === "picked_up" || booking.status === "in_transit") {
+    return {
+      tone: "border-border bg-black/[0.02] dark:bg-white/[0.04]",
+      eyebrow: "Next required action",
+      title: "Delivery proof still sits between this booking and payout release",
+      description:
+        "Use the delivery proof flow at handoff and capture any access, item-fit, or damage evidence immediately so it can be logged in moverrr.",
+    };
+  }
+
+  if (booking.status === "delivered") {
+    return {
+      tone: "border-accent/20 bg-accent/5",
+      eyebrow: "Waiting on customer",
+      title: "Funds stay held until receipt is confirmed",
+      description:
+        "The delivery is done, but payout stays on hold until the customer confirms receipt or a dispute is resolved.",
+    };
+  }
+
+  if (booking.status === "completed") {
+    return booking.paymentStatus === "capture_failed"
+      ? {
+          tone: "border-error/20 bg-error/5",
+          eyebrow: "Ops review required",
+          title: "Payment capture failed after completion",
+          description:
+            "The job is complete, but ops still needs to resolve the Stripe capture before payout can move.",
+        }
+      : {
+          tone: "border-success/20 bg-success/5",
+          eyebrow: "Booking complete",
+          title: "Proof, confirmation, and payout flow are closed",
+          description:
+            "Keep any follow-up inside moverrr so the trust record stays complete for future jobs.",
+        };
+  }
+
+  if (booking.status === "disputed") {
+    return {
+      tone: "border-error/20 bg-error/5",
+      eyebrow: "Dispute hold",
+      title: "Completion and payout stay blocked during dispute review",
+      description:
+        "Add calm, factual evidence only. Do not move the conversation or payment resolution off-platform.",
+    };
+  }
+
+  return {
+    tone: "border-border bg-black/[0.02] dark:bg-white/[0.04]",
+    eyebrow: "Booking state",
+    title: booking.status.replaceAll("_", " "),
+    description: "Keep the booking updated in moverrr so ops and proof history stay legible.",
+  };
+}
+
 function CarrierBookingCard({
   booking,
   feedback,
@@ -68,6 +159,7 @@ function CarrierBookingCard({
 }) {
   const paymentSummary = getBookingPaymentStateSummary(booking);
   const canOpenDispute = ["delivered", "completed", "disputed"].includes(booking.status);
+  const operationsSummary = getBookingOperationsSummary(booking);
 
   return (
     <div
@@ -84,6 +176,11 @@ function CarrierBookingCard({
       <p className="mt-2 text-sm text-text-secondary">
         {paymentSummary.badge} · {paymentSummary.description}
       </p>
+      <div className={`mt-3 rounded-xl border p-3 ${operationsSummary.tone}`}>
+        <p className="section-label">{operationsSummary.eyebrow}</p>
+        <p className="mt-1 text-sm font-medium text-text">{operationsSummary.title}</p>
+        <p className="mt-2 text-sm text-text-secondary">{operationsSummary.description}</p>
+      </div>
       <div className="mt-3 rounded-xl border border-border bg-black/[0.02] p-3">
         <p className="text-sm font-medium text-text">Carrier payout breakdown</p>
         <div className="mt-2 grid gap-1 text-sm text-text-secondary">
@@ -104,6 +201,10 @@ function CarrierBookingCard({
             <span>{formatCurrency(booking.pricing.carrierPayoutCents)}</span>
           </div>
         </div>
+        <p className="mt-3 text-sm text-text-secondary">
+          Day-of-job extras stay inside the listed add-ons or an admin-reviewed exception. Do not
+          rewrite price in chat or off-platform.
+        </p>
       </div>
       <div className="mt-3">
         <StatusUpdateActions bookingId={booking.id} currentStatus={booking.status} />
@@ -133,7 +234,11 @@ function CarrierBookingCard({
         ))}
       {canOpenDispute ? (
         <div className="mt-4 space-y-2">
-          <p className="section-label">Dispute intake</p>
+          <p className="section-label">Issue or suspicious behaviour</p>
+          <p className="text-sm text-text-secondary">
+            Use this immediately for no-show, wrong item, damage, unsafe access, or off-platform
+            payment requests so ops gets a timestamped record.
+          </p>
           <DisputeForm bookingId={booking.id} />
         </div>
       ) : null}

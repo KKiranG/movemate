@@ -1,0 +1,78 @@
+{
+  "bookingId": "booking-webhook-lifecycle",
+  "initialPaymentStatus": "pending",
+  "steps": [
+    {
+      "name": "amount_capturable_updated",
+      "expectedPaymentStatus": "authorized",
+      "event": {
+        "id": "evt_authorized_1",
+        "object": "event",
+        "api_version": "2025-03-31.basil",
+        "created": 1775101200,
+        "data": {
+          "object": {
+            "id": "pi_authorized_1",
+            "object": "payment_intent",
+            "metadata": {
+              "bookingId": "booking-webhook-lifecycle"
+            },
+            "status": "requires_capture"
+          }
+        },
+        "livemode": false,
+        "pending_webhooks": 1,
+        "request": null,
+        "type": "payment_intent.amount_capturable_updated"
+      }
+    },
+    {
+      "name": "succeeded",
+      "expectedPaymentStatus": "captured",
+      "event": {
+        "id": "evt_captured_1",
+        "object": "event",
+        "api_version": "2025-03-31.basil",
+        "created": 1775101260,
+        "data": {
+          "object": {
+            "id": "pi_authorized_1",
+            "object": "payment_intent",
+            "metadata": {
+              "bookingId": "booking-webhook-lifecycle"
+            },
+            "status": "succeeded"
+          }
+        },
+        "livemode": false,
+        "pending_webhooks": 1,
+        "request": null,
+        "type": "payment_intent.succeeded"
+      }
+    },
+    {
+      "name": "duplicate_succeeded",
+      "expectedPaymentStatus": "captured",
+      "event": {
+        "id": "evt_captured_2",
+        "object": "event",
+        "api_version": "2025-03-31.basil",
+        "created": 1775101320,
+        "data": {
+          "object": {
+            "id": "pi_authorized_1",
+            "object": "payment_intent",
+            "metadata": {
+              "bookingId": "booking-webhook-lifecycle"
+            },
+            "status": "succeeded"
+          }
+        },
+        "livemode": false,
+        "pending_webhooks": 1,
+        "request": null,
+        "type": "payment_intent.succeeded"
+      }
+    }
+  ]
+}

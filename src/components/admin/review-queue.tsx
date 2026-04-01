@@ -12,6 +12,11 @@ const tasks = [
     title: "Review bookings stuck in pending longer than 2 hours.",
   },
   {
+    href: "/admin/payments",
+    title:
+      "Clear payout blockers, capture failures, and stale delivery confirmations.",
+  },
+  {
     href: "/admin/disputes",
     title: "Resolve disputes with proof photos and timeline notes.",
   },
@@ -28,7 +33,7 @@ export function ReviewQueue() {
             <li key={task.href}>
               <Link
                 href={task.href}
-                className="text-accent transition hover:text-accent/80 active:text-accent/70"
+                className="inline-flex min-h-[44px] items-center text-accent transition hover:text-accent/80 active:text-accent/70"
               >
                 {task.title}
               </Link>

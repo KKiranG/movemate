@@ -6,6 +6,7 @@ import { captureAppError } from "@/lib/sentry";
 import { getStripeServerClient } from "@/lib/stripe/client";
 import { updateBookingStatusForActor } from "@/lib/data/bookings";
 import { sanitizeText } from "@/lib/utils";
+import { getTripPublishReadiness } from "@/lib/validation/trip";
 import type { ValidationMetric } from "@/types/admin";
 
 export async function listAdminDisputes() {
@@ -297,5 +298,215 @@ export async function getAdminDashboardData() {
   return {
     metrics,
     lastUpdatedAt: latestEvent?.created_at ?? new Date().toISOString(),
+  };
+}
+
+function getListingAccepts(listing: {
+  accepts_furniture: boolean;
+  accepts_boxes: boolean;
+  accepts_appliances: boolean;
+  accepts_fragile: boolean;
+}) {
+  return [
+    ...(listing.accepts_furniture ? (["furniture"] as const) : []),
+    ...(listing.accepts_boxes ? (["boxes"] as const) : []),
+    ...(listing.accepts_appliances ? (["appliance"] as const) : []),
+    ...(listing.accepts_fragile ? (["fragile"] as const) : []),
+  ];
+}
+
+export async function getFounderOpsCockpitData() {
+  if (!hasSupabaseAdminEnv()) {
+    return {
+      headlineCounts: {
+        verification: 0,
+        weakListings: 0,
+        payoutBlockers: 0,
+        riskyBookings: 0,
+      },
+      sections: [] as Array<{
+        key: string;
+        title: string;
+        description: string;
+        href?: string;
+        count: number;
+        items: Array<{
+          title: string;
+          detail: string;
+          href?: string;
+        }>;
+      }>,
+    };
+  }
+
+  const supabase = createAdminClient();
+  const stalePendingCutoff = new Date(Date.now() - 90 * 60 * 1000).toISOString();
+  const staleDeliveredCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: carriers }, { data: listings }, { data: bookings }, { data: disputes }] =
+    await Promise.all([
+      supabase
+        .from("carriers")
+        .select("id, business_name, verification_status, verification_submitted_at")
+        .in("verification_status", ["pending", "submitted"])
+        .order("verification_submitted_at", { ascending: true }),
+      supabase
+        .from("capacity_listings")
+        .select(
+          "id, trip_date, origin_suburb, destination_suburb, space_size, available_volume_m3, available_weight_kg, remaining_capacity_pct, special_notes, helper_available, stairs_ok, accepts_furniture, accepts_boxes, accepts_appliances, accepts_fragile, status",
+        )
+        .in("status", ["active", "booked_partial"]),
+      supabase
+        .from("bookings")
+        .select(
+          "id, booking_reference, status, payment_status, carrier_payout_cents, pending_expires_at, created_at, delivered_at, customer_confirmed_at",
+        )
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("disputes")
+        .select("id, booking_id, category, status, created_at")
+        .in("status", ["open", "investigating"])
+        .order("created_at", { ascending: false }),
+    ]);
+
+  const verificationItems = (carriers ?? []).slice(0, 5).map((carrier) => ({
+    title: carrier.business_name,
+    detail: carrier.verification_submitted_at
+      ? `Submitted ${new Date(carrier.verification_submitted_at).toLocaleString("en-AU")}`
+      : "Submission time missing",
+    href: "/admin/verification",
+  }));
+
+  const weakListings = (listings ?? [])
+    .map((listing) => {
+      const issues = getTripPublishReadiness({
+        status: "active",
+        spaceSize: listing.space_size,
+        availableVolumeM3: Number(listing.available_volume_m3 ?? 0),
+        availableWeightKg: Number(listing.available_weight_kg ?? 0),
+        accepts: getListingAccepts(listing),
+        specialNotes: listing.special_notes,
+        helperAvailable: listing.helper_available,
+        stairsOk: listing.stairs_ok,
+      });
+
+      if (issues.length === 0) {
+        return null;
+      }
+
+      return {
+        title: `${listing.origin_suburb} → ${listing.destination_suburb}`,
+        detail: issues[0]?.message ?? "Listing needs a quality pass.",
+      };
+    })
+    .filter((listing): listing is NonNullable<typeof listing> => Boolean(listing));
+
+  const payoutBlockers = (bookings ?? [])
+    .filter(
+      (booking) =>
+        (booking.status === "delivered" ||
+          booking.status === "completed" ||
+          booking.payment_status === "capture_failed") &&
+        booking.payment_status !== "captured" &&
+        booking.payment_status !== "refunded" &&
+        booking.payment_status !== "authorization_cancelled",
+    )
+    .map((booking) => ({
+      title: booking.booking_reference,
+      detail:
+        booking.payment_status === "capture_failed"
+          ? "Capture failed after completion."
+          : booking.status === "delivered"
+            ? "Waiting on customer confirmation before release."
+            : "Completed, but capture has not cleared yet.",
+      href: `/admin/bookings?q=${booking.booking_reference}`,
+    }));
+
+  const riskyBookings = (bookings ?? [])
+    .flatMap((booking) => {
+      if (booking.status === "pending" && booking.created_at <= stalePendingCutoff) {
+        return [
+          {
+            title: booking.booking_reference,
+            detail: "Pending longer than 90 minutes.",
+            href: `/admin/bookings?q=${booking.booking_reference}`,
+          },
+        ];
+      }
+
+      if (
+        booking.status === "delivered" &&
+        !booking.customer_confirmed_at &&
+        booking.delivered_at &&
+        booking.delivered_at <= staleDeliveredCutoff
+      ) {
+        return [
+          {
+            title: booking.booking_reference,
+            detail: "Delivered more than 24 hours ago without receipt confirmation.",
+            href: `/admin/bookings?q=${booking.booking_reference}`,
+          },
+        ];
+      }
+
+      if (booking.payment_status === "capture_failed") {
+        return [
+          {
+            title: booking.booking_reference,
+            detail: "Payment capture failed and needs ops review.",
+            href: `/admin/payments`,
+          },
+        ];
+      }
+
+      return [];
+    })
+    .concat(
+      (disputes ?? []).slice(0, 5).map((dispute) => ({
+        title: `Dispute ${dispute.category}`,
+        detail: `Booking ${dispute.booking_id} is ${dispute.status}.`,
+        href: `/admin/disputes`,
+      })),
+    );
+
+  return {
+    headlineCounts: {
+      verification: carriers?.length ?? 0,
+      weakListings: weakListings.length,
+      payoutBlockers: payoutBlockers.length,
+      riskyBookings: riskyBookings.length,
+    },
+    sections: [
+      {
+        key: "verification",
+        title: "Verification queue",
+        description: "Who still needs a human trust decision.",
+        href: "/admin/verification",
+        count: carriers?.length ?? 0,
+        items: verificationItems,
+      },
+      {
+        key: "weak-listings",
+        title: "Weak live listings",
+        description: "Routes that are live but still read as low-confidence inventory.",
+        count: weakListings.length,
+        items: weakListings.slice(0, 5),
+      },
+      {
+        key: "payout-blockers",
+        title: "Payout blockers",
+        description: "Completed or delivered bookings that still have release friction.",
+        href: "/admin/payments",
+        count: payoutBlockers.length,
+        items: payoutBlockers.slice(0, 5),
+      },
+      {
+        key: "risky-bookings",
+        title: "Risky bookings",
+        description: "Pending, disputed, or stale completion states that need intervention.",
+        href: "/admin/bookings",
+        count: riskyBookings.length,
+        items: riskyBookings.slice(0, 5),
+      },
+    ],
   };
 }

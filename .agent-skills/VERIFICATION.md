@@ -40,11 +40,45 @@ If that fails, the task is not done.
 - capacity updates
 - payment or webhook behavior when relevant
 
+### Adversarial probes to consider
+
+- concurrent action or duplicate submit
+- stale status transition
+- missing config or env
+- narrow viewport or touch-only interaction
+- missing metadata or malformed payload
+- replayed webhook or repeated event
+- weak listing or incomplete proof edge case
+
 ### Docs / memory
 
 - no stale paths
 - no conflicting instructions
 - no duplicate source of truth
+
+## Verifier Report Template
+
+Use this structure:
+
+```md
+Verification surface:
+- frontend / backend / booking / payments / docs
+
+Checks run:
+- exact command, route, or manual flow
+
+Evidence observed:
+- specific behavior, output, or screenshot-worthy observation
+
+Adversarial probe:
+- what you tried to break and what happened
+
+Verdict:
+- pass / fail / partial
+
+Residual risk:
+- what remains unverified or environment-blocked
+```
 
 ## Reporting bar
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LiveBookingsList } from "@/components/carrier/live-bookings-list";
 import { PendingBookingsAlert } from "@/components/carrier/pending-bookings-alert";
 import { QuickPostTemplates } from "@/components/carrier/quick-post-templates";
+import { CarrierTrustPanel } from "@/components/carrier/carrier-trust-panel";
 import { TripListSkeleton } from "@/components/carrier/trip-list-skeleton";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { requirePageSessionUser } from "@/lib/auth";
@@ -117,6 +118,12 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
           </p>
         </Card>
       ) : null}
+
+      <CarrierTrustPanel
+        carrier={carrier}
+        bookings={carrierBookings}
+        liveListingCount={liveListings}
+      />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Button asChild variant="secondary">

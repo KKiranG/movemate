@@ -19,6 +19,7 @@ import {
 import { suggestPrice } from "@/lib/pricing/suggest";
 import { formatCurrency, getTodayIsoDate } from "@/lib/utils";
 import type { RoutePriceGuidance } from "@/types/trip";
+import { getTripPublishReadiness } from "@/lib/validation/trip";
 
 const steps = ["Route", "When & space", "Price & rules"] as const;
 const acceptOptions = [
@@ -52,6 +53,17 @@ export function CarrierTripWizard({
   initialSpaceSize = "M",
   initialPriceDollars,
   initialDetourRadiusKm,
+  initialTripDate,
+  initialTimeWindow = "flexible",
+  initialAvailableVolumeM3,
+  initialAvailableWeightKg,
+  initialAccepts = ["furniture", "boxes", "appliance"],
+  initialSpecialNotes = "",
+  initialIsReturnTrip = false,
+  initialStairsOk = false,
+  initialStairsExtraDollars = "0",
+  initialHelperAvailable = false,
+  initialHelperExtraDollars = "0",
   canPost = true,
   onboardingHref = "/carrier/onboarding",
 }: {
@@ -60,6 +72,17 @@ export function CarrierTripWizard({
   initialSpaceSize?: "S" | "M" | "L" | "XL";
   initialPriceDollars?: string;
   initialDetourRadiusKm?: string;
+  initialTripDate?: string;
+  initialTimeWindow?: "morning" | "afternoon" | "evening" | "flexible";
+  initialAvailableVolumeM3?: string;
+  initialAvailableWeightKg?: string;
+  initialAccepts?: Array<"furniture" | "boxes" | "appliance" | "fragile">;
+  initialSpecialNotes?: string;
+  initialIsReturnTrip?: boolean;
+  initialStairsOk?: boolean;
+  initialStairsExtraDollars?: string;
+  initialHelperAvailable?: boolean;
+  initialHelperExtraDollars?: string;
   canPost?: boolean;
   onboardingHref?: string;
 }) {
@@ -70,14 +93,21 @@ export function CarrierTripWizard({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [spaceSize, setSpaceSize] = useState<"S" | "M" | "L" | "XL">(initialSpaceSize);
-  const [accepts, setAccepts] = useState<string[]>(["furniture", "boxes", "appliance"]);
-  const [specialNotes, setSpecialNotes] = useState("");
+  const [accepts, setAccepts] = useState<string[]>(initialAccepts);
+  const [specialNotes, setSpecialNotes] = useState(initialSpecialNotes);
   const [detourRadiusKm, setDetourRadiusKm] = useState(initialDetourRadiusKm ?? "5");
-  const [isReturnTrip, setIsReturnTrip] = useState(false);
-  const [tripDate, setTripDate] = useState(getTodayIsoDate());
-  const [timeWindow, setTimeWindow] = useState<"morning" | "afternoon" | "evening" | "flexible">("flexible");
-  const [availableVolumeM3, setAvailableVolumeM3] = useState("1");
-  const [availableWeightKg, setAvailableWeightKg] = useState("100");
+  const [isReturnTrip, setIsReturnTrip] = useState(initialIsReturnTrip);
+  const [tripDate, setTripDate] = useState(initialTripDate ?? getTodayIsoDate());
+  const [timeWindow, setTimeWindow] = useState<"morning" | "afternoon" | "evening" | "flexible">(
+    initialTimeWindow,
+  );
+  const [availableVolumeM3, setAvailableVolumeM3] = useState(initialAvailableVolumeM3 ?? "1");
+  const [availableWeightKg, setAvailableWeightKg] = useState(initialAvailableWeightKg ?? "100");
+  const [stairsOk, setStairsOk] = useState(initialStairsOk);
+  const [stairsExtraDollars, setStairsExtraDollars] = useState(initialStairsExtraDollars);
+  const [helperAvailable, setHelperAvailable] = useState(initialHelperAvailable);
+  const [helperExtraDollars, setHelperExtraDollars] = useState(initialHelperExtraDollars);
+  const [publishState, setPublishState] = useState<"draft" | "active">("active");
   const [priceGuidance, setPriceGuidance] = useState<RoutePriceGuidance | null>(null);
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
   const [hasEditedPrice, setHasEditedPrice] = useState(Boolean(initialPriceDollars));
@@ -102,6 +132,31 @@ export function CarrierTripWizard({
   const [priceDollars, setPriceDollars] = useState(
     initialPriceDollars ?? Math.round(pricingSuggestion.midCents / 100).toString(),
   );
+  const publishIssues = useMemo(
+    () =>
+      getTripPublishReadiness({
+        status: publishState,
+        spaceSize,
+        availableVolumeM3: Number(availableVolumeM3) || 0,
+        availableWeightKg: Number(availableWeightKg) || 0,
+        accepts: accepts as Array<"furniture" | "boxes" | "appliance" | "fragile" | "other">,
+        specialNotes,
+        helperAvailable,
+        stairsOk,
+      }),
+    [
+      accepts,
+      availableVolumeM3,
+      availableWeightKg,
+      helperAvailable,
+      publishState,
+      spaceSize,
+      specialNotes,
+      stairsOk,
+    ],
+  );
+  const blockingPublishIssues = publishIssues.filter((issue) => issue.severity === "blocking");
+  const warningPublishIssues = publishIssues.filter((issue) => issue.severity === "warning");
 
   useEffect(() => {
     if (hasEditedPrice || initialPriceDollars) {
@@ -146,6 +201,11 @@ export function CarrierTripWizard({
 
       if (!Number.isFinite(Number(priceDollars)) || Number(priceDollars) <= 0) {
         setError("Enter a valid price before saving.");
+        return false;
+      }
+
+      if (publishState === "active" && blockingPublishIssues.length > 0) {
+        setError("Resolve the publish blockers below or save this route as a draft.");
         return false;
       }
     }
@@ -255,7 +315,10 @@ export function CarrierTripWizard({
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData(event.currentTarget);
+      if (publishState === "active" && blockingPublishIssues.length > 0) {
+        throw new Error("Resolve the publish blockers below or save this route as a draft.");
+      }
+
       const response = await fetch("/api/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -277,15 +340,13 @@ export function CarrierTripWizard({
           priceCents: Math.round(Number(priceDollars) * 100),
           suggestedPriceCents: priceGuidance?.medianCents ?? pricingSuggestion.midCents,
           accepts,
-          stairsOk: formData.get("stairsOk") === "yes",
-          stairsExtraCents:
-            Math.round(Number(formData.get("stairsExtraDollars") || 0) * 100),
-          helperAvailable: formData.get("helperAvailable") === "yes",
-          helperExtraCents:
-            Math.round(Number(formData.get("helperExtraDollars") || 0) * 100),
+          stairsOk,
+          stairsExtraCents: Math.round(Number(stairsExtraDollars || 0) * 100),
+          helperAvailable,
+          helperExtraCents: Math.round(Number(helperExtraDollars || 0) * 100),
           isReturnTrip,
-          status: formData.get("status"),
-          specialNotes: specialNotes,
+          status: publishState,
+          specialNotes,
         }),
       });
       const payload = await response.json();
@@ -498,29 +559,74 @@ export function CarrierTripWizard({
       ) : null}
 
       {stepIndex === 2 ? (
-          <div className="grid gap-4">
-            <div className="rounded-xl border border-success/20 bg-success/5 p-4">
-              <p className="section-label">Price rationale</p>
-              <h3 className="mt-1 text-lg text-text">
-                {isGuidanceLoading
-                  ? "Checking corridor pricing..."
-                  : `Similar Sydney jobs: ${formatCurrency(
-                      priceGuidance?.lowCents ?? pricingSuggestion.lowCents,
-                    )} to ${formatCurrency(priceGuidance?.highCents ?? pricingSuggestion.highCents)}`}
-              </h3>
-              <p className="mt-2 text-sm text-text-secondary">
-                {priceGuidance?.explanation ??
-                  "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
-              </p>
-              <p className="mt-2 text-xs text-text-secondary">
-                Based on an estimated {routeDistanceKm}km between your resolved origin and destination.
-              </p>
-              <p className="mt-2 text-xs text-text-secondary">
-                {priceGuidance?.usedFallback
-                  ? "Using the Sydney fallback guide until we have at least 5 route examples."
-                  : `Built from ${priceGuidance?.exampleCount ?? 0} moverrr examples on a similar corridor.`}
-              </p>
+        <div className="grid gap-4">
+          <div className="rounded-xl border border-success/20 bg-success/5 p-4">
+            <p className="section-label">Price rationale</p>
+            <h3 className="mt-1 text-lg text-text">
+              {isGuidanceLoading
+                ? "Checking corridor pricing..."
+                : `Similar Sydney jobs: ${formatCurrency(
+                    priceGuidance?.lowCents ?? pricingSuggestion.lowCents,
+                  )} to ${formatCurrency(priceGuidance?.highCents ?? pricingSuggestion.highCents)}`}
+            </h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              {priceGuidance?.explanation ??
+                "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
+            </p>
+            <p className="mt-2 text-xs text-text-secondary">
+              Built for founder-led price guidance, not a black-box market estimate. Start here, then adjust for access, handling, and route certainty.
+            </p>
+            <p className="mt-2 text-xs text-text-secondary">
+              Based on an estimated {routeDistanceKm}km between your resolved origin and destination.
+            </p>
+            <p className="mt-2 text-xs text-text-secondary">
+              {priceGuidance?.usedFallback
+                ? "Using the Sydney fallback guide until we have at least 5 route examples."
+                : `Built from ${priceGuidance?.exampleCount ?? 0} moverrr examples on a similar corridor.`}
+            </p>
+          </div>
+          <div
+            className={`rounded-xl border p-4 ${
+              blockingPublishIssues.length > 0
+                ? "border-warning/20 bg-warning/10"
+                : "border-border bg-black/[0.02] dark:bg-white/[0.04]"
+            }`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="section-label">Publish readiness</p>
+                <h3 className="mt-1 text-lg text-text">
+                  {blockingPublishIssues.length > 0
+                    ? "Fix these before the route goes live"
+                    : "This route is ready to publish"}
+                </h3>
+              </div>
+              <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                {blockingPublishIssues.length} blockers · {warningPublishIssues.length} quality nudges
+              </span>
             </div>
+            {publishIssues.length > 0 ? (
+              <div className="mt-3 grid gap-2">
+                {publishIssues.map((issue) => (
+                  <div
+                    key={issue.code}
+                    className={`rounded-xl border px-3 py-3 text-sm ${
+                      issue.severity === "blocking"
+                        ? "border-warning/20 bg-white/70 text-text"
+                        : "border-border bg-background text-text-secondary"
+                    }`}
+                  >
+                    <p className="font-medium text-text">{issue.message}</p>
+                    <p className="mt-1">{issue.hint}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-text-secondary">
+                Route, capacity, rules, and accepted item types are aligned well enough for browse.
+              </p>
+            )}
+          </div>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Price in dollars</span>
             <Input
@@ -571,7 +677,8 @@ export function CarrierTripWizard({
               <select
                 name="stairsOk"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-                defaultValue="no"
+                value={stairsOk ? "yes" : "no"}
+                onChange={(event) => setStairsOk(event.target.value === "yes")}
               >
                 <option value="no">No stairs support</option>
                 <option value="yes">Stairs OK</option>
@@ -579,7 +686,13 @@ export function CarrierTripWizard({
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-text">Stairs surcharge (AUD)</span>
-              <Input name="stairsExtraDollars" type="number" step="1" defaultValue="0" />
+              <Input
+                name="stairsExtraDollars"
+                type="number"
+                step="1"
+                value={stairsExtraDollars}
+                onChange={(event) => setStairsExtraDollars(event.target.value)}
+              />
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -588,7 +701,8 @@ export function CarrierTripWizard({
               <select
                 name="helperAvailable"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-                defaultValue="no"
+                value={helperAvailable ? "yes" : "no"}
+                onChange={(event) => setHelperAvailable(event.target.value === "yes")}
               >
                 <option value="no">No helper</option>
                 <option value="yes">Helper available</option>
@@ -596,7 +710,13 @@ export function CarrierTripWizard({
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-text">Helper surcharge (AUD)</span>
-              <Input name="helperExtraDollars" type="number" step="1" defaultValue="0" />
+              <Input
+                name="helperExtraDollars"
+                type="number"
+                step="1"
+                value={helperExtraDollars}
+                onChange={(event) => setHelperExtraDollars(event.target.value)}
+              />
             </label>
           </div>
           <label className="grid gap-2">
@@ -604,7 +724,8 @@ export function CarrierTripWizard({
             <select
               name="status"
               className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-              defaultValue="active"
+              value={publishState}
+              onChange={(event) => setPublishState(event.target.value as "draft" | "active")}
             >
               <option value="active">Publish now</option>
               <option value="draft">Save as draft</option>

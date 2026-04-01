@@ -11,12 +11,21 @@ import { DISPUTE_CATEGORY_GUIDANCE } from "@/lib/constants";
 
 const categories = [
   { value: "damage", label: "Damage" },
-  { value: "no_show", label: "No show" },
+  { value: "no_show", label: "No-show or access issue" },
   { value: "late", label: "Timing issue" },
   { value: "wrong_item", label: "Wrong items" },
   { value: "overcharge", label: "Overcharge" },
-  { value: "other", label: "Other" },
+  { value: "other", label: "Suspicious / other" },
 ] as const;
+
+const attachmentLabels = {
+  damage: "Damage evidence",
+  no_show: "Timing or access evidence",
+  late: "Timing evidence",
+  wrong_item: "Item mismatch evidence",
+  overcharge: "Pricing evidence",
+  other: "Issue evidence",
+} as const;
 
 export function DisputeForm({ bookingId }: { bookingId: string }) {
   const router = useRouter();
@@ -112,6 +121,10 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
       <div className="rounded-xl border border-border bg-black/[0.02] p-3">
         <p className="text-sm font-medium text-text">{guidance.heading}</p>
         <p className="mt-1 text-sm text-text-secondary">{guidance.evidence}</p>
+        <p className="mt-2 text-xs text-text-secondary">
+          If someone asked to pay outside moverrr, choose Suspicious / other and describe exactly
+          what was requested.
+        </p>
       </div>
       <Textarea
         value={description}
@@ -146,14 +159,14 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
           <FileSelectionPreview
             file={photoFile}
             imageUrl={previewUrl}
-            label="Evidence attachment"
+            label={attachmentLabels[category]}
             onRemove={() => setPhotoFile(null)}
           />
         ) : null}
       </div>
       {error ? <p className="text-sm text-error">{error}</p> : null}
       <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Submitting dispute..." : "Raise dispute"}
+        {isSubmitting ? "Submitting issue..." : "Report issue"}
       </Button>
     </form>
   );

@@ -1,0 +1,28 @@
+{
+  "bookingId": "booking-webhook-missing-metadata",
+  "initialPaymentStatus": "pending",
+  "steps": [
+    {
+      "name": "missing_booking_metadata",
+      "expectedPaymentStatus": "pending",
+      "event": {
+        "id": "evt_missing_booking_1",
+        "object": "event",
+        "api_version": "2025-03-31.basil",
+        "created": 1775101460,
+        "data": {
+          "object": {
+            "id": "pi_missing_booking_1",
+            "object": "payment_intent",
+            "metadata": {},
+            "status": "requires_capture"
+          }
+        },
+        "livemode": false,
+        "pending_webhooks": 1,
+        "request": null,
+        "type": "payment_intent.amount_capturable_updated"
+      }
+    }
+  ]
+}

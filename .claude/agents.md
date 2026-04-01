@@ -10,6 +10,9 @@ This repo now uses a layered Claude-style setup:
 
 The goal is not "more instructions." The goal is sharper operating contracts.
 
+Use `.claude/operating-system.md` as the canonical runtime map.
+Use `.claude/capability-index.md` as the quick inventory of what rules, roles, skills, and commands exist today.
+
 ## Shared Rules For Every Agent
 
 1. Read `CLAUDE.md` first.
@@ -38,6 +41,39 @@ The goal is not "more instructions." The goal is sharper operating contracts.
 - Use the founder critic before green-lighting features that may distort the product wedge.
 - Use the docs keeper when flows, invariants, or commands changed and memory needs to stay current.
 
+## Delegation Triggers
+
+Use a specialized role by default when:
+
+- the task is mostly reading or synthesis -> `repo-explorer` or `product-researcher`
+- the task touches payments, payouts, or webhooks -> `payments-verifier`
+- the task changes iPhone-facing UI, capture flows, or sticky actions -> `mobile-verifier`
+- the task changes migrations, RLS, RPCs, or typed DB contracts -> `schema-reviewer`
+- the task changes trust copy, empty states, or reassurance language -> `copy-guardian`
+- the task risks product-shape drift -> `founder-critic`
+
+## Plan Mode Template
+
+Before bigger implementation tasks, write a short plan that covers:
+
+1. problem and desired outcome
+2. likely files and surfaces
+3. reuse candidates
+4. main risks or invariants
+5. verification path
+
+Any task with three or more major sub-parts must include an explicit verification lane before it can be called done.
+
+## Close-Out Format
+
+Final summaries should state:
+
+- what changed
+- what was verified
+- what remains risky or unverified
+
+If the task was a bug fix, include the reproduction path and the confirmation path.
+
 ## Important Lessons Borrowed From Frontier Agent Systems
 
 - Split explore, plan, implement, and verify instead of doing everything in one pass.
@@ -55,6 +91,23 @@ The role briefs live here:
 - `.claude/agents/feature-implementer.md`
 - `.claude/agents/verifier.md`
 - `.claude/agents/docs-keeper.md`
+- `.claude/agents/product-researcher.md`
+- `.claude/agents/payments-verifier.md`
+- `.claude/agents/mobile-verifier.md`
+- `.claude/agents/schema-reviewer.md`
+- `.claude/agents/copy-guardian.md`
 
 Keep the overview here human-readable.
 Keep the role-specific behavior in the actual agent files.
+
+## Operating System Reference
+
+Use `.claude/operating-system.md` as the canonical map for:
+
+- instruction precedence
+- rule naming and path scope
+- delegation triggers
+- plan templates
+- permission rails
+- worktree rules
+- capability inventory conventions
