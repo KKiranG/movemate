@@ -122,6 +122,54 @@
 - Verification:
   - `npm run check`
 
+### `COMP-2026-04-01-16` — Carrier dashboard signals, publish scheduling, and template operations
+- **When:** 2026-04-01
+- **By:** Codex
+- **Files changed:** `supabase/migrations/013_p3_enhancements.sql`, `src/lib/validation/trip.ts`, `src/lib/data/trips.ts`, `src/lib/data/templates.ts`, `src/types/database.ts`, `src/types/trip.ts`, `src/types/carrier.ts`, `src/lib/data/mappers.ts`, `src/components/carrier/live-bookings-list.tsx`, `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/components/carrier/carrier-trip-wizard.tsx`, `src/components/carrier/carrier-post-prefill.tsx`, `src/components/carrier/trip-edit-form.tsx`, `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/app/api/trips/templates/[id]/route.ts`, `src/components/booking/carrier-review-response-form.tsx`, `src/app/api/reviews/[id]/response/route.ts`, `src/app/(carrier)/carrier/templates/page.tsx`, `src/components/carrier/template-library.tsx`, `src/app/(carrier)/carrier/payouts/page.tsx`, `src/app/(carrier)/carrier/stats/page.tsx`
+- **Why it mattered:** Carriers need faster operational visibility and lower-friction reposting so spare-capacity supply turns into repeat supply instead of one-off posts.
+- **What was done:**
+  - Added realtime booking badges, live status counts, and a chronological activity feed on the carrier dashboard.
+  - Added optional trip `publish_at` scheduling in schema, validation, trip creation, and trip editing so listings can go live later instead of immediately.
+  - Reworked expired/cancelled reposting into an explicit “Post similar trip” path and created a carrier-side review-response flow that also surfaces on the public carrier profile.
+  - Added a full templates page with rename/archive/delete/duplicate actions, recurring route suggestions, and analytics powered by real template-linked listing and booking joins.
+  - Added dedicated carrier payouts and performance pages to expose pending earnings, released/refunded history, acceptance/completion rates, and repeat-route insights.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-17` — Customer saved-search management and richer trust emails
+- **When:** 2026-04-01
+- **By:** Codex
+- **Files changed:** `src/lib/data/saved-searches.ts`, `src/app/api/saved-searches/route.ts`, `src/app/api/saved-searches/[id]/route.ts`, `src/components/search/saved-searches-manager.tsx`, `src/app/(customer)/saved-searches/page.tsx`, `src/components/layout/site-header.tsx`, `supabase/functions/notify-saved-searches/index.ts`, `src/lib/data/bookings.ts`
+- **Why it mattered:** Saved-search retention and first-booking trust both depend on customers getting clear, editable alerts and professional confirmation artifacts right after action.
+- **What was done:**
+  - Added a customer “Saved searches” management screen with edit, pause/resume, and delete actions backed by new PATCH support in the saved-search API.
+  - Promoted saved-search access into the main navigation so the alert flow is manageable instead of fire-and-forget.
+  - Replaced the saved-search alert email with a richer HTML layout and direct booking CTA.
+  - Upgraded booking-created emails into structured HTML confirmations with route, carrier, total paid, booking reference, and preparation checklist details.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-18` — Platform health, CI, release tagging, and contributor workflow docs
+- **When:** 2026-04-01
+- **By:** Codex
+- **Files changed:** `.github/workflows/ci.yml`, `.env.example`, `package.json`, `next.config.js`, `src/lib/sentry.ts`, `src/lib/rate-limit.ts`, `src/app/api/admin/rate-limit/route.ts`, `src/app/api/health/route.ts`, `supabase/README.md`
+- **Why it mattered:** A marketplace repo without health probes, CI gates, release context, and a documented database workflow is easy to break and slow to recover during incidents.
+- **What was done:**
+  - Added a GitHub Actions CI workflow that runs `npm ci`, `npm run check`, and `npm run test` on pull requests to `main`.
+  - Added a real `/api/health` probe and release/environment tagging for Sentry events, plus release env wiring in Next config.
+  - Added rate-limit observability hooks and an admin override API backed by a new `rate_limit_overrides` table.
+  - Expanded `.env.example` with descriptions and added a Supabase workflow guide plus npm aliases for reset/push commands.
+- **Verification:** `npm run check`; `npm run test`
+
+### `COMP-2026-04-01-19` — Admin dispute visibility, payment observability, and trust-surface polish
+- **When:** 2026-04-01
+- **By:** Codex
+- **Files changed:** `src/lib/data/admin.ts`, `src/app/(admin)/admin/disputes/page.tsx`, `src/app/(admin)/admin/disputes/[id]/page.tsx`, `src/app/(admin)/admin/payments/page.tsx`, `src/components/ui/badge.tsx`, `tailwind.config.ts`, `src/app/globals.css`, `src/components/ui/button.tsx`, `src/components/ui/card.tsx`
+- **Why it mattered:** Ops needs faster dispute triage and payment visibility, while the customer/carrier surfaces need consistent status language and accessible interaction styling to feel trustworthy.
+- **What was done:**
+  - Added dispute ownership/SLA markers in the admin list and a dedicated evidence-gallery detail page for uploaded dispute photos.
+  - Added an admin payments page that summarizes payment failures, authorization cancellations, refunds, and booking-level payment issues in one view.
+  - Introduced a shared `StatusBadge` system and tightened common card, focus-ring, dark-mode, and button primitives so states read consistently across the app.
+- **Verification:** `npm run check`
+
 ### `COMP-2026-04-01-01` — Atomic booking creation and conflict-safe capacity handling
 - Moved from active backlog: original `A4` and `A12`
 - When: `2026-04-01`
@@ -371,6 +419,97 @@
   - Switched demo trip dates to relative future dates so sample inventory remains current without hand-editing constants.
 - Verification:
   - `npm run check`
+
+### `COMP-2026-04-01-18` — Server-side pending booking expiry runner
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `supabase/functions/expire-bookings/index.ts`, `supabase/migrations/011_booking_safety_p0.sql`, `src/lib/data/bookings.ts`, `src/lib/notifications.ts`, `src/types/database.ts`
+- **Why it mattered:** Pending bookings that never expire lock real trip capacity and make carrier supply feel unreliable.
+- **What was done:**
+  - Added a scheduled expiry edge function that finds stale `pending` bookings, cancels them with an explicit expiry reason, records audit events, recalculates listing capacity, and notifies both parties.
+  - Added `pending_expires_at` plus a reusable database `recalculate_listing_capacity` function so expiry and cancellation paths restore inventory consistently.
+  - Added an application helper for expiring pending bookings through the same booking lifecycle rules when run from server code.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-19` — Payment-intent creation is now idempotent per booking
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `src/lib/data/bookings.ts`
+- **Why it mattered:** Mobile retries must resolve to one authoritative Stripe intent or support loses the ability to reason about payment state cleanly.
+- **What was done:**
+  - Reused existing non-cancelled Stripe payment intents when the stored intent still matches the booking amount, currency, and metadata.
+  - Switched Stripe intent creation to use a booking-scoped idempotency key so retries land on the same intent even if the first response path is interrupted.
+  - Added booking reference metadata to the payment intent for easier reconciliation.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-20` — Booking creation now honors client idempotency keys
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `supabase/migrations/011_booking_safety_p0.sql`, `src/app/api/bookings/route.ts`, `src/components/booking/booking-form.tsx`, `src/lib/data/bookings.ts`, `src/types/database.ts`
+- **Why it mattered:** Double-submits from iPhone taps or flaky mobile networks must never create two bookings for the same customer intent.
+- **What was done:**
+  - Added `booking_idempotency_keys` with a 24-hour expiry window and folded the claim/return logic into the atomic booking RPC.
+  - Accepted the `Idempotency-Key` header on booking creation and passed a request hash into the RPC so mismatched payload reuse is rejected safely.
+  - Updated the booking form to generate and send a client idempotency key on submit.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-21` — Duplicate booking lifecycle emails are suppressed
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `supabase/migrations/011_booking_safety_p0.sql`, `src/lib/notifications.ts`, `src/lib/data/bookings.ts`, `src/lib/data/admin.ts`, `src/lib/data/feedback.ts`, `src/types/database.ts`
+- **Why it mattered:** Duplicate lifecycle emails erode trust faster than a delayed email and make retried booking transitions look unstable.
+- **What was done:**
+  - Added `booking_email_deliveries` with a unique dedupe key so booking-related emails can be claimed before send and skipped on retry.
+  - Routed booking creation, booking status, dispute, review, and expiry emails through the deduped send path.
+  - Preserved the local-development graceful-degradation behavior by releasing the dedupe claim when email sending is skipped or fails.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-22` — Human-readable booking references are now first-class
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `supabase/migrations/011_booking_safety_p0.sql`, `src/app/(admin)/admin/bookings/page.tsx`, `src/app/(admin)/admin/disputes/page.tsx`, `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/app/(customer)/bookings/page.tsx`, `src/app/(customer)/bookings/[id]/page.tsx`, `src/app/api/admin/bookings/route.ts`, `src/components/booking/pending-expiry-countdown.tsx`, `src/components/carrier/live-bookings-list.tsx`, `src/lib/data/admin.ts`, `src/lib/data/bookings.ts`, `src/lib/data/feedback.ts`, `src/lib/data/mappers.ts`, `src/lib/demo-data.ts`, `src/types/booking.ts`, `src/types/database.ts`
+- **Why it mattered:** Support and ops cannot work efficiently off UUIDs alone; every booking needs a short reference that appears everywhere people actually use the system.
+- **What was done:**
+  - Added generated `MVR-YYYY-NNNN` booking references at the database layer so every booking gets a support-safe identifier at creation time.
+  - Surfaced the reference in customer booking lists/detail, carrier trip booking cards, admin bookings, admin disputes, and booking-related emails.
+  - Added admin booking search by reference so ops can find a booking from the short code instead of raw IDs.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-23` — Carrier posting and onboarding are now mobile-resilient and conversion-ready
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `supabase/migrations/012_p1_p2_marketplace_experience.sql`, `src/lib/constants.ts`, `src/lib/validation/trip.ts`, `src/lib/validation/carrier.ts`, `src/lib/data/carriers.ts`, `src/lib/data/trips.ts`, `src/lib/data/listings.ts`, `src/types/carrier.ts`, `src/types/database.ts`, `src/types/trip.ts`, `src/components/carrier/carrier-trip-wizard.tsx`, `src/components/carrier/carrier-onboarding-form.tsx`, `src/components/carrier/trip-edit-form.tsx`, `src/components/carrier/carrier-post-prefill.tsx`, `src/app/(carrier)/carrier/post/page.tsx`, `src/app/(carrier)/carrier/onboarding/page.tsx`, `src/components/admin/verification-queue.tsx`, `src/components/shared/google-autocomplete-input.tsx`, `src/app/api/trips/price-guidance/route.ts`, `src/app/api/upload/route.ts`, `src/lib/storage.ts`
+- **Why it mattered:** First-trip posting and carrier verification are the supply bottlenecks for moverrr, so the mobile flow has to survive interruptions and explain exactly what a carrier needs next.
+- **What was done:**
+  - Added a return-trip flag, sticky safe-area wizard footer, detour presets, special-notes chips, and route price-guidance fetches so posting feels faster and clearer on iPhone-sized screens.
+  - Reworked trip editing with dirty-state protection and long-form auth refresh so carriers do not silently lose edits after stepping away mid-session.
+  - Rebuilt onboarding around autosave/resume, document previews, expiry-date capture, vehicle-photo upload, and a verification-blockers card that explains why an account cannot be approved yet.
+  - Extended the carrier and admin data surfaces so verification review includes the new vehicle and document metadata instead of raw upload links only.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-24` — Booking lifecycle recovery and payment-state trust surfaces were hardened
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `supabase/migrations/012_p1_p2_marketplace_experience.sql`, `src/lib/constants.ts`, `src/lib/booking-presenters.ts`, `src/lib/data/bookings.ts`, `src/types/booking.ts`, `src/types/database.ts`, `src/app/api/bookings/[id]/route.ts`, `src/app/api/payments/webhook/route.ts`, `src/components/booking/booking-form.tsx`, `src/components/booking/dispute-form.tsx`, `src/components/booking/status-update-actions.tsx`, `src/components/booking/payment-recovery-card.tsx`, `src/components/booking/private-proof-tile.tsx`, `src/components/booking/print-receipt-button.tsx`, `src/components/ui/file-selection-preview.tsx`, `src/app/(customer)/bookings/page.tsx`, `src/app/(customer)/bookings/[id]/page.tsx`, `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/app/(admin)/admin/bookings/page.tsx`
+- **Why it mattered:** A marketplace loses trust fastest when a booking looks stuck, proof feels risky to submit, or money states are ambiguous after a payment problem.
+- **What was done:**
+  - Added retryable payment-recovery UI, explicit authorization-cancelled vs refunded states, and presenter helpers so booking detail, carrier views, and admin tools all describe payment status consistently.
+  - Added proof preview and remove-before-submit flows, HEIC/HEIF-safe upload handling, guided dispute categories, and structured cancellation reasons instead of free-text-only actions.
+  - Rebuilt customer booking detail around the pending-expiry countdown, preparation checklist, private proof gallery, printable receipt, and a “book similar trip” recovery path after completion.
+  - Stored payment failure codes and cancellation reason codes in the data model so support and webhook processing preserve the actual failure reason instead of flattening everything into generic errors.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-25` — Customer browse surfaces, carrier transparency, and reminder loops were expanded for conversion
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `supabase/migrations/012_p1_p2_marketplace_experience.sql`, `src/lib/constants.ts`, `src/lib/data/listings.ts`, `src/lib/data/templates.ts`, `src/lib/data/trips.ts`, `src/lib/data/mappers.ts`, `src/types/trip.ts`, `src/app/api/search/route.ts`, `src/app/(customer)/search/page.tsx`, `src/components/search/search-bar.tsx`, `src/components/trip/trip-card.tsx`, `src/components/trip/trip-detail-summary.tsx`, `src/components/trip/share-trip-button.tsx`, `src/components/ui/time-bar.tsx`, `src/app/(customer)/trip/[id]/page.tsx`, `src/app/(customer)/trip/[id]/opengraph-image.tsx`, `src/app/(customer)/carrier/[id]/page.tsx`, `src/components/layout/app-client-effects.tsx`, `src/hooks/useAuthRefresh.ts`, `supabase/functions/delivery-reminders/index.ts`, `supabase/functions/trip-expiry-reminders/index.ts`, `supabase/functions/doc-expiry-reminders/index.ts`
+- **Why it mattered:** Browse-first demand only converts if empty states stay useful, listing cards communicate spare-capacity value quickly, and both sides get reminder nudges before trust-breaking no-shows or expiries.
+- **What was done:**
+  - Added browse-by-category search chips, nearby-date fallback results, clear geocoding-failure messaging, time-window bars, capacity indicators, and return-trip context on search and trip cards.
+  - Expanded trip detail with a savings context block, share action, richer OG image metadata, and a public carrier profile so customers can evaluate supply quality before committing.
+  - Added reminder edge-function scaffolding for delivery follow-ups, expiring trips, and expiring carrier documents so the marketplace has scheduled hooks for key pre- and post-job nudges.
+  - Kept long-lived customer sessions warm from the root app layer so saved-search, browse, and booking flows degrade less often when a mobile user leaves and returns.
+- **Verification:** `npm run check`
 
 ---
 

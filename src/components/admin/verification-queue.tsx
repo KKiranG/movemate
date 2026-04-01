@@ -86,6 +86,11 @@ function QueueCard({ carrier }: { carrier: CarrierProfile }) {
       ok: Boolean(carrier.insurancePhotoUrl),
     },
     {
+      label: "Vehicle photo",
+      value: carrier.vehiclePhotoUrl ? "Uploaded" : "Optional, not uploaded",
+      ok: Boolean(carrier.vehiclePhotoUrl),
+    },
+    {
       label: "Service area",
       value:
         carrier.serviceSuburbs.length > 0
@@ -145,6 +150,14 @@ function QueueCard({ carrier }: { carrier: CarrierProfile }) {
                     />
                   </div>
                 ) : null}
+                {check.label === "Vehicle photo" && carrier.vehiclePhotoUrl ? (
+                  <div className="mt-2">
+                    <DocumentPreviewDialog
+                      triggerLabel="View vehicle"
+                      documentUrl={carrier.vehiclePhotoUrl}
+                    />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -164,6 +177,14 @@ function QueueCard({ carrier }: { carrier: CarrierProfile }) {
               </p>
               <p className="mt-2 text-sm text-text">
                 {carrier.verificationNotes?.trim() || "No DB-backed note saved yet."}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border px-3 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                Document expiry
+              </p>
+              <p className="mt-2 text-sm text-text">
+                Licence {carrier.licenceExpiryDate ?? "not set"} · Insurance {carrier.insuranceExpiryDate ?? "not set"}
               </p>
             </div>
           </div>

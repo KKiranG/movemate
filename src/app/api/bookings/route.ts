@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireSessionUser();
     const payload = await request.json();
-    const booking = await createBookingForCustomer(user.id, payload);
+    const idempotencyKey = request.headers.get("Idempotency-Key");
+    const booking = await createBookingForCustomer(user.id, payload, { idempotencyKey });
 
     await trackAnalyticsEvent({
       eventName: "booking_started",

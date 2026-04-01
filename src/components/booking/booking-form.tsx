@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Camera, Upload } from "lucide-react";
 
+import { FileSelectionPreview } from "@/components/ui/file-selection-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { GoogleAutocompleteInput } from "@/components/shared/google-autocomplete-input";
+import { ITEM_SIZE_DESCRIPTIONS } from "@/lib/constants";
 import type { Trip } from "@/types/trip";
 
 interface ResolvedAddress {
@@ -29,10 +31,12 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
   const [pickup, setPickup] = useState<ResolvedAddress | null>(null);
   const [dropoff, setDropoff] = useState<ResolvedAddress | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [itemDescription, setItemDescription] = useState("Three-seat sofa");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [retryBookingId, setRetryBookingId] = useState<string | null>(null);
+  const bookingIdempotencyKeyRef = useRef<string | null>(null);
 
   const defaultPickup = useMemo(
     () => `${trip.route.originSuburb} NSW ${trip.route.originPostcode ?? ""}`.trim(),
@@ -43,6 +47,20 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       `${trip.route.destinationSuburb} NSW ${trip.route.destinationPostcode ?? ""}`.trim(),
     [trip.route.destinationPostcode, trip.route.destinationSuburb],
   );
+
+  useEffect(() => {
+    if (!photoFile || !photoFile.type.startsWith("image/")) {
+      setPhotoPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(photoFile);
+    setPhotoPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [photoFile]);
 
   async function uploadPhotoIfNeeded() {
     if (!photoFile) {
@@ -136,7 +154,15 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       const itemPhotoUrls = await uploadPhotoIfNeeded();
       const bookingResponse = await fetch("/api/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key":
+            bookingIdempotencyKeyRef.current ??
+            (bookingIdempotencyKeyRef.current =
+              typeof crypto !== "undefined" && "randomUUID" in crypto
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random()}`),
+        },
         body: JSON.stringify({
           listingId: trip.id,
           carrierId: trip.carrier.id,
@@ -170,9 +196,14 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
 
       if (!bookingResponse.ok) {
         if (bookingPayload.code === "listing_not_bookable") {
+          bookingIdempotencyKeyRef.current = null;
           throw new Error(
             "This trip filled or closed before payment setup finished. Search again for another spare-capacity run.",
           );
+        }
+
+        if (bookingPayload.code === "idempotency_key_reused") {
+          bookingIdempotencyKeyRef.current = null;
         }
 
         throw new Error(bookingPayload.error ?? "Failed to create booking.");
@@ -231,6 +262,24 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
         </label>
       </div>
 
+      <div className="space-y-3 rounded-xl border border-border p-3">
+        <div>
+          <p className="text-sm font-medium text-text">Size guide</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            Match your item to the closest size before you continue.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {Object.entries(ITEM_SIZE_DESCRIPTIONS).map(([value, config]) => (
+            <div key={value} className="rounded-xl border border-border p-3">
+              <p className="text-sm font-medium text-text">{config.label}</p>
+              <p className="mt-1 text-sm text-text-secondary">{config.description}</p>
+              <p className="mt-2 text-xs text-text-secondary">{config.dimensionsHint}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-text">Item photo</span>
         <div className="space-y-2">
@@ -257,7 +306,14 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
               />
             </label>
           </div>
-          {photoFile ? <p className="text-sm text-text-secondary">{photoFile.name}</p> : null}
+          {photoFile ? (
+            <FileSelectionPreview
+              file={photoFile}
+              imageUrl={photoPreviewUrl}
+              label="Item photo"
+              onRemove={() => setPhotoFile(null)}
+            />
+          ) : null}
         </div>
       </label>
 

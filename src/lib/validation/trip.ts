@@ -33,6 +33,12 @@ const optionalNotes = z.preprocess(
   z.string().max(280).optional(),
 );
 
+const optionalPublishAt = z
+  .string()
+  .datetime({ offset: true })
+  .optional()
+  .or(z.literal("").transform(() => undefined));
+
 export const tripSchema = z.object({
   originSuburb: z.string().min(2).max(120),
   originPostcode: z.string().min(4).max(8),
@@ -55,7 +61,9 @@ export const tripSchema = z.object({
   stairsExtraCents: z.number().min(0).default(0),
   helperAvailable: z.boolean().default(false),
   helperExtraCents: z.number().min(0).default(0),
+  isReturnTrip: z.boolean().default(false),
   status: z.enum(["draft", "active"]).default("active"),
+  publishAt: optionalPublishAt,
   specialNotes: optionalNotes,
 });
 
@@ -67,7 +75,9 @@ export const tripUpdateSchema = z.object({
   availableWeightKg: z.number().min(20).max(500),
   detourRadiusKm: z.number().min(0).max(30),
   priceCents: z.number().min(1000).max(100000),
+  isReturnTrip: z.boolean().default(false),
   status: z.enum(["draft", "active", "cancelled"]),
+  publishAt: optionalPublishAt,
   specialNotes: optionalNotes,
 });
 

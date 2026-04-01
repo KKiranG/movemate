@@ -122,6 +122,7 @@ export const demoTrips: Trip[] = [
     dedicatedEstimateCents: 18000,
     savingsPct: 53,
     remainingCapacityPct: 60,
+    isReturnTrip: false,
     rules: {
       accepts: ["furniture", "boxes", "appliance"],
       stairsOk: true,
@@ -151,6 +152,7 @@ export const demoTrips: Trip[] = [
     dedicatedEstimateCents: 14500,
     savingsPct: 57,
     remainingCapacityPct: 75,
+    isReturnTrip: false,
     rules: {
       accepts: ["boxes", "appliance", "fragile", "other"],
       stairsOk: false,
@@ -180,6 +182,7 @@ export const demoTrips: Trip[] = [
     dedicatedEstimateCents: 16000,
     savingsPct: 56,
     remainingCapacityPct: 80,
+    isReturnTrip: false,
     rules: {
       accepts: ["furniture", "boxes", "other"],
       stairsOk: true,
@@ -194,6 +197,7 @@ export const demoTrips: Trip[] = [
 export const demoBookings: Booking[] = [
   {
     id: "8d0ad4b8-20b9-4e35-86c8-f82c9099c67b",
+    bookingReference: "MVR-2026-0421",
     listingId: demoTrips[0].id,
     carrierId: demoTrips[0].carrier.id,
     customerId: "7fa95af6-8d7f-4b9f-830a-4066c5d75e87",

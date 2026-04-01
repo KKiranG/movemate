@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseAdminEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
-import { sendTransactionalEmail } from "@/lib/notifications";
+import { sendBookingTransactionalEmail } from "@/lib/notifications";
 import { captureAppError } from "@/lib/sentry";
 import { getStripeServerClient } from "@/lib/stripe/client";
 import { updateBookingStatusForActor } from "@/lib/data/bookings";
@@ -16,7 +16,7 @@ export async function listAdminDisputes() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("disputes")
-    .select("*")
+    .select("*, booking:bookings(booking_reference)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -24,6 +24,25 @@ export async function listAdminDisputes() {
   }
 
   return data ?? [];
+}
+
+export async function getAdminDisputeById(disputeId: string) {
+  if (!hasSupabaseAdminEnv()) {
+    return null;
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("disputes")
+    .select("*, booking:bookings(booking_reference)")
+    .eq("id", disputeId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "admin_dispute_lookup_failed");
+  }
+
+  return data;
 }
 
 export async function resolveDispute(params: {
@@ -44,6 +63,7 @@ export async function resolveDispute(params: {
       status: params.status,
       resolution_notes: params.resolutionNotes ? sanitizeText(params.resolutionNotes) : null,
       resolved_by: params.status === "resolved" || params.status === "closed" ? params.resolvedBy : null,
+      assigned_admin_user_id: params.resolvedBy,
       resolved_at:
         params.status === "resolved" || params.status === "closed"
           ? new Date().toISOString()
@@ -57,7 +77,14 @@ export async function resolveDispute(params: {
     throw new AppError(error.message, 500, "dispute_resolve_failed");
   }
 
-  let bookingPaymentStatus: "pending" | "authorized" | "captured" | "refunded" | "failed" | null =
+  let bookingPaymentStatus:
+    | "pending"
+    | "authorized"
+    | "captured"
+    | "refunded"
+    | "failed"
+    | "authorization_cancelled"
+    | null =
     null;
   let stripePaymentIntentId: string | null = null;
 
@@ -109,7 +136,7 @@ export async function resolveDispute(params: {
 
   const { data: bookingParties } = await supabase
     .from("bookings")
-    .select("customer:customers(email), carrier:carriers(email)")
+    .select("booking_reference, customer:customers(email), carrier:carriers(email)")
     .eq("id", data.booking_id)
     .single();
 
@@ -120,10 +147,13 @@ export async function resolveDispute(params: {
     [customerEmail, carrierEmail]
       .filter((email): email is string => Boolean(email))
       .map((email) =>
-        sendTransactionalEmail({
+        sendBookingTransactionalEmail({
+          bookingId: data.booking_id,
+          bookingStatus: params.bookingStatus ?? null,
+          emailType: "dispute_resolution_update",
           to: email,
-          subject: "Booking dispute updated",
-          html: `<p>Your moverrr dispute is now marked as ${params.status}. ${
+          subject: `Booking dispute updated: ${bookingParties?.booking_reference ?? data.booking_id}`,
+          html: `<p>Your moverrr dispute for booking <strong>${bookingParties?.booking_reference ?? data.booking_id}</strong> is now marked as ${params.status}. ${
             params.resolutionNotes ? params.resolutionNotes : ""
           }</p>`,
         }),

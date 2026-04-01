@@ -7,8 +7,10 @@ import { toErrorResponse } from "@/lib/errors";
 export async function GET(request: NextRequest) {
   try {
     await requireAdminUser();
-    const page = Number(new URL(request.url).searchParams.get("page") ?? "1");
-    const bookings = await listAdminBookings({ page });
+    const searchParams = new URL(request.url).searchParams;
+    const page = Number(searchParams.get("page") ?? "1");
+    const query = searchParams.get("q") ?? undefined;
+    const bookings = await listAdminBookings({ page, query });
 
     return NextResponse.json({ bookings });
   } catch (error) {

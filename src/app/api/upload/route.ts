@@ -6,9 +6,11 @@ import { toErrorResponse, AppError } from "@/lib/errors";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import {
   createSignedPrivateUrl,
+  getPrivateFileDisplay,
   type PrivateBucketName,
   uploadPrivateFile,
 } from "@/lib/storage";
+import { isHeicLikePath, isPreviewableImagePath } from "@/lib/utils";
 
 const allowedBuckets = Object.values(PRIVATE_BUCKETS) as PrivateBucketName[];
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -70,9 +72,18 @@ export async function POST(request: NextRequest) {
       path,
       file,
     });
-    const signedUrl = await createSignedPrivateUrl({ bucket: safeBucket, path });
+    const display = await getPrivateFileDisplay({ bucket: safeBucket, path });
+    const signedUrl =
+      display?.signedUrl ??
+      (await createSignedPrivateUrl({ bucket: safeBucket, path }));
 
-    return NextResponse.json({ bucket: safeBucket, path, signedUrl });
+    return NextResponse.json({
+      bucket: safeBucket,
+      path,
+      signedUrl,
+      isHeicLike: isHeicLikePath(path),
+      isPreviewableImage: isPreviewableImagePath(path),
+    });
   } catch (error) {
     const response = toErrorResponse(error);
     return NextResponse.json({ error: response.message }, { status: response.statusCode });

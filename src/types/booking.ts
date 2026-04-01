@@ -20,6 +20,21 @@ export interface BookingPriceBreakdown {
   platformCommissionCents: number;
 }
 
+export type BookingPaymentStatus =
+  | "pending"
+  | "authorized"
+  | "captured"
+  | "refunded"
+  | "failed"
+  | "authorization_cancelled";
+
+export type BookingCancellationReasonCode =
+  | "carrier_unavailable"
+  | "customer_changed_plans"
+  | "payment_failed"
+  | "no_response"
+  | "safety_concern";
+
 export interface BookingEvent {
   id: string;
   bookingId: string;
@@ -32,6 +47,7 @@ export interface BookingEvent {
 
 export interface Booking {
   id: string;
+  bookingReference: string;
   listingId: string;
   carrierId: string;
   customerId: string;
@@ -52,13 +68,19 @@ export interface Booking {
   needsHelper: boolean;
   status: BookingStatus;
   pricing: BookingPriceBreakdown;
-  paymentStatus?: "pending" | "authorized" | "captured" | "refunded" | "failed";
+  paymentStatus?: BookingPaymentStatus;
+  paymentFailureCode?: string | null;
+  paymentFailureReason?: string | null;
   stripePaymentIntentId?: string | null;
   pickupProofPhotoUrl?: string | null;
   deliveryProofPhotoUrl?: string | null;
+  deliveredAt?: string | null;
+  completedAt?: string | null;
   customerConfirmedAt?: string | null;
   cancelledAt?: string | null;
   cancellationReason?: string | null;
+  cancellationReasonCode?: BookingCancellationReasonCode | null;
+  pendingExpiresAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
   events?: BookingEvent[];

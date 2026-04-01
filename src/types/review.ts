@@ -6,5 +6,7 @@ export interface Review {
   revieweeId: string;
   rating: number;
   comment?: string | null;
+  carrierResponse?: string | null;
+  carrierRespondedAt?: string | null;
   createdAt: string;
 }

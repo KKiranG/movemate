@@ -3,6 +3,13 @@ import { ArrowRight, BadgeCheck, Truck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { TimeBar } from "@/components/ui/time-bar";
+import { getCapacityIndicator } from "@/lib/data/listings";
+import {
+  ITEM_CATEGORY_LABELS,
+  SPACE_SIZE_DESCRIPTIONS,
+  SPACE_SIZE_LABELS,
+} from "@/lib/constants";
 import { formatCurrency, formatDate, formatSavings } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
 
@@ -12,6 +19,8 @@ interface TripCardProps {
 }
 
 export function TripCard({ trip, href }: TripCardProps) {
+  const capacityIndicator = getCapacityIndicator(trip.remainingCapacityPct);
+
   const content = (
     <Card className="p-4">
       <div className="flex items-start justify-between gap-4">
@@ -29,6 +38,14 @@ export function TripCard({ trip, href }: TripCardProps) {
                 </span>
               ) : null}
               <Badge>{trip.vehicle.type}</Badge>
+              {trip.isReturnTrip ? (
+                <Badge className="border-success/20 bg-success/10 text-success">
+                  Return trip
+                </Badge>
+              ) : null}
+              {capacityIndicator ? (
+                <Badge>{capacityIndicator.label}</Badge>
+              ) : null}
             </div>
             <p className="text-sm text-text-secondary">
               {trip.carrier.ratingCount > 0
@@ -40,12 +57,23 @@ export function TripCard({ trip, href }: TripCardProps) {
                 ? `${trip.route.label} via ${trip.route.via.join(", ")}`
                 : trip.route.label}
             </p>
+            <TimeBar timeWindow={trip.timeWindow} />
             <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
               <span>{formatDate(trip.tripDate)}</span>
-              <span>{trip.timeWindow}</span>
-              <span>Space {trip.spaceSize}</span>
+              <span>
+                Space {SPACE_SIZE_LABELS[trip.spaceSize]}
+              </span>
               <span>Detour {trip.detourRadiusKm}km</span>
             </div>
+            <p className="text-sm text-text-secondary">{SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}</p>
+            <p className="text-sm text-text-secondary">
+              Best for {trip.rules.accepts.map((item) => ITEM_CATEGORY_LABELS[item]).join(", ").toLowerCase()}.
+            </p>
+            {trip.isReturnTrip ? (
+              <p className="text-sm font-medium text-success">
+                Backload pricing usually means a bigger saving than booking a dedicated van.
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="text-right">
@@ -58,6 +86,9 @@ export function TripCard({ trip, href }: TripCardProps) {
           <p className="text-sm font-medium text-savings">
             {formatSavings(trip.savingsPct)}
           </p>
+          {capacityIndicator ? (
+            <p className="mt-2 text-xs text-text-secondary">{capacityIndicator.description}</p>
+          ) : null}
         </div>
       </div>
     </Card>

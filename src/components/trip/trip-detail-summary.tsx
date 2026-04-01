@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { BadgeCheck, Package2, Truck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { TimeBar } from "@/components/ui/time-bar";
+import { ITEM_CATEGORY_LABELS, SPACE_SIZE_DESCRIPTIONS, SPACE_SIZE_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
 
@@ -27,9 +30,12 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
             <h1 className="text-2xl text-text">{trip.route.label}</h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
               <span>{formatDate(trip.tripDate)}</span>
-              <span>{trip.timeWindow}</span>
-              <span>Space {trip.spaceSize}</span>
+              <span>Space {SPACE_SIZE_LABELS[trip.spaceSize]}</span>
+              {trip.isReturnTrip ? (
+                <Badge className="border-success/20 bg-success/10 text-success">Return trip</Badge>
+              ) : null}
             </div>
+            <TimeBar timeWindow={trip.timeWindow} />
           </div>
           <div className="text-right">
             <p className="text-2xl font-medium text-text">
@@ -43,7 +49,9 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
           <div className="rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-text">
               <BadgeCheck className="h-4 w-4 text-accent" />
-              {trip.carrier.businessName}
+              <Link href={`/carrier/${trip.carrier.id}`} className="text-accent active:opacity-80">
+                {trip.carrier.businessName}
+              </Link>
             </div>
             <p className="subtle-text">
               Rated {trip.carrier.averageRating.toFixed(1)} from{" "}
@@ -59,6 +67,9 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               Up to {trip.availableVolumeM3}m3 and {trip.availableWeightKg}kg
               remaining.
             </p>
+            <p className="mt-2 text-sm text-text-secondary">
+              {SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}
+            </p>
           </div>
         </div>
 
@@ -66,7 +77,7 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
           {trip.rules.accepts.map((item) => (
             <Badge key={item}>
               <Package2 className="mr-1 h-3 w-3" />
-              {item}
+              {ITEM_CATEGORY_LABELS[item]}
             </Badge>
           ))}
         </div>

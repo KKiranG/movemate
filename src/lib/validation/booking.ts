@@ -43,4 +43,12 @@ export const bookingSchema = z.object({
   dropoffContactPhone: optionalSanitizedString(24),
 });
 
+export const bookingCancellationReasonCodeSchema = z.enum([
+  "carrier_unavailable",
+  "customer_changed_plans",
+  "payment_failed",
+  "no_response",
+  "safety_concern",
+]);
+
 export type BookingInput = z.infer<typeof bookingSchema>;

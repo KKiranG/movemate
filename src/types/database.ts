@@ -22,6 +22,7 @@ export interface Database {
           verification_status: "pending" | "submitted" | "verified" | "rejected";
           licence_photo_url: string | null;
           insurance_photo_url: string | null;
+          vehicle_photo_url: string | null;
           bio: string | null;
           profile_photo_url: string | null;
           service_suburbs: string[] | null;
@@ -35,6 +36,10 @@ export interface Database {
           verification_submitted_at: string | null;
           verified_at: string | null;
           verification_notes: string | null;
+          internal_notes: string | null;
+          internal_tags: string[];
+          licence_expiry_date: string | null;
+          insurance_expiry_date: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -50,6 +55,7 @@ export interface Database {
           verification_status?: "pending" | "submitted" | "verified" | "rejected";
           licence_photo_url?: string | null;
           insurance_photo_url?: string | null;
+          vehicle_photo_url?: string | null;
           bio?: string | null;
           profile_photo_url?: string | null;
           service_suburbs?: string[] | null;
@@ -63,6 +69,10 @@ export interface Database {
           verification_submitted_at?: string | null;
           verified_at?: string | null;
           verification_notes?: string | null;
+          internal_notes?: string | null;
+          internal_tags?: string[];
+          licence_expiry_date?: string | null;
+          insurance_expiry_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -139,11 +149,14 @@ export interface Database {
           helper_available: boolean;
           helper_extra_cents: number;
           special_notes: string | null;
+          is_return_trip: boolean;
+          source_template_id: string | null;
           status: "draft" | "active" | "booked_partial" | "booked_full" | "expired" | "cancelled";
           remaining_capacity_pct: number;
           created_at: string;
           updated_at: string;
           expires_at: string | null;
+          publish_at: string | null;
         };
         Insert: {
           id?: string;
@@ -176,11 +189,14 @@ export interface Database {
           helper_available?: boolean;
           helper_extra_cents?: number;
           special_notes?: string | null;
+          is_return_trip?: boolean;
+          source_template_id?: string | null;
           status?: "draft" | "active" | "booked_partial" | "booked_full" | "expired" | "cancelled";
           remaining_capacity_pct?: number;
           created_at?: string;
           updated_at?: string;
           expires_at?: string | null;
+          publish_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["capacity_listings"]["Insert"]>;
       };
@@ -207,6 +223,8 @@ export interface Database {
           accepts: string[];
           time_window: "morning" | "afternoon" | "evening" | "flexible";
           notes: string | null;
+          is_archived: boolean;
+          archived_at: string | null;
           times_used: number;
           last_used_at: string | null;
           created_at: string;
@@ -234,6 +252,8 @@ export interface Database {
           accepts?: string[];
           time_window?: "morning" | "afternoon" | "evening" | "flexible";
           notes?: string | null;
+          is_archived?: boolean;
+          archived_at?: string | null;
           times_used?: number;
           last_used_at?: string | null;
           created_at?: string;
@@ -336,8 +356,11 @@ export interface Database {
           total_price_cents: number;
           carrier_payout_cents: number;
           platform_commission_cents: number;
+          booking_reference: string;
           stripe_payment_intent_id: string | null;
-          payment_status: "pending" | "authorized" | "captured" | "refunded" | "failed";
+          payment_status: "pending" | "authorized" | "captured" | "refunded" | "failed" | "authorization_cancelled";
+          payment_failure_code: string | null;
+          payment_failure_reason: string | null;
           status: "pending" | "confirmed" | "picked_up" | "in_transit" | "delivered" | "completed" | "cancelled" | "disputed";
           pickup_proof_photo_url: string | null;
           delivery_proof_photo_url: string | null;
@@ -347,6 +370,8 @@ export interface Database {
           customer_confirmed_at: string | null;
           cancelled_at: string | null;
           cancellation_reason: string | null;
+          cancellation_reason_code: "carrier_unavailable" | "customer_changed_plans" | "payment_failed" | "no_response" | "safety_concern" | null;
+          pending_expires_at: string;
           created_at: string;
           updated_at: string;
         };
@@ -384,8 +409,11 @@ export interface Database {
           total_price_cents: number;
           carrier_payout_cents: number;
           platform_commission_cents: number;
+          booking_reference?: string;
           stripe_payment_intent_id?: string | null;
-          payment_status?: "pending" | "authorized" | "captured" | "refunded" | "failed";
+          payment_status?: "pending" | "authorized" | "captured" | "refunded" | "failed" | "authorization_cancelled";
+          payment_failure_code?: string | null;
+          payment_failure_reason?: string | null;
           status?: "pending" | "confirmed" | "picked_up" | "in_transit" | "delivered" | "completed" | "cancelled" | "disputed";
           pickup_proof_photo_url?: string | null;
           delivery_proof_photo_url?: string | null;
@@ -395,6 +423,8 @@ export interface Database {
           customer_confirmed_at?: string | null;
           cancelled_at?: string | null;
           cancellation_reason?: string | null;
+          cancellation_reason_code?: "carrier_unavailable" | "customer_changed_plans" | "payment_failed" | "no_response" | "safety_concern" | null;
+          pending_expires_at?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -421,6 +451,56 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["booking_events"]["Insert"]>;
       };
+      booking_idempotency_keys: {
+        Row: {
+          id: string;
+          customer_id: string;
+          idempotency_key: string;
+          request_hash: string | null;
+          booking_id: string | null;
+          created_at: string;
+          updated_at: string;
+          last_seen_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          idempotency_key: string;
+          request_hash?: string | null;
+          booking_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          last_seen_at?: string;
+          expires_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["booking_idempotency_keys"]["Insert"]>;
+      };
+      booking_email_deliveries: {
+        Row: {
+          id: string;
+          booking_id: string;
+          recipient_email: string;
+          email_type: string;
+          booking_status: string | null;
+          dedupe_key: string;
+          provider: string;
+          provider_message_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          recipient_email: string;
+          email_type: string;
+          booking_status?: string | null;
+          dedupe_key: string;
+          provider?: string;
+          provider_message_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["booking_email_deliveries"]["Insert"]>;
+      };
       reviews: {
         Row: {
           id: string;
@@ -430,6 +510,8 @@ export interface Database {
           reviewee_id: string;
           rating: number;
           comment: string | null;
+          carrier_response: string | null;
+          carrier_responded_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -440,6 +522,8 @@ export interface Database {
           reviewee_id: string;
           rating: number;
           comment?: string | null;
+          carrier_response?: string | null;
+          carrier_responded_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["reviews"]["Insert"]>;
@@ -456,6 +540,7 @@ export interface Database {
           status: "open" | "investigating" | "resolved" | "closed";
           resolution_notes: string | null;
           resolved_by: string | null;
+          assigned_admin_user_id: string | null;
           created_at: string;
           resolved_at: string | null;
         };
@@ -470,6 +555,7 @@ export interface Database {
           status?: "open" | "investigating" | "resolved" | "closed";
           resolution_notes?: string | null;
           resolved_by?: string | null;
+          assigned_admin_user_id?: string | null;
           created_at?: string;
           resolved_at?: string | null;
         };
@@ -495,6 +581,60 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["analytics_events"]["Insert"]>;
+      };
+      rate_limit_overrides: {
+        Row: {
+          id: string;
+          actor_type: "user" | "ip";
+          actor_value: string;
+          endpoint_key: string | null;
+          override_limit: number;
+          window_ms: number;
+          expires_at: string;
+          created_by: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_type: "user" | "ip";
+          actor_value: string;
+          endpoint_key?: string | null;
+          override_limit: number;
+          window_ms: number;
+          expires_at: string;
+          created_by?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rate_limit_overrides"]["Insert"]>;
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: "customer" | "carrier" | "admin";
+          endpoint: string;
+          p256dh_key: string;
+          auth_key: string;
+          is_active: boolean;
+          last_notified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: "customer" | "carrier" | "admin";
+          endpoint: string;
+          p256dh_key: string;
+          auth_key: string;
+          is_active?: boolean;
+          last_notified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Insert"]>;
       };
       waitlist_entries: {
         Row: {
@@ -547,6 +687,8 @@ export interface Database {
           p_dropoff_lng: number;
           p_dropoff_postcode: string;
           p_dropoff_suburb: string;
+          p_client_idempotency_key?: string | null;
+          p_idempotency_request_hash?: string | null;
           p_item_category: "furniture" | "boxes" | "appliance" | "fragile" | "other";
           p_item_description: string;
           p_item_dimensions?: string | null;
@@ -566,6 +708,15 @@ export interface Database {
           p_special_instructions?: string | null;
         };
         Returns: string;
+      };
+      recalculate_listing_capacity: {
+        Args: {
+          p_listing_id: string;
+        };
+        Returns: {
+          remaining_capacity_pct: number;
+          listing_status: string;
+        }[];
       };
       find_matching_listings: {
         Args: {

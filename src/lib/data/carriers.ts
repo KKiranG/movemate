@@ -26,6 +26,25 @@ export async function getCarrierByUserId(userId: string) {
   return data ? toCarrierProfile(data) : null;
 }
 
+export async function getCarrierById(carrierId: string) {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("carriers")
+    .select("*")
+    .eq("id", carrierId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "carrier_lookup_failed");
+  }
+
+  return data ? toCarrierProfile(data) : null;
+}
+
 export async function getCarrierVehicle(userId: string) {
   if (!hasSupabaseEnv()) {
     return null;
@@ -66,6 +85,7 @@ export async function upsertCarrierOnboarding(
     vehicleVolumeM3: number;
     vehicleWeightKg: number;
     regoPlate?: string;
+    vehiclePhotoUrl?: string;
   },
 ) {
   if (!hasSupabaseEnv()) {
@@ -92,9 +112,12 @@ export async function upsertCarrierOnboarding(
     bio: payload.bio ?? null,
     licence_photo_url: payload.licencePhotoUrl ?? null,
     insurance_photo_url: payload.insurancePhotoUrl ?? null,
+    vehicle_photo_url: payload.vehiclePhotoUrl ?? null,
     service_suburbs: payload.serviceSuburbs,
     verification_status: "submitted",
     verification_submitted_at: new Date().toISOString(),
+    licence_expiry_date: payload.licenceExpiryDate ?? null,
+    insurance_expiry_date: payload.insuranceExpiryDate ?? null,
   };
 
   const { data: carrier, error: carrierError } = await supabase
@@ -114,6 +137,7 @@ export async function upsertCarrierOnboarding(
     rego_plate: payload.regoPlate ?? null,
     max_volume_m3: payload.vehicleVolumeM3,
     max_weight_kg: payload.vehicleWeightKg,
+    photo_urls: payload.vehiclePhotoUrl ? [payload.vehiclePhotoUrl] : [],
     is_active: true,
   };
 
@@ -142,6 +166,58 @@ export async function upsertCarrierOnboarding(
   }
 
   return toCarrierProfile(carrier);
+}
+
+export async function getPublicCarrierProfile(carrierId: string) {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = createServerSupabaseClient();
+  const [{ data: carrier, error: carrierError }, { data: activeListings, error: listingsError }] =
+    await Promise.all([
+      supabase.from("carriers").select("*").eq("id", carrierId).maybeSingle(),
+      supabase
+        .from("capacity_listings")
+        .select("id")
+        .eq("carrier_id", carrierId)
+        .in("status", ["active", "booked_partial"])
+        .order("trip_date", { ascending: true }),
+    ]);
+
+  if (carrierError) {
+    throw new AppError(carrierError.message, 500, "carrier_lookup_failed");
+  }
+
+  if (listingsError) {
+    throw new AppError(listingsError.message, 500, "carrier_listings_lookup_failed");
+  }
+
+  if (!carrier) {
+    return null;
+  }
+
+  const [vehicle, bookingStats] = await Promise.all([
+    createServerSupabaseClient()
+      .from("vehicles")
+      .select("*")
+      .eq("carrier_id", carrierId)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle(),
+    createServerSupabaseClient()
+      .from("bookings")
+      .select("id, status")
+      .eq("carrier_id", carrierId),
+  ]);
+
+  return {
+    carrier: toCarrierProfile(carrier),
+    activeListingCount: activeListings?.length ?? 0,
+    completedJobCount:
+      bookingStats.data?.filter((booking) => booking.status === "completed").length ?? 0,
+    vehicle: vehicle.data ? toVehicle(vehicle.data) : null,
+  };
 }
 
 export async function listAdminCarriers(params?: {

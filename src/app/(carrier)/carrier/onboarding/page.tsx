@@ -3,6 +3,7 @@ import { CarrierOnboardingForm } from "@/components/carrier/carrier-onboarding-f
 import { PageIntro } from "@/components/layout/page-intro";
 import { TripChecklist } from "@/components/carrier/trip-checklist";
 import { Card } from "@/components/ui/card";
+import { getCarrierByUserId } from "@/lib/data/carriers";
 import { saveCarrierOnboarding } from "./actions";
 
 const steps = [
@@ -14,6 +15,7 @@ const steps = [
 
 export default async function CarrierOnboardingPage() {
   const user = await requirePageSessionUser();
+  const existingCarrier = await getCarrierByUserId(user.id);
 
   return (
     <main id="main-content" className="page-shell">
@@ -41,7 +43,11 @@ export default async function CarrierOnboardingPage() {
       </Card>
 
       <Card className="p-4">
-        <CarrierOnboardingForm action={saveCarrierOnboarding} defaultEmail={user.email ?? ""} />
+        <CarrierOnboardingForm
+          action={saveCarrierOnboarding}
+          defaultEmail={user.email ?? ""}
+          existingCarrier={existingCarrier}
+        />
       </Card>
     </main>
   );

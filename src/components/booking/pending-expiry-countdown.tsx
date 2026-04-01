@@ -14,11 +14,8 @@ function formatRemainingTime(milliseconds: number) {
   return `${hours}h ${minutes}m`;
 }
 
-export function PendingExpiryCountdown({ createdAt }: { createdAt: string }) {
-  const expiresAt = useMemo(
-    () => new Date(new Date(createdAt).getTime() + 2 * 60 * 60 * 1000),
-    [createdAt],
-  );
+export function PendingExpiryCountdown({ expiresAt }: { expiresAt: string }) {
+  const deadline = useMemo(() => new Date(expiresAt), [expiresAt]);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -31,7 +28,7 @@ export function PendingExpiryCountdown({ createdAt }: { createdAt: string }) {
     };
   }, []);
 
-  const remainingMs = expiresAt.getTime() - now;
+  const remainingMs = deadline.getTime() - now;
   const hasExpired = remainingMs <= 0;
 
   return (

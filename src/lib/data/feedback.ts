@@ -1,6 +1,6 @@
 import { hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
-import { sendTransactionalEmail } from "@/lib/notifications";
+import { sendBookingTransactionalEmail } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { disputeSchema, type DisputeInput } from "@/lib/validation/dispute";
@@ -29,6 +29,8 @@ function toReview(row: ReviewRow): Review {
     revieweeId: row.reviewee_id,
     rating: row.rating,
     comment: row.comment,
+    carrierResponse: row.carrier_response,
+    carrierRespondedAt: row.carrier_responded_at,
     createdAt: row.created_at,
   };
 }
@@ -160,6 +162,7 @@ async function refreshRatingAggregate(params: {
 async function notifyCounterparty(params: {
   bookingId: string;
   recipientRole: "customer" | "carrier";
+  emailType: "review_created" | "dispute_raised";
   subject: string;
   html: string;
 }) {
@@ -170,7 +173,7 @@ async function notifyCounterparty(params: {
   const supabase = createAdminClient();
   const { data: booking, error } = await supabase
     .from("bookings")
-    .select("customer:customers(email), carrier:carriers(email)")
+    .select("booking_reference, status, customer:customers(email), carrier:carriers(email)")
     .eq("id", params.bookingId)
     .single();
 
@@ -187,10 +190,13 @@ async function notifyCounterparty(params: {
     return;
   }
 
-  await sendTransactionalEmail({
+  await sendBookingTransactionalEmail({
+    bookingId: params.bookingId,
+    bookingStatus: (booking as { status?: BookingRow["status"] } | null)?.status ?? null,
+    emailType: params.emailType,
     to: recipientEmail,
-    subject: params.subject,
-    html: params.html,
+    subject: `${params.subject}: ${(booking as { booking_reference?: string } | null)?.booking_reference ?? params.bookingId}`,
+    html: `<p>Booking <strong>${(booking as { booking_reference?: string } | null)?.booking_reference ?? params.bookingId}</strong></p>${params.html}`,
   });
 }
 
@@ -208,6 +214,26 @@ export async function listBookingReviews(bookingId: string) {
 
   if (error) {
     throw new AppError(error.message, 500, "review_query_failed");
+  }
+
+  return (data ?? []).map((row) => toReview(row as ReviewRow));
+}
+
+export async function listReviewsForCarrier(carrierId: string) {
+  if (!hasSupabaseEnv()) {
+    return [] as Review[];
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("reviewee_id", carrierId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    throw new AppError(error.message, 500, "carrier_review_query_failed");
   }
 
   return (data ?? []).map((row) => toReview(row as ReviewRow));
@@ -328,6 +354,7 @@ export async function createReviewForBooking(userId: string, bookingId: string, 
   await notifyCounterparty({
     bookingId,
     recipientRole: context.actorRole === "customer" ? "carrier" : "customer",
+    emailType: "review_created",
     subject: "New booking review submitted",
     html: "<p>A review has been submitted for your completed moverrr booking.</p>",
   });
@@ -395,9 +422,67 @@ export async function createDisputeForBooking(
   await notifyCounterparty({
     bookingId,
     recipientRole: context.actorRole === "customer" ? "carrier" : "customer",
+    emailType: "dispute_raised",
     subject: "A booking dispute has been raised",
     html: "<p>A dispute has been opened on one of your moverrr bookings. Please check the booking timeline and proof details.</p>",
   });
 
   return toDispute(data as DisputeRow);
+}
+
+export async function respondToReviewAsCarrier(
+  userId: string,
+  reviewId: string,
+  response: string,
+) {
+  if (!hasSupabaseEnv()) {
+    throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
+  }
+
+  const supabase = createServerSupabaseClient();
+  const [{ data: carrier }, { data: review, error }] = await Promise.all([
+    supabase.from("carriers").select("id").eq("user_id", userId).maybeSingle(),
+    supabase.from("reviews").select("*").eq("id", reviewId).maybeSingle(),
+  ]);
+
+  if (error) {
+    throw new AppError(error.message, 500, "review_lookup_failed");
+  }
+
+  if (!carrier || !review || review.reviewee_id !== carrier.id) {
+    throw new AppError("Review not found.", 404, "review_not_found");
+  }
+
+  if (review.carrier_response) {
+    throw new AppError("A response has already been posted for this review.", 409, "review_response_exists");
+  }
+
+  const sanitizedResponse = response.trim();
+
+  if (!sanitizedResponse) {
+    throw new AppError("Response is required.", 400, "review_response_required");
+  }
+
+  const { data: updatedReview, error: updateError } = await supabase
+    .from("reviews")
+    .update({
+      carrier_response: sanitizedResponse,
+      carrier_responded_at: new Date().toISOString(),
+    })
+    .eq("id", reviewId)
+    .select("*")
+    .single();
+
+  if (updateError) {
+    throw new AppError(updateError.message, 500, "review_response_failed");
+  }
+
+  await recordBookingEvent({
+    bookingId: updatedReview.booking_id,
+    actorRole: "carrier",
+    actorUserId: userId,
+    eventType: "review_responded",
+  });
+
+  return toReview(updatedReview as ReviewRow);
 }

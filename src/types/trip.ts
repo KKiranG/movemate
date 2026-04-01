@@ -9,6 +9,8 @@ export type ItemCategory =
   | "fragile"
   | "other";
 
+export type ItemSizeCategory = "small" | "medium" | "large";
+
 export interface TripRoute {
   originSuburb: string;
   originPostcode?: string;
@@ -49,7 +51,9 @@ export interface Trip {
   dedicatedEstimateCents: number;
   savingsPct: number;
   remainingCapacityPct: number;
+  isReturnTrip: boolean;
   status?: "draft" | "active" | "booked_partial" | "booked_full" | "expired" | "cancelled";
+  publishAt?: string | null;
   rules: TripRules;
 }
 
@@ -58,6 +62,8 @@ export interface TripSearchInput {
   to: string;
   when?: string;
   what?: ItemCategory;
+  isReturnTrip?: boolean;
+  includeNearbyDates?: boolean;
 }
 
 export interface MatchBreakdown {
@@ -70,4 +76,21 @@ export interface MatchBreakdown {
 export interface TripSearchResult extends Trip {
   matchScore: number;
   breakdown: MatchBreakdown;
+}
+
+export interface RoutePriceGuidance {
+  exampleCount: number;
+  lowCents: number;
+  highCents: number;
+  medianCents: number;
+  usedFallback: boolean;
+  explanation: string;
+}
+
+export interface TripSearchResponse {
+  results: TripSearchResult[];
+  geocodingAvailable: boolean;
+  fallbackUsed: boolean;
+  fallbackReason?: string | null;
+  nearbyDateOptions: string[];
 }

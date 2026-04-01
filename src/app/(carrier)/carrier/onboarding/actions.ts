@@ -7,6 +7,9 @@ import { upsertCarrierOnboarding } from "@/lib/data/carriers";
 
 export async function saveCarrierOnboarding(formData: FormData) {
   const user = await requireSessionUser();
+  const vehiclePhotoUrl = String(formData.get("vehiclePhotoUrl") ?? "").trim();
+  const licenceExpiryDate = String(formData.get("licenceExpiryDate") ?? "").trim();
+  const insuranceExpiryDate = String(formData.get("insuranceExpiryDate") ?? "").trim();
 
   await upsertCarrierOnboarding(user.id, {
     businessName: String(formData.get("businessName") ?? ""),
@@ -17,6 +20,9 @@ export async function saveCarrierOnboarding(formData: FormData) {
     bio: String(formData.get("bio") ?? ""),
     licencePhotoUrl: String(formData.get("licencePhotoUrl") ?? ""),
     insurancePhotoUrl: String(formData.get("insurancePhotoUrl") ?? ""),
+    vehiclePhotoUrl: vehiclePhotoUrl || undefined,
+    licenceExpiryDate: licenceExpiryDate || undefined,
+    insuranceExpiryDate: insuranceExpiryDate || undefined,
     serviceSuburbs: String(formData.get("serviceSuburbs") ?? "")
       .split(",")
       .map((value) => value.trim())

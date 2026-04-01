@@ -90,6 +90,7 @@ export function GoogleAutocompleteInput({
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!initialResolvedValue) {
@@ -124,6 +125,7 @@ export function GoogleAutocompleteInput({
       .catch(() => {
         setPredictions([]);
         setIsOpen(false);
+        setIsLoading(false);
       });
 
     return () => {
@@ -153,10 +155,12 @@ export function GoogleAutocompleteInput({
       setPredictions([]);
       setActiveIndex(-1);
       setIsOpen(false);
+      setIsLoading(false);
       return;
     }
 
     const timeout = window.setTimeout(() => {
+      setIsLoading(true);
       const requestVersion = requestVersionRef.current + 1;
       requestVersionRef.current = requestVersion;
 
@@ -175,6 +179,7 @@ export function GoogleAutocompleteInput({
           setPredictions(nextPredictions);
           setActiveIndex(nextPredictions.length > 0 ? 0 : -1);
           setIsOpen(nextPredictions.length > 0);
+          setIsLoading(false);
         },
       );
     }, 150);
@@ -286,12 +291,17 @@ export function GoogleAutocompleteInput({
         onKeyDown={handleKeyDown}
       />
 
-      {isOpen ? (
+      {isOpen || isLoading ? (
         <ul
           id={listboxId}
           role="listbox"
           className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-surface shadow-lg"
         >
+          {isLoading ? (
+            <li className="px-3 py-3 text-sm text-text-secondary">
+              Looking up nearby suburbs...
+            </li>
+          ) : null}
           {predictions.map((prediction, index) => {
             const isActive = index === activeIndex;
 

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdminUser, requireSessionUser } from "@/lib/auth";
 import { updateBookingStatusForActor } from "@/lib/data/bookings";
 import { toErrorResponse } from "@/lib/errors";
+import type { BookingCancellationReasonCode } from "@/types/booking";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,6 +16,7 @@ export async function PATCH(
       deliveryProofPhotoUrl?: string;
       actorRole?: "carrier" | "admin";
       cancellationReason?: string;
+      cancellationReasonCode?: BookingCancellationReasonCode;
     };
 
     if (payload.actorRole === "admin") {
@@ -27,6 +29,7 @@ export async function PATCH(
         pickupProofPhotoUrl: payload.pickupProofPhotoUrl,
         deliveryProofPhotoUrl: payload.deliveryProofPhotoUrl,
         cancellationReason: payload.cancellationReason,
+        cancellationReasonCode: payload.cancellationReasonCode,
       });
 
       return NextResponse.json({ booking });
@@ -41,6 +44,7 @@ export async function PATCH(
       pickupProofPhotoUrl: payload.pickupProofPhotoUrl,
       deliveryProofPhotoUrl: payload.deliveryProofPhotoUrl,
       cancellationReason: payload.cancellationReason,
+      cancellationReasonCode: payload.cancellationReasonCode,
     });
 
     return NextResponse.json({ booking });
