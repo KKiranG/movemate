@@ -277,3 +277,30 @@ export async function verifyCarrier(params: {
 
   return toCarrierProfile(data);
 }
+
+export async function updateCarrierVerificationNotes(params: {
+  carrierId: string;
+  notes?: string | null;
+}) {
+  if (!hasSupabaseAdminEnv()) {
+    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
+  }
+
+  const supabase = createAdminClient();
+  const patch: Database["public"]["Tables"]["carriers"]["Update"] = {
+    verification_notes: params.notes?.trim() ? sanitizeText(params.notes) : null,
+  };
+
+  const { data, error } = await supabase
+    .from("carriers")
+    .update(patch)
+    .eq("id", params.carrierId)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new AppError(error.message, 500, "carrier_note_update_failed");
+  }
+
+  return toCarrierProfile(data);
+}

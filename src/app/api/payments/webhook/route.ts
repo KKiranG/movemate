@@ -111,6 +111,15 @@ export async function POST(request: Request) {
         }
 
         if (event.type === "payment_intent.amount_capturable_updated") {
+          const { data: bookingRow } = await supabase
+            .from("bookings")
+            .select("id, payment_status")
+            .eq("id", bookingId)
+            .maybeSingle();
+
+          if (bookingRow?.payment_status === "captured") {
+            logWebhookContext("info", "Skipping capturable update for already captured booking.", baseContext);
+          } else {
           const { data: updatedRows, error: updateError } = await supabase
             .from("bookings")
             .update({ payment_status: "authorized" })
@@ -134,12 +143,26 @@ export async function POST(request: Request) {
           } else {
             logWebhookContext("info", "Booking payment marked authorized.", baseContext);
           }
+          }
         }
 
         if (event.type === "payment_intent.succeeded") {
+          const { data: bookingRow } = await supabase
+            .from("bookings")
+            .select("id, payment_status")
+            .eq("id", bookingId)
+            .maybeSingle();
+
+          if (bookingRow?.payment_status === "captured") {
+            logWebhookContext("info", "Skipping payment succeeded update for already captured booking.", baseContext);
+          } else {
           const { data: updatedRows, error: updateError } = await supabase
             .from("bookings")
-            .update({ payment_status: "captured" })
+            .update({
+              payment_status: "captured",
+              payment_failure_code: null,
+              payment_failure_reason: null,
+            })
             .eq("id", bookingId)
             .select("id");
 
@@ -155,6 +178,7 @@ export async function POST(request: Request) {
             );
           } else {
             logWebhookContext("info", "Booking payment marked captured.", baseContext);
+          }
           }
         }
       }

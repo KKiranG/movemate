@@ -358,7 +358,7 @@ export interface Database {
           platform_commission_cents: number;
           booking_reference: string;
           stripe_payment_intent_id: string | null;
-          payment_status: "pending" | "authorized" | "captured" | "refunded" | "failed" | "authorization_cancelled";
+          payment_status: "pending" | "authorized" | "captured" | "capture_failed" | "refunded" | "failed" | "authorization_cancelled";
           payment_failure_code: string | null;
           payment_failure_reason: string | null;
           status: "pending" | "confirmed" | "picked_up" | "in_transit" | "delivered" | "completed" | "cancelled" | "disputed";
@@ -411,7 +411,7 @@ export interface Database {
           platform_commission_cents: number;
           booking_reference?: string;
           stripe_payment_intent_id?: string | null;
-          payment_status?: "pending" | "authorized" | "captured" | "refunded" | "failed" | "authorization_cancelled";
+          payment_status?: "pending" | "authorized" | "captured" | "capture_failed" | "refunded" | "failed" | "authorization_cancelled";
           payment_failure_code?: string | null;
           payment_failure_reason?: string | null;
           status?: "pending" | "confirmed" | "picked_up" | "in_transit" | "delivered" | "completed" | "cancelled" | "disputed";

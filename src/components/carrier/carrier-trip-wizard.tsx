@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -17,6 +17,7 @@ import {
   SPECIAL_NOTES_PRESETS,
 } from "@/lib/constants";
 import { suggestPrice } from "@/lib/pricing/suggest";
+import { formatCurrency, getTodayIsoDate } from "@/lib/utils";
 import type { RoutePriceGuidance } from "@/types/trip";
 
 const steps = ["Route", "When & space", "Price & rules"] as const;
@@ -33,12 +34,16 @@ export function CarrierTripWizard({
   initialSpaceSize = "M",
   initialPriceDollars,
   initialDetourRadiusKm,
+  canPost = true,
+  onboardingHref = "/carrier/onboarding",
 }: {
   initialOrigin?: AddressValue | null;
   initialDestination?: AddressValue | null;
   initialSpaceSize?: "S" | "M" | "L" | "XL";
   initialPriceDollars?: string;
   initialDetourRadiusKm?: string;
+  canPost?: boolean;
+  onboardingHref?: string;
 }) {
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
@@ -52,6 +57,9 @@ export function CarrierTripWizard({
   const [detourRadiusKm, setDetourRadiusKm] = useState(initialDetourRadiusKm ?? "5");
   const [isReturnTrip, setIsReturnTrip] = useState(false);
   const [priceGuidance, setPriceGuidance] = useState<RoutePriceGuidance | null>(null);
+  const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
+  const guidanceAbortRef = useRef<AbortController | null>(null);
+  const guidanceTimerRef = useRef<number | null>(null);
 
   const pricingSuggestion = useMemo(
     () =>
@@ -68,34 +76,116 @@ export function CarrierTripWizard({
     initialPriceDollars ?? Math.round(pricingSuggestion.midCents / 100).toString(),
   );
 
-  useEffect(() => {
-    if (!origin?.suburb || !destination?.suburb) {
+  function validateCurrentStep(index: number) {
+    if (index === 0) {
+      if (!canPost) {
+        setError("Add an active vehicle in onboarding before posting a trip.");
+        return false;
+      }
+
+      if (!origin?.suburb || !origin.postcode || !destination?.suburb || !destination.postcode) {
+        setError("Choose origin and destination from the address suggestions.");
+        return false;
+      }
+    }
+
+    if (index === 1) {
+      const tripDate = String((document.querySelector('input[name="tripDate"]') as HTMLInputElement | null)?.value ?? "");
+      const timeWindow = String(
+        (document.querySelector('select[name="timeWindow"]') as HTMLSelectElement | null)?.value ?? "",
+      );
+
+      if (!tripDate || tripDate < getTodayIsoDate()) {
+        setError("Choose a trip date today or later.");
+        return false;
+      }
+
+      if (!timeWindow) {
+        setError("Choose a time window before continuing.");
+        return false;
+      }
+    }
+
+    if (index === 2) {
+      if (accepts.length === 0) {
+        setError("Select at least one item type you accept.");
+        return false;
+      }
+
+      if (!Number.isFinite(Number(priceDollars)) || Number(priceDollars) <= 0) {
+        setError("Enter a valid price before saving.");
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function handleBack() {
+    setError(null);
+    setStepIndex((value) => Math.max(0, value - 1));
+  }
+
+  function handleNext() {
+    if (!validateCurrentStep(stepIndex)) {
       return;
     }
 
-    let isCancelled = false;
+    setError(null);
+    setStepIndex((value) => Math.min(steps.length - 1, value + 1));
+  }
 
-    void fetch(
-      `/api/trips/price-guidance?${new URLSearchParams({
-        from: origin.suburb,
-        to: destination.suburb,
-        spaceSize,
-      }).toString()}`,
-    )
-      .then((response) => response.json())
-      .then((payload) => {
-        if (!isCancelled) {
-          setPriceGuidance(payload.guidance ?? null);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setPriceGuidance(null);
-        }
-      });
+  useEffect(() => {
+    if (guidanceTimerRef.current) {
+      window.clearTimeout(guidanceTimerRef.current);
+    }
+
+    guidanceAbortRef.current?.abort();
+
+    if (!origin?.suburb || !destination?.suburb) {
+      setPriceGuidance(null);
+      setIsGuidanceLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    guidanceAbortRef.current = controller;
+    setIsGuidanceLoading(true);
+
+    guidanceTimerRef.current = window.setTimeout(() => {
+      void fetch(
+        `/api/trips/price-guidance?${new URLSearchParams({
+          from: origin.suburb,
+          to: destination.suburb,
+          spaceSize,
+        }).toString()}`,
+        {
+          signal: controller.signal,
+        },
+      )
+        .then((response) => response.json())
+        .then((payload) => {
+          if (!controller.signal.aborted) {
+            setPriceGuidance(payload.guidance ?? null);
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setPriceGuidance(null);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setIsGuidanceLoading(false);
+          }
+        });
+    }, 400);
 
     return () => {
-      isCancelled = true;
+      controller.abort();
+      if (guidanceTimerRef.current) {
+        window.clearTimeout(guidanceTimerRef.current);
+      }
     };
   }, [origin?.suburb, destination?.suburb, spaceSize]);
 
@@ -186,6 +276,18 @@ export function CarrierTripWizard({
         ))}
       </div>
 
+      {!canPost ? (
+        <div className="rounded-xl border border-warning/20 bg-warning/10 p-4">
+          <p className="text-sm font-medium text-warning">Add an active vehicle first</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            You can review this route setup now, but posting is blocked until onboarding has an active vehicle.
+          </p>
+          <Button asChild variant="secondary" className="mt-3">
+            <a href={onboardingHref}>Go to onboarding</a>
+          </Button>
+        </div>
+      ) : null}
+
       {stepIndex === 0 ? (
         <div className="grid gap-4">
           <GoogleAutocompleteInput
@@ -258,7 +360,7 @@ export function CarrierTripWizard({
         <div className="grid gap-4">
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Trip date</span>
-            <Input name="tripDate" type="date" required />
+            <Input name="tripDate" type="date" min={getTodayIsoDate()} required />
           </label>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Time window</span>
@@ -317,23 +419,26 @@ export function CarrierTripWizard({
       ) : null}
 
       {stepIndex === 2 ? (
-        <div className="grid gap-4">
-          <div className="rounded-xl border border-success/20 bg-success/5 p-4">
-            <p className="section-label">Price rationale</p>
-            <h3 className="mt-1 text-lg text-text">
-              Similar Sydney jobs: ${(priceGuidance?.lowCents ?? pricingSuggestion.lowCents) / 100} to $
-              {(priceGuidance?.highCents ?? pricingSuggestion.highCents) / 100}
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              {priceGuidance?.explanation ??
-                "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
-            </p>
-            <p className="mt-2 text-xs text-text-secondary">
-              {priceGuidance?.usedFallback
-                ? "Using the Sydney fallback guide until we have at least 5 route examples."
-                : `Built from ${priceGuidance?.exampleCount ?? 0} moverrr examples on a similar corridor.`}
-            </p>
-          </div>
+          <div className="grid gap-4">
+            <div className="rounded-xl border border-success/20 bg-success/5 p-4">
+              <p className="section-label">Price rationale</p>
+              <h3 className="mt-1 text-lg text-text">
+                {isGuidanceLoading
+                  ? "Checking corridor pricing..."
+                  : `Similar Sydney jobs: ${formatCurrency(
+                      priceGuidance?.lowCents ?? pricingSuggestion.lowCents,
+                    )} to ${formatCurrency(priceGuidance?.highCents ?? pricingSuggestion.highCents)}`}
+              </h3>
+              <p className="mt-2 text-sm text-text-secondary">
+                {priceGuidance?.explanation ??
+                  "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
+              </p>
+              <p className="mt-2 text-xs text-text-secondary">
+                {priceGuidance?.usedFallback
+                  ? "Using the Sydney fallback guide until we have at least 5 route examples."
+                  : `Built from ${priceGuidance?.exampleCount ?? 0} moverrr examples on a similar corridor.`}
+              </p>
+            </div>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Price in dollars</span>
             <Input
@@ -457,7 +562,7 @@ export function CarrierTripWizard({
             variant="secondary"
             disabled={stepIndex === 0}
             className="flex-1"
-            onClick={() => setStepIndex((value) => Math.max(0, value - 1))}
+            onClick={handleBack}
           >
             Back
           </Button>
@@ -465,12 +570,13 @@ export function CarrierTripWizard({
             <Button
               type="button"
               className="flex-1"
-              onClick={() => setStepIndex((value) => Math.min(steps.length - 1, value + 1))}
+              onClick={handleNext}
+              disabled={!canPost && stepIndex === 0}
             >
               Next
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting} className="flex-1">
+            <Button type="submit" disabled={isSubmitting || (!canPost && stepIndex === 0)} className="flex-1">
               {isSubmitting ? "Saving..." : "Save trip"}
             </Button>
           )}

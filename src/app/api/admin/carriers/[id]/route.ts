@@ -2,12 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { requireAdminUser } from "@/lib/auth";
-import { verifyCarrier } from "@/lib/data/carriers";
+import { updateCarrierVerificationNotes } from "@/lib/data/carriers";
 import { toErrorResponse } from "@/lib/errors";
 
-const verifyCarrierSchema = z.object({
-  isApproved: z.boolean(),
-  notes: z.string().max(280).optional(),
+const updateCarrierNotesSchema = z.object({
+  verificationNotes: z.string().max(280).optional().nullable(),
 });
 
 export async function PATCH(
@@ -16,11 +15,10 @@ export async function PATCH(
 ) {
   try {
     await requireAdminUser();
-    const payload = verifyCarrierSchema.parse(await request.json());
-    const carrier = await verifyCarrier({
+    const payload = updateCarrierNotesSchema.parse(await request.json());
+    const carrier = await updateCarrierVerificationNotes({
       carrierId: params.id,
-      isApproved: payload.isApproved,
-      notes: payload.notes,
+      notes: payload.verificationNotes ?? null,
     });
 
     return NextResponse.json({ carrier });

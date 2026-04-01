@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireSessionUser } from "@/lib/auth";
 import { createDisputeForBooking } from "@/lib/data/feedback";
 import { toErrorResponse } from "@/lib/errors";
+import { disputeSchema } from "@/lib/validation/dispute";
 
 export async function POST(
   request: NextRequest,
@@ -10,11 +11,7 @@ export async function POST(
 ) {
   try {
     const user = await requireSessionUser();
-    const payload = (await request.json()) as {
-      category: "damage" | "no_show" | "late" | "wrong_item" | "overcharge" | "other";
-      description: string;
-      photoUrls?: string[];
-    };
+    const payload = disputeSchema.parse(await request.json());
     const dispute = await createDisputeForBooking(user.id, params.id, {
       category: payload.category,
       description: payload.description,

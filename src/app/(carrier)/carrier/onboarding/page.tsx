@@ -25,7 +25,7 @@ export default async function CarrierOnboardingPage() {
         description="Manual-first verification is part of the trust layer and keeps the early marketplace high quality."
       />
 
-      <TripChecklist />
+      <TripChecklist carrier={existingCarrier} />
 
       <Card className="p-4">
         <div className="space-y-3">
@@ -47,6 +47,7 @@ export default async function CarrierOnboardingPage() {
           action={saveCarrierOnboarding}
           defaultEmail={user.email ?? ""}
           existingCarrier={existingCarrier}
+          draftStorageKey={user.id}
         />
       </Card>
     </main>

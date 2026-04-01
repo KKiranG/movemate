@@ -1,8 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 
 import { requireAdminUser } from "@/lib/auth";
 import { resolveDispute } from "@/lib/data/admin";
 import { toErrorResponse } from "@/lib/errors";
+
+const resolveDisputeSchema = z.object({
+  status: z.enum(["investigating", "resolved", "closed"]),
+  resolutionNotes: z.string().trim().min(20).max(2000),
+  bookingStatus: z.enum(["completed", "cancelled"]).optional(),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -10,17 +17,13 @@ export async function PATCH(
 ) {
   try {
     const user = await requireAdminUser();
-    const payload = (await request.json()) as {
-      status: "investigating" | "resolved" | "closed";
-      resolutionNotes?: string;
-      bookingStatus?: "completed" | "cancelled";
-    };
+    const payload = resolveDisputeSchema.parse(await request.json());
 
     const dispute = await resolveDispute({
       disputeId: params.id,
       resolvedBy: user.id,
       status: payload.status,
-      resolutionNotes: payload.resolutionNotes ?? "",
+      resolutionNotes: payload.resolutionNotes,
       bookingStatus: payload.bookingStatus,
     });
 

@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { CarrierProfile } from "@/types/carrier";
-
-const AUTOSAVE_KEY = "moverrr:carrier-onboarding:draft";
+import { isValidAbn } from "@/lib/validation/carrier";
 
 type DraftState = {
   businessName: string;
@@ -47,12 +46,16 @@ const DEFAULT_DRAFT = (defaultEmail: string): DraftState => ({
   insuranceExpiryDate: "",
 });
 
-function readDraft(defaultEmail: string) {
+function getDraftStorageKey(storageScope: string) {
+  return `moverrr:carrier-onboarding:draft:${storageScope || "default"}`;
+}
+
+function readDraft(storageScope: string, defaultEmail: string) {
   if (typeof window === "undefined") {
     return DEFAULT_DRAFT(defaultEmail);
   }
 
-  const raw = window.localStorage.getItem(AUTOSAVE_KEY);
+  const raw = window.localStorage.getItem(getDraftStorageKey(storageScope));
 
   if (!raw) {
     return DEFAULT_DRAFT(defaultEmail);
@@ -97,10 +100,12 @@ export function CarrierOnboardingForm({
   action,
   defaultEmail,
   existingCarrier,
+  draftStorageKey,
 }: {
   action: (formData: FormData) => Promise<void>;
   defaultEmail: string;
   existingCarrier?: CarrierProfile | null;
+  draftStorageKey: string;
 }) {
   const [pending, startTransition] = useTransition();
   const [draft, setDraft] = useState<DraftState>(() => DEFAULT_DRAFT(defaultEmail));
@@ -120,9 +125,14 @@ export function CarrierOnboardingForm({
   const [insurancePreview, setInsurancePreview] = useState<string | null>(null);
   const [vehiclePreview, setVehiclePreview] = useState<string | null>(null);
   const blockers = getVerificationBlockers(existingCarrier);
+  const storageKey = getDraftStorageKey(draftStorageKey);
+  const abnIsValid = !draft.abn.trim() || isValidAbn(draft.abn);
+  const businessDetailsComplete = Boolean(
+    draft.businessName.trim() && draft.abn.trim() && draft.phone.trim() && abnIsValid,
+  );
 
   useEffect(() => {
-    const nextDraft = readDraft(defaultEmail);
+    const nextDraft = readDraft(draftStorageKey, defaultEmail);
     const hasDraft = JSON.stringify(nextDraft) !== JSON.stringify(DEFAULT_DRAFT(defaultEmail));
 
     if (hasDraft) {
@@ -142,15 +152,15 @@ export function CarrierOnboardingForm({
           existingCarrier?.insuranceExpiryDate ?? nextDraft.insuranceExpiryDate,
       });
     }
-  }, [defaultEmail, existingCarrier]);
+  }, [defaultEmail, draftStorageKey, existingCarrier]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    window.localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draft));
-  }, [draft]);
+    window.localStorage.setItem(storageKey, JSON.stringify(draft));
+  }, [draft, storageKey]);
 
   useEffect(() => {
     const objectUrl = licenceFile && licenceFile.type.startsWith("image/")
@@ -191,7 +201,7 @@ export function CarrierOnboardingForm({
   const sections = [
     {
       label: "Business details",
-      complete: Boolean(draft.businessName.trim() && draft.abn.trim() && draft.phone.trim()),
+      complete: businessDetailsComplete,
       reason: "We need legal business details to verify who is posting trips.",
     },
     {
@@ -207,7 +217,7 @@ export function CarrierOnboardingForm({
   ];
   const completedCount = sections.filter((section) => section.complete).length;
   const progressPct = Math.round((completedCount / sections.length) * 100);
-  const isReadyToSubmit = completedCount === sections.length;
+  const isReadyToSubmit = completedCount === sections.length && abnIsValid;
 
   async function uploadDocument(file: File | null, bucket: "carrier-documents" | "vehicle-photos") {
     if (!file) {
@@ -232,7 +242,7 @@ export function CarrierOnboardingForm({
   }
 
   function resumeDraft() {
-    setDraft(readDraft(defaultEmail));
+    setDraft(readDraft(draftStorageKey, defaultEmail));
     setShowResumeBanner(false);
   }
 
@@ -241,7 +251,7 @@ export function CarrierOnboardingForm({
     setDraft(empty);
     setShowResumeBanner(false);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(empty));
+      window.localStorage.setItem(storageKey, JSON.stringify(empty));
     }
   }
 
@@ -250,6 +260,11 @@ export function CarrierOnboardingForm({
     setError(null);
     setMessage(null);
     const formData = new FormData(event.currentTarget);
+
+    if (!abnIsValid) {
+      setError("Invalid ABN format. Enter the 11-digit ABN and check the checksum.");
+      return;
+    }
 
     try {
       setUploadPercent(10);
@@ -273,7 +288,7 @@ export function CarrierOnboardingForm({
           await action(formData);
           setMessage("Carrier onboarding saved. Your verification is ready for admin review.");
           if (typeof window !== "undefined") {
-            window.localStorage.removeItem(AUTOSAVE_KEY);
+            window.localStorage.removeItem(storageKey);
           }
         } catch (caught) {
           setError(caught instanceof Error ? caught.message : "Unable to save onboarding.");
@@ -395,8 +410,17 @@ export function CarrierOnboardingForm({
             name="abn"
             value={draft.abn}
             onChange={(event) => setDraft((current) => ({ ...current, abn: event.target.value }))}
+            inputMode="numeric"
+            placeholder="11-digit ABN"
             required
           />
+          {!abnIsValid && draft.abn.trim() ? (
+            <p className="text-sm text-error">Invalid ABN format. Check the 11-digit ABN again.</p>
+          ) : (
+            <p className="text-xs text-text-secondary">
+              We validate the checksum so invalid ABNs do not reach the review queue.
+            </p>
+          )}
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Service suburbs</span>
@@ -576,7 +600,7 @@ export function CarrierOnboardingForm({
       {message ? <p className="text-sm text-success">{message}</p> : null}
       {!isReadyToSubmit ? (
         <p className="text-sm text-text-secondary">
-          Complete all sections and reattach documents to submit for verification.
+          Complete all sections, enter a valid ABN, and reattach documents to submit for verification.
         </p>
       ) : null}
       <div className="flex flex-wrap gap-3">

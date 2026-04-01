@@ -24,19 +24,43 @@ interface ResolvedAddress {
 interface BookingFormProps {
   trip: Trip;
   isAuthenticated: boolean;
+  id?: string;
+  onOptionsChange?: (options: {
+    needsStairs: boolean;
+    needsHelper: boolean;
+  }) => void;
 }
 
-export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
+export function BookingForm({
+  trip,
+  isAuthenticated,
+  id,
+  onOptionsChange,
+}: BookingFormProps) {
   const router = useRouter();
   const [pickup, setPickup] = useState<ResolvedAddress | null>(null);
   const [dropoff, setDropoff] = useState<ResolvedAddress | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [itemDescription, setItemDescription] = useState("Three-seat sofa");
+  const [itemDescription, setItemDescription] = useState("");
+  const [itemCategory, setItemCategory] = useState("furniture");
+  const [itemDimensions, setItemDimensions] = useState("");
+  const [itemWeightKg, setItemWeightKg] = useState("");
+  const [pickupAccessNotes, setPickupAccessNotes] = useState("");
+  const [dropoffAccessNotes, setDropoffAccessNotes] = useState("");
+  const [pickupContactName, setPickupContactName] = useState("");
+  const [pickupContactPhone, setPickupContactPhone] = useState("");
+  const [dropoffContactName, setDropoffContactName] = useState("");
+  const [dropoffContactPhone, setDropoffContactPhone] = useState("");
+  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [needsStairs, setNeedsStairs] = useState(false);
+  const [needsHelper, setNeedsHelper] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionStage, setSubmissionStage] = useState<"idle" | "uploading_photo" | "creating_booking" | "creating_payment">("idle");
   const [retryBookingId, setRetryBookingId] = useState<string | null>(null);
   const bookingIdempotencyKeyRef = useRef<string | null>(null);
+  const draftKey = useMemo(() => `moverrr:booking-draft:${trip.id}`, [trip.id]);
 
   const defaultPickup = useMemo(
     () => `${trip.route.originSuburb} NSW ${trip.route.originPostcode ?? ""}`.trim(),
@@ -47,6 +71,103 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       `${trip.route.destinationSuburb} NSW ${trip.route.destinationPostcode ?? ""}`.trim(),
     [trip.route.destinationPostcode, trip.route.destinationSuburb],
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const draft = window.sessionStorage.getItem(draftKey);
+
+    if (!draft) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(draft) as Partial<{
+        itemDescription: string;
+        itemCategory: string;
+        itemDimensions: string;
+        itemWeightKg: string;
+        pickupAccessNotes: string;
+        dropoffAccessNotes: string;
+        pickupContactName: string;
+        pickupContactPhone: string;
+        dropoffContactName: string;
+        dropoffContactPhone: string;
+        specialInstructions: string;
+        needsStairs: boolean;
+        needsHelper: boolean;
+        pickup: ResolvedAddress;
+        dropoff: ResolvedAddress;
+      }>;
+
+      if (parsed.itemDescription !== undefined) setItemDescription(parsed.itemDescription);
+      if (parsed.itemCategory !== undefined) setItemCategory(parsed.itemCategory);
+      if (parsed.itemDimensions !== undefined) setItemDimensions(parsed.itemDimensions);
+      if (parsed.itemWeightKg !== undefined) setItemWeightKg(parsed.itemWeightKg);
+      if (parsed.pickupAccessNotes !== undefined) setPickupAccessNotes(parsed.pickupAccessNotes);
+      if (parsed.dropoffAccessNotes !== undefined) setDropoffAccessNotes(parsed.dropoffAccessNotes);
+      if (parsed.pickupContactName !== undefined) setPickupContactName(parsed.pickupContactName);
+      if (parsed.pickupContactPhone !== undefined) setPickupContactPhone(parsed.pickupContactPhone);
+      if (parsed.dropoffContactName !== undefined) setDropoffContactName(parsed.dropoffContactName);
+      if (parsed.dropoffContactPhone !== undefined) setDropoffContactPhone(parsed.dropoffContactPhone);
+      if (parsed.specialInstructions !== undefined) setSpecialInstructions(parsed.specialInstructions);
+      if (parsed.needsStairs !== undefined) setNeedsStairs(parsed.needsStairs);
+      if (parsed.needsHelper !== undefined) setNeedsHelper(parsed.needsHelper);
+      if (parsed.pickup !== undefined) setPickup(parsed.pickup);
+      if (parsed.dropoff !== undefined) setDropoff(parsed.dropoff);
+    } catch {
+      window.sessionStorage.removeItem(draftKey);
+    }
+  }, [draftKey]);
+
+  useEffect(() => {
+    onOptionsChange?.({ needsStairs, needsHelper });
+  }, [needsStairs, needsHelper, onOptionsChange]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const payload = {
+      itemDescription,
+      itemCategory,
+      itemDimensions,
+      itemWeightKg,
+      pickupAccessNotes,
+      dropoffAccessNotes,
+      pickupContactName,
+      pickupContactPhone,
+      dropoffContactName,
+      dropoffContactPhone,
+      specialInstructions,
+      needsStairs,
+      needsHelper,
+      pickup,
+      dropoff,
+    };
+
+    window.sessionStorage.setItem(draftKey, JSON.stringify(payload));
+  }, [
+    draftKey,
+    dropoff,
+    dropoffAccessNotes,
+    dropoffContactName,
+    dropoffContactPhone,
+    itemCategory,
+    itemDescription,
+    itemDimensions,
+    itemWeightKg,
+    needsHelper,
+    needsStairs,
+    pickup,
+    pickupAccessNotes,
+    pickupContactName,
+    pickupContactPhone,
+    specialInstructions,
+  ]);
 
   useEffect(() => {
     if (!photoFile || !photoFile.type.startsWith("image/")) {
@@ -150,8 +271,9 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData(event.currentTarget);
+      setSubmissionStage("uploading_photo");
       const itemPhotoUrls = await uploadPhotoIfNeeded();
+      setSubmissionStage("creating_booking");
       const bookingResponse = await fetch("/api/bookings", {
         method: "POST",
         headers: {
@@ -167,29 +289,29 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
           listingId: trip.id,
           carrierId: trip.carrier.id,
           itemDescription,
-          itemCategory: formData.get("itemCategory"),
-          itemDimensions: formData.get("itemDimensions"),
-          itemWeightKg: Number(formData.get("itemWeightKg") || 0) || undefined,
+          itemCategory,
+          itemDimensions: itemDimensions.trim() || undefined,
+          itemWeightKg: itemWeightKg.trim() ? Number(itemWeightKg) : undefined,
           itemPhotoUrls,
-          needsStairs: formData.get("needsStairs") === "yes",
-          needsHelper: formData.get("needsHelper") === "yes",
-          specialInstructions: formData.get("specialInstructions"),
+          needsStairs,
+          needsHelper,
+          specialInstructions: specialInstructions.trim() || undefined,
           pickupAddress: pickup.label,
           pickupSuburb: pickup.suburb,
           pickupPostcode: pickup.postcode,
           pickupLatitude: pickup.latitude,
           pickupLongitude: pickup.longitude,
-          pickupAccessNotes: formData.get("pickupAccessNotes"),
-          pickupContactName: formData.get("pickupContactName"),
-          pickupContactPhone: formData.get("pickupContactPhone"),
+          pickupAccessNotes: pickupAccessNotes.trim() || undefined,
+          pickupContactName: pickupContactName.trim() || undefined,
+          pickupContactPhone: pickupContactPhone.trim() || undefined,
           dropoffAddress: dropoff.label,
           dropoffSuburb: dropoff.suburb,
           dropoffPostcode: dropoff.postcode,
           dropoffLatitude: dropoff.latitude,
           dropoffLongitude: dropoff.longitude,
-          dropoffAccessNotes: formData.get("dropoffAccessNotes"),
-          dropoffContactName: formData.get("dropoffContactName"),
-          dropoffContactPhone: formData.get("dropoffContactPhone"),
+          dropoffAccessNotes: dropoffAccessNotes.trim() || undefined,
+          dropoffContactName: dropoffContactName.trim() || undefined,
+          dropoffContactPhone: dropoffContactPhone.trim() || undefined,
         }),
       });
       const bookingPayload = await bookingResponse.json();
@@ -210,7 +332,9 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       }
 
       try {
+        setSubmissionStage("creating_payment");
         await createPaymentIntent(bookingPayload.booking.id);
+        window.sessionStorage.removeItem(draftKey);
       } catch (paymentError) {
         setRetryBookingId(bookingPayload.booking.id);
         throw paymentError;
@@ -222,11 +346,13 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       setError(caught instanceof Error ? caught.message : "Unable to create booking.");
     } finally {
       setIsSubmitting(false);
+      setSubmissionStage("idle");
     }
   }
 
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit}>
+    <form id={id} className="grid gap-4" onSubmit={handleSubmit}>
+      <fieldset disabled={isSubmitting} className="grid gap-4">
       <label className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-text">What are you moving?</span>
@@ -237,6 +363,8 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
           value={itemDescription}
           maxLength={200}
           onChange={(event) => setItemDescription(event.target.value)}
+          placeholder="e.g. Three-seat sofa, Samsung fridge, 10 moving boxes"
+          minLength={4}
           required
         />
       </label>
@@ -247,7 +375,8 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
           <select
             name="itemCategory"
             className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-            defaultValue="furniture"
+            value={itemCategory}
+            onChange={(event) => setItemCategory(event.target.value)}
           >
             <option value="furniture">Furniture</option>
             <option value="boxes">Boxes</option>
@@ -258,9 +387,28 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
         </label>
         <label className="flex flex-col gap-2">
           <span className="text-sm font-medium text-text">Dimensions</span>
-          <Input name="itemDimensions" placeholder="200cm x 90cm x 85cm" />
+          <Input
+            name="itemDimensions"
+            value={itemDimensions}
+            onChange={(event) => setItemDimensions(event.target.value)}
+            placeholder="200cm x 90cm x 85cm"
+          />
         </label>
       </div>
+
+      <label className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-text">Weight</span>
+        <Input
+          name="itemWeightKg"
+          type="number"
+          min="0"
+          max="500"
+          step="0.1"
+          value={itemWeightKg}
+          onChange={(event) => setItemWeightKg(event.target.value)}
+          placeholder="Approx weight in kg"
+        />
+      </label>
 
       <div className="space-y-3 rounded-xl border border-border p-3">
         <div>
@@ -323,12 +471,18 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
           name="pickupAddressInput"
           defaultValue={defaultPickup}
           placeholder="Pickup address"
+          initialResolvedValue={pickup ?? undefined}
           onResolved={setPickup}
         />
       </label>
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-text">Pickup access notes</span>
-        <Textarea name="pickupAccessNotes" placeholder="Stairs, loading dock, gate code" />
+        <Textarea
+          name="pickupAccessNotes"
+          value={pickupAccessNotes}
+          onChange={(event) => setPickupAccessNotes(event.target.value)}
+          placeholder="Stairs, loading dock, gate code"
+        />
       </label>
 
       <label className="flex flex-col gap-2">
@@ -337,12 +491,18 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
           name="dropoffAddressInput"
           defaultValue={defaultDropoff}
           placeholder="Dropoff address"
+          initialResolvedValue={dropoff ?? undefined}
           onResolved={setDropoff}
         />
       </label>
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-text">Dropoff access notes</span>
-        <Textarea name="dropoffAccessNotes" placeholder="Apartment access or delivery notes" />
+        <Textarea
+          name="dropoffAccessNotes"
+          value={dropoffAccessNotes}
+          onChange={(event) => setDropoffAccessNotes(event.target.value)}
+          placeholder="Apartment access or delivery notes"
+        />
       </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -351,7 +511,8 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
           <select
             name="needsStairs"
             className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-            defaultValue="no"
+            value={needsStairs ? "yes" : "no"}
+            onChange={(event) => setNeedsStairs(event.target.value === "yes")}
           >
             <option value="no">No</option>
             <option value="yes">Yes</option>
@@ -362,7 +523,8 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
           <select
             name="needsHelper"
             className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-            defaultValue="no"
+            value={needsHelper ? "yes" : "no"}
+            onChange={(event) => setNeedsHelper(event.target.value === "yes")}
           >
             <option value="no">No</option>
             <option value="yes">Yes</option>
@@ -373,21 +535,41 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Pickup contact name</span>
-          <Input name="pickupContactName" placeholder="Pickup contact name" />
+          <Input
+            name="pickupContactName"
+            value={pickupContactName}
+            onChange={(event) => setPickupContactName(event.target.value)}
+            placeholder="Pickup contact name"
+          />
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Pickup contact phone</span>
-          <Input name="pickupContactPhone" placeholder="Pickup contact phone" />
+          <Input
+            name="pickupContactPhone"
+            value={pickupContactPhone}
+            onChange={(event) => setPickupContactPhone(event.target.value)}
+            placeholder="Pickup contact phone"
+          />
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Dropoff contact name</span>
-          <Input name="dropoffContactName" placeholder="Dropoff contact name" />
+          <Input
+            name="dropoffContactName"
+            value={dropoffContactName}
+            onChange={(event) => setDropoffContactName(event.target.value)}
+            placeholder="Dropoff contact name"
+          />
         </label>
         <label className="grid gap-2">
           <span className="text-sm font-medium text-text">Dropoff contact phone</span>
-          <Input name="dropoffContactPhone" placeholder="Dropoff contact phone" />
+          <Input
+            name="dropoffContactPhone"
+            value={dropoffContactPhone}
+            onChange={(event) => setDropoffContactPhone(event.target.value)}
+            placeholder="Dropoff contact phone"
+          />
         </label>
       </div>
 
@@ -395,19 +577,33 @@ export function BookingForm({ trip, isAuthenticated }: BookingFormProps) {
         <span className="text-sm font-medium text-text">Anything the carrier should know?</span>
         <Textarea
           name="specialInstructions"
+          value={specialInstructions}
+          onChange={(event) => setSpecialInstructions(event.target.value)}
           placeholder="Fragile edges, preferred loading side, timing constraints"
         />
       </label>
+      </fieldset>
 
-      {error ? <p className="text-sm text-error">{error}</p> : null}
-      {retryBookingId ? (
-        <Button type="button" variant="secondary" disabled={isSubmitting} onClick={retryPaymentSetup}>
-          {isSubmitting ? "Retrying payment..." : "Try payment setup again"}
+      <div className="space-y-3">
+        {submissionStage !== "idle" ? (
+          <p className="text-sm text-text-secondary">
+            {submissionStage === "uploading_photo"
+              ? "Uploading photo..."
+              : submissionStage === "creating_booking"
+                ? "Creating booking..."
+                : "Starting payment setup..."}
+          </p>
+        ) : null}
+        {error ? <p className="text-sm text-error">{error}</p> : null}
+        {retryBookingId ? (
+          <Button type="button" variant="secondary" disabled={isSubmitting} onClick={retryPaymentSetup}>
+            {isSubmitting ? "Retrying payment..." : "Try payment setup again"}
+          </Button>
+        ) : null}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Creating booking..." : "Continue to payment"}
         </Button>
-      ) : null}
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Creating booking..." : "Continue to payment"}
-      </Button>
+      </div>
     </form>
   );
 }

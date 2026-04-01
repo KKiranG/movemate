@@ -1,9 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Instrument_Sans } from "next/font/google";
 
 import { AppClientEffects } from "@/components/layout/app-client-effects";
 import { SiteHeader } from "@/components/layout/site-header";
-import { assertRequiredEnv } from "@/lib/env";
 
 import "./globals.css";
 
@@ -26,6 +25,16 @@ export const metadata: Metadata = {
       "Browse spare truck space in Sydney and book big-item moves without the quote chase.",
     type: "website",
   },
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -33,8 +42,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  assertRequiredEnv();
-
   return (
     <html lang="en-AU">
       <body className={`${instrumentSans.variable} antialiased`}>

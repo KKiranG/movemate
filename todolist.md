@@ -17,172 +17,157 @@
 
 ## 🔴 P0 — Production Blocking
 
-*Data loss, payment errors, oversell, security holes. Fix before any real users.*
+_No active P0 items right now._
 
----
+## 🟠 P1 — User-Facing Bugs
+
+_No active P1 items right now._
+
+## 🟡 P2 — UX & Conversion
+
+_No active P2 items right now._
 
 ## 🟢 P3 — Enhancements
-
-*Operational tools, polish, trust builders. Grouped by area.*
 
 ### ES — Supply-Side Enhancements
 
 - [ ] **ES4** — Multi-vehicle support groundwork
   - **File(s):** `src/components/carrier/carrier-onboarding-form.tsx`, `src/app/(carrier)/carrier/trips/page.tsx`, `src/lib/data/listings.ts`
-  - **What:** Remove hardcoded "single vehicle" assumptions from carrier flows so a carrier can eventually associate a trip with one of several vehicles.
-  - **Why:** Strong carriers run more than one vehicle; locking to single-vehicle now will require a painful migration when the first multi-vehicle carrier onboards.
-  - **Done when:** `npm run check` passes with no regressions; no code path assumes a carrier has exactly one vehicle.
-
+  - **What:** Remove remaining single-vehicle assumptions from carrier flows so trips can be associated with one of several vehicles later without another UX rewrite.
+  - **Why:** Strong carriers will outgrow the single-vehicle model first; deferring the groundwork too long turns the first serious fleet into a migration project.
+  - **Done when:** Carrier flows no longer assume exactly one vehicle exists and `npm run check` passes cleanly.
 
 ### ED — Demand-Side Enhancements
 
 - [ ] **ED6** — Web push notifications for booking updates
-  - **File(s):** `src/lib/notifications.ts`, `public/service-worker.js` (new), `src/hooks/usePushNotifications.ts` (new)
-  - **What:** Implement web push via the Push API for key booking events (booking confirmed, trip day reminder, delivery confirmed) with an opt-in prompt on booking creation.
-  - **Why:** Email is too slow for same-day logistics; push notifications are the next-best option before a native app exists.
-  - **Done when:** Customers and carriers who opt in receive push notifications for key booking milestones; VAPID keys are configured via env vars.
+  - **File(s):** `src/lib/notifications.ts`, `new file: public/service-worker.js`, `new file: src/hooks/usePushNotifications.ts`
+  - **What:** Add opt-in web push for booking confirmed, trip-day reminder, and delivery-confirmed milestones.
+  - **Why:** Same-day logistics needs faster-than-email notification loops before the native iOS app exists.
+  - **Done when:** Opted-in customers and carriers receive push notifications for key booking milestones and VAPID env vars are wired.
 
 ### EP — Platform and Infrastructure Enhancements
 
+- [ ] **EP4** — `getPrivilegedSupabaseClient` in bookings still allows unsafe fallback paths
+  - **File(s):** `src/lib/data/bookings.ts`
+  - **What:** Remove silent privileged-client fallbacks for admin-only booking operations so background or cross-user mutations fail loudly instead of no-oping under RLS.
+  - **Why:** Silent no-ops leave stale capacity, incomplete audit events, and false confidence in staging or automation flows.
+  - **Done when:** Admin-only booking operations hard-fail without service-role access and `npm run check` passes.
+
 - [ ] **EP5** — Analytics deduplication in React strict mode
-  - **File(s):** `src/lib/analytics.ts` or analytics hooks, any component that fires `trackAnalyticsEvent` on mount
-  - **What:** Use a `useRef` dedup guard to prevent double-firing of analytics events in React 18 strict mode's double-mount behavior.
-  - **Why:** Strict mode double-mounts inflate event counts in development and on Vercel preview deployments, polluting analytics before launch.
-  - **Done when:** Search and booking-started events fire exactly once per user action in both development and production; verified via analytics dashboard.
+  - **File(s):** `src/lib/analytics.ts`, components that fire `trackAnalyticsEvent` on mount
+  - **What:** Add dedup guards around mount-triggered analytics events so strict-mode double mounts do not double-count funnel activity.
+  - **Why:** Inflated preview/dev analytics make conversion baselines noisy before launch.
+  - **Done when:** Search and booking-started events fire once per real action in both development and production paths.
 
 - [ ] **EP9** — Input sanitization audit across all freetext fields
-  - **File(s):** `src/lib/utils.ts` (`sanitizeText`), all API routes accepting freetext
-  - **What:** Verify `sanitizeText()` is applied after Zod parse for all freetext fields across trips, bookings, disputes, reviews, and carrier notes.
-  - **Why:** HTML injection in freetext fields is a stored XSS risk on admin views; a systematic audit ensures no field was missed.
-  - **Done when:** `grep -r "specialNotes\|itemDescription\|disputeDescription\|reviewComment"` in API routes shows `sanitizeText` applied to each; `npm run check` passes.
+  - **File(s):** `src/lib/utils.ts`, `src/app/api/**`
+  - **What:** Finish the route-by-route audit to ensure every persisted freetext field is sanitized immediately after validation and before DB writes.
+  - **Why:** One missed admin-facing field is enough to leave a stored-XSS hole in the ops surfaces.
+  - **Done when:** All mutating freetext routes consistently apply `sanitizeText()` before persistence and `npm run check` passes.
 
 - [ ] **EP10** — Offline-first proof upload with service worker queue
-  - **File(s):** `public/service-worker.js`, `src/hooks/useOfflineUpload.ts` (new)
-  - **What:** Queue proof photo uploads in a service worker background sync when the carrier is on spotty mobile data, retrying when connection recovers.
-  - **Why:** Trip-day proof uploads happen on-site in areas with variable signal; a failed upload should queue, not require the carrier to retry manually.
-  - **Done when:** Proof uploads attempted offline are queued and automatically retried; carrier sees a "Queued for upload" state, not an error.
+  - **File(s):** `new file: public/service-worker.js`, `new file: src/hooks/useOfflineUpload.ts`, proof upload components under `src/components/booking/`
+  - **What:** Queue proof-photo uploads for retry when a carrier is on poor mobile data instead of failing immediately.
+  - **Why:** Trip-day proof capture happens in the least reliable network conditions; queued retry is safer than manual re-upload.
+  - **Done when:** Offline proof uploads show a queued state and auto-retry when connectivity returns.
 
 ### EA — Admin and Ops Enhancements
 
-- [ ] **EA3** — Admin bulk carrier approve/reject
-  - **File(s):** `src/app/(admin)/admin/verification/page.tsx`, `src/components/admin/verification-queue.tsx`
-  - **What:** Add checkboxes to the verification queue with a bulk approve/reject action bar that processes all selected carriers in one API call.
-  - **Why:** Early ops will have batches of verifications to process; doing them one-by-one is the bottleneck that delays supply activation.
-  - **Done when:** Admin can select 5+ carriers and bulk-approve or bulk-reject with one confirmation; each action is logged with the admin ID.
-
 - [ ] **EA5** — Manual ops override audit trail
-  - **File(s):** `src/app/(admin)/admin/bookings/[id]/page.tsx`, `booking_events` table usage
-  - **What:** Require an admin-entered reason for any forced status change, refund, or dispute closure; write the reason and admin ID to `booking_events`.
-  - **Why:** Without an audit trail, manual overrides are invisible and create liability if a customer disputes them later.
-  - **Done when:** Every admin action on a booking writes a `booking_events` row with `actor`, `action`, `reason`, and `timestamp`.
-
-- [ ] **EA6** — Admin booking support quick view
-  - **File(s):** `src/app/(admin)/admin/bookings/page.tsx`, `src/app/(admin)/admin/bookings/[id]/page.tsx`
-  - **What:** Add a search bar to the admin booking list that searches by booking reference, customer email, and carrier email; add a "Quick view" panel for the 10 most common support actions.
-  - **Why:** Support queries arrive as "customer X says their booking is stuck" — ops needs fast lookup and one-click actions without reading raw DB records.
-  - **Done when:** Admin can find any booking by reference in under 5 seconds and execute cancel, refund, or status-override from the same view.
+  - **File(s):** `src/app/(admin)/admin/bookings/[id]/page.tsx`, `src/lib/data/bookings.ts`, `booking_events` table usage
+  - **What:** Require an admin-entered reason for forced status changes, refunds, and other manual overrides, then persist that reason and actor ID to `booking_events`.
+  - **Why:** Manual interventions need a durable audit trail for later support reviews and liability questions.
+  - **Done when:** Every admin booking override writes `actor`, `action`, `reason`, and `timestamp` to `booking_events`.
 
 - [ ] **EA8** — Admin carrier notes and internal tags
-  - **File(s):** `src/app/(admin)/admin/carriers/[id]/page.tsx`, carrier data model, `supabase/migrations/`
-  - **What:** Add an internal notes field and tag taxonomy (trusted, probation, flagged, VIP) to the admin carrier view that are never exposed to carriers.
-  - **Why:** Ops needs a way to annotate carriers based on behavior patterns without surfacing those labels to the carrier.
-  - **Done when:** Admin carrier detail has a notes textarea and tag selector; notes and tags persist; they are invisible to carrier-facing APIs.
+  - **File(s):** `src/app/(admin)/admin/carriers/[id]/page.tsx`, `src/lib/data/carriers.ts`, `supabase/migrations/`
+  - **What:** Add separate internal notes and tags such as trusted, probation, flagged, and VIP to carrier admin views.
+  - **Why:** Ops needs internal context beyond verification notes without leaking those labels into carrier-facing APIs.
+  - **Done when:** Admin carrier detail persists internal notes/tags and they remain invisible to carrier-facing responses.
 
 ### EQ — Code Quality and Test Coverage
 
-- [ ] **EQ1** — Booking status machine unit tests
-  - **File(s):** `src/lib/__tests__/status-machine.test.ts` (new), Vitest setup
-  - **What:** Install Vitest, write tests for all valid transitions and all invalid transitions (completed→pending, cancelled→confirmed), and the special `disputed→completed` guard behavior.
-  - **Why:** State machine regressions are easy to introduce and extremely expensive in a live marketplace; tests are the minimum safety net.
-  - **Done when:** `npm run test` passes; all valid transitions are covered; invalid ones assert a thrown error or false return.
-
-- [ ] **EQ2** — Pricing breakdown regression tests
-  - **File(s):** `src/lib/__tests__/breakdown.test.ts` (new)
-  - **What:** Test `calculateBookingBreakdown` with zero extras, with stairs, with helper, with both, and assert the identity equation: `total = payout + commission + bookingFee`.
-  - **Why:** Commission math is a product truth, not an implementation detail; a silent drift is a financial and trust failure.
-  - **Done when:** Identity assertions pass for all input combinations; commission is confirmed to apply to base price only.
-
 - [ ] **EQ3** — Atomic booking concurrency integration test
-  - **File(s):** `src/lib/__tests__/bookings.integration.test.ts` (new), Supabase local
-  - **What:** Fire two simultaneous `create_booking_atomic` RPC calls against the same listing and assert exactly one succeeds; the other returns `listing_not_bookable`.
-  - **Why:** The race condition fix needs a regression test that proves only one booking wins under concurrent load.
-  - **Done when:** Concurrent booking test passes reliably in the local Supabase environment; capacity is correct after both attempts resolve.
+  - **File(s):** `new file: src/lib/__tests__/bookings.integration.test.ts`, local Supabase setup
+  - **What:** Prove two simultaneous `create_booking_atomic` attempts against one listing only allow one winner.
+  - **Why:** The oversell fix is too important to trust without a real concurrency regression test.
+  - **Done when:** Local Supabase integration test reliably shows one success, one `listing_not_bookable`, and correct remaining capacity.
 
 - [ ] **EQ4** — Payment webhook contract tests
-  - **File(s):** `src/app/api/payments/webhook/__tests__/route.test.ts` (new)
-  - **What:** Write tests for `payment_failed`, `amount_capturable_updated`, `payment_intent.succeeded`, missing booking metadata, and replay-safe paths using Stripe fixture events.
-  - **Why:** Webhook behavior drifts as event semantics evolve; untested webhook logic is the most common source of silent payment failures.
-  - **Done when:** All five event scenarios are covered; tests pass with `npm run test`; invalid signatures return 400.
+  - **File(s):** `new file: src/app/api/payments/webhook/__tests__/route.test.ts`
+  - **What:** Cover webhook handling for payment failure, capturable updates, succeeded intents, missing booking metadata, replay-safe paths, and invalid signatures.
+  - **Why:** Payment webhooks are a silent-failure hotspot and need fixture-backed contract coverage.
+  - **Done when:** Contract tests pass for all target Stripe event cases and invalid signatures return 400.
 
 - [ ] **EQ5** — WCAG 2.1 AA audit and remediation
   - **File(s):** `src/components/**`, `src/app/**`
-  - **What:** Run an automated WCAG audit (axe-core or similar) and remediate all Level AA failures: missing labels, color contrast, focus management in modals, and keyboard traps.
-  - **Why:** iOS accessibility tools (VoiceOver) are used by a meaningful portion of users; WCAG compliance is also an App Store requirement for native submission.
-  - **Done when:** `axe-core` reports zero Level AA violations on the search, booking, and carrier posting flows.
+  - **What:** Run an automated accessibility audit and remediate Level AA issues across browse, booking, and carrier posting flows.
+  - **Why:** Accessibility gaps are user-experience gaps on iPhone too, and they compound quickly once more UI ships.
+  - **Done when:** Automated audit reports zero AA violations on the search, booking, and carrier-posting flows.
 
 - [ ] **EQ6** — API route input validation coverage audit
   - **File(s):** `src/app/api/**`
-  - **What:** Ensure every mutating API route (POST, PUT, PATCH, DELETE) begins with Zod schema parse and returns a structured 400 before any DB operation.
-  - **Why:** Inconsistent validation is a security and data-quality risk; unvalidated routes are the most common source of bad data in early-stage products.
-  - **Done when:** All mutating routes parse input with a named Zod schema before DB access; `npm run check` passes.
+  - **What:** Finish converting every mutating API route to named Zod schemas parsed before any DB access.
+  - **Why:** Inconsistent validation is a security and data-quality risk, even after the highest-risk routes have been hardened.
+  - **Done when:** All mutating API routes use named Zod schemas at the boundary and `npm run check` passes.
 
-- [ ] **EQ7** — Stale date fix in seed data
-  - **File(s):** `supabase/seed.sql`
-  - **What:** Replace all hardcoded trip dates in seed data with expressions relative to `CURRENT_DATE + interval` so the demo always shows future trips.
-  - **Why:** Hardcoded dates go stale and make the dev environment look empty after the date passes; this caused confusion during early testing.
-  - **Done when:** `supabase db reset` produces listings with dates in the future; no hardcoded calendar dates in seed.sql.
+- [ ] **EQ8** — Admin route error-boundary coverage
+  - **File(s):** `src/app/(admin)/admin/**`, `src/components/shared/error-boundary.tsx`
+  - **What:** Wrap admin page sections so a partial loader failure degrades to a retry card instead of crashing the full admin surface.
+  - **Why:** Ops needs partial visibility during incidents more than it needs a perfect all-or-nothing dashboard render.
+  - **Done when:** Admin sections fail independently with retryable UI and the full admin page no longer hard-crashes on one loader error.
 
 ### EV — Visual / Design System
 
 - [ ] **V1** — Consistent card border radius and shadow system
   - **File(s):** `tailwind.config.ts`, `src/components/ui/card.tsx`, `src/components/trip/trip-card.tsx`
-  - **What:** Define a single `card` token in Tailwind with standardized border radius (12px), box shadow, and hover lift — apply it to all card variants.
-  - **Why:** Trip cards, booking cards, and admin cards currently use different border radii and shadow depths; visual inconsistency makes the product feel unpolished.
-  - **Done when:** All card components use the same token; visual audit at 375px shows a coherent card system.
+  - **What:** Define one shared card token for radius, shadow, and hover/active lift, then apply it everywhere cards appear.
+  - **Why:** A cleaner, repeatable card system reduces visual drift as more ops and marketplace surfaces ship.
+  - **Done when:** Major card surfaces use one shared token and visual audit at 375px reads as a single system.
 
-- [ ] **V2** — Typography scale — constrain to 3 sizes on mobile
+- [ ] **V2** — Typography scale constrained on mobile
   - **File(s):** `tailwind.config.ts`, `src/app/globals.css`, major page components
-  - **What:** Define a mobile typography scale with exactly three semantic sizes (heading, body, caption) and enforce it across search results, booking detail, and carrier dashboard.
-  - **Why:** Current pages mix 6+ type sizes creating visual noise on small screens; fewer sizes means faster reading and stronger hierarchy.
-  - **Done when:** Mobile view uses ≤3 font sizes per page; pages still render correctly on 375px iPhone SE viewport.
+  - **What:** Normalize mobile pages onto a three-size semantic typography scale.
+  - **Why:** Too many font sizes make the iPhone layouts feel noisy and less trustworthy.
+  - **Done when:** Mobile pages use three or fewer text sizes per page without losing hierarchy.
 
-- [ ] **V4** — Loading state standardization (spinner → skeleton)
-  - **File(s):** All components using `isLoading` with spinners
-  - **What:** Replace all spinner/loading indicators with skeleton components that match the shape of the loaded content; use Suspense where possible.
-  - **Why:** Spinners cause layout shift when content loads; skeletons maintain page structure and feel faster.
-  - **Done when:** `grep -r "Spinner\|loading-spinner"` returns zero results in `src/components`; all loading states use skeleton or Suspense fallback.
+- [ ] **V4** — Loading state standardization (spinner to skeleton)
+  - **File(s):** components using spinner-based loading under `src/components/**`
+  - **What:** Replace remaining spinner-only loading states with skeletons or structured Suspense fallbacks.
+  - **Why:** Skeletons preserve layout and feel faster on mobile than floating spinners.
+  - **Done when:** Spinner-only loading states are removed from shared components in favor of skeleton or Suspense patterns.
 
-- [ ] **V6** — Safe-area CSS audit — all sticky elements
-  - **File(s):** `src/app/globals.css`, `src/components/layout/site-header.tsx`, all sticky/fixed elements
-  - **What:** Audit every sticky and fixed element (nav, wizard footer, booking CTA bar) and ensure `padding-bottom: env(safe-area-inset-bottom)` is applied.
-  - **Why:** On iPhone with home indicator, sticky footers overlap the last interactive element if safe-area is missing; this is a blocking UX issue on current hardware.
-  - **Done when:** All sticky elements clear the home indicator on iPhone 14/15; verified in Chrome DevTools with "iPhone 14 Pro" device preset.
+- [ ] **V6** — Safe-area CSS audit for all sticky elements
+  - **File(s):** `src/app/globals.css`, sticky/fixed UI components under `src/components/**`
+  - **What:** Finish the audit so every sticky header, footer, CTA bar, and sheet clears the iPhone home indicator and notch areas.
+  - **Why:** One missed sticky element can make the app feel broken on the exact devices MVP users are testing on.
+  - **Done when:** All sticky elements respect safe-area insets on iPhone 14/15 class viewports.
 
 - [ ] **V7** — Hover-only state sweep across all components
   - **File(s):** `src/components/**`
-  - **What:** Run `grep -r "hover:" src/components` and add matching `active:` state to every occurrence that lacks one.
-  - **Why:** Hover-only feedback is invisible on iOS; every touch target must have `active:` feedback so taps feel responsive.
-  - **Done when:** `grep -r "hover:" src/components` shows no line without an adjacent `active:` class; verified manually on iPhone viewport.
+  - **What:** Complete the touch-feedback audit so every `hover:` treatment has an `active:` counterpart.
+  - **Why:** Hover-only feedback is invisible on iOS and makes taps feel unresponsive.
+  - **Done when:** Interactive components no longer rely on hover-only feedback and `npm run check` passes.
 
 ### EX — External / Infrastructure
 
 - [ ] **X1** — Vercel environment variable audit
-  - **File(s):** `.env.example` (update), Vercel project settings
-  - **What:** Create/update `.env.example` with all required and optional environment variables with descriptions; verify all required vars are set in Vercel production and preview environments.
-  - **Why:** Missing env vars in production fail silently until a specific code path is hit; a documented `.env.example` prevents deployment gaps.
-  - **Done when:** `.env.example` lists all vars from `assertRequiredEnv()` with descriptions; confirmed all are set in Vercel dashboard.
+  - **File(s):** `.env.example`, Vercel project settings
+  - **What:** Verify production and preview environments contain every required runtime variable documented in the repo.
+  - **Why:** Missing deployment env vars are the fastest path to “works locally, fails in production” incidents.
+  - **Done when:** `.env.example` is current and Vercel production/preview env sets are confirmed against it.
 
 - [ ] **X3** — Resend domain verification and production sender
-  - **File(s):** Resend dashboard, `.env.example`, `src/lib/notifications.ts`
-  - **What:** Verify the sender domain in Resend, update `FROM_EMAIL` env var to a branded address (e.g. `notifications@moverrr.com.au`), and test lifecycle emails in production.
-  - **Why:** Emails from `@resend.dev` land in spam on many clients; a verified domain is required for production deliverability.
-  - **Done when:** Lifecycle emails (booking confirmation, dispute update) arrive in inbox from the branded address; SPF and DKIM pass.
+  - **File(s):** `.env.example`, `src/lib/notifications.ts`, Resend dashboard, DNS provider
+  - **What:** Verify the sending domain and switch lifecycle email to a branded production sender address.
+  - **Why:** Branded deliverability matters for booking confirmations and dispute communication trust.
+  - **Done when:** SPF/DKIM pass and lifecycle emails arrive from the branded sender in inboxes.
 
 - [ ] **X6** — Deployment preview URLs for PRs
   - **File(s):** `.github/workflows/ci.yml`, Vercel project settings
-  - **What:** Confirm Vercel preview deployments are enabled for all PRs and that the preview URL is posted as a GitHub check so reviewers can test changes live.
-  - **Why:** Text review of UI changes is slow and error-prone; a live preview per PR is the minimum for a mobile-first product.
-  - **Done when:** Every PR against `main` gets a Vercel preview URL posted as a GitHub check; preview uses preview environment variables.
+  - **What:** Confirm each PR gets a live Vercel preview URL surfaced back into GitHub for review.
+  - **Why:** Mobile-first UI review is materially faster with a live preview than a code-only pass.
+  - **Done when:** Every PR against `main` shows a working Vercel preview URL in GitHub checks.
 
 ---
 
@@ -215,3 +200,8 @@
 - [ ] **P4-23** — Carbon offset option at checkout
 - [ ] **P4-24** — Carrier cooperative / shared fleet model
 - [ ] **P4-25** — Subscription tier for high-volume carriers (reduced commission)
+- [ ] **P4-26** — Carrier "availability calendar" — block out dates they can't run
+- [ ] **P4-27** — Customer "I need a move by [date]" reverse listing
+- [ ] **P4-28** — Carrier-to-carrier job handoff for routes they can't service
+- [ ] **P4-29** — Automated dispute categorisation using LLM on description text
+- [ ] **P4-30** — SMS notifications as fallback when push/email not engaged

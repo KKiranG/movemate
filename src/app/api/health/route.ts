@@ -1,38 +1,60 @@
 import { NextResponse } from "next/server";
 
 import requiredProductionEnv from "../../../../config/required-production-env.json";
+import { getStripeServerClient } from "@/lib/stripe/client";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
-import { hasSupabaseEnv } from "@/lib/env";
+import { hasStripeEnv, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/env";
 
 export async function GET() {
-  const failing: string[] = [];
-
   const missingEnv = (requiredProductionEnv as string[]).filter((key) => !process.env[key]);
-
-  if (missingEnv.length > 0) {
-    failing.push("env");
-  }
-
-  if (!process.env.STRIPE_SECRET_KEY || !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-    failing.push("stripe");
-  }
+  const envStatus: "ok" | "error" = missingEnv.length === 0 ? "ok" : "error";
+  let dbStatus: "ok" | "error" = "error";
+  let stripeStatus: "configured" | "missing" | "error" = hasStripeEnv() ? "configured" : "missing";
+  const timestamp = new Date().toISOString();
 
   if (hasSupabaseEnv()) {
-    const supabase = createServerSupabaseClient();
+    const supabase = hasSupabaseAdminEnv()
+      ? createAdminClient()
+      : createServerSupabaseClient();
+
     const { error } = await supabase
       .from("capacity_listings")
-      .select("id", { count: "exact", head: true });
+      .select("id", { head: true })
+      .limit(1);
 
-    if (error) {
-      failing.push("supabase");
+    if (!error) {
+      dbStatus = "ok";
     }
-  } else {
-    failing.push("supabase");
   }
 
-  if (failing.length > 0) {
-    return NextResponse.json({ status: "degraded", failing }, { status: 503 });
+  if (hasStripeEnv()) {
+    try {
+      const stripe = getStripeServerClient();
+      await stripe.balance.retrieve();
+      stripeStatus = "configured";
+    } catch {
+      stripeStatus = "error";
+    }
   }
 
-  return NextResponse.json({ status: "ok" });
+  const failing = [
+    envStatus === "error" ? "env" : null,
+    dbStatus === "error" ? "db" : null,
+    stripeStatus === "error" ? "stripe" : null,
+    stripeStatus === "missing" ? "stripe" : null,
+  ].filter(Boolean);
+
+  return NextResponse.json(
+    {
+      env: envStatus,
+      db: dbStatus,
+      stripe: stripeStatus,
+      timestamp,
+      failing,
+      status: failing.length === 0 ? "ok" : "degraded",
+      missingEnv,
+    },
+    { status: failing.length === 0 ? 200 : 503 },
+  );
 }

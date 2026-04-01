@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { BookingForm } from "@/components/booking/booking-form";
-import { PriceBreakdown } from "@/components/booking/price-breakdown";
+import { BookingCheckoutPanel } from "@/components/booking/booking-checkout-panel";
+import { StickyBookingCta } from "@/components/booking/sticky-booking-cta";
 import { PageIntro } from "@/components/layout/page-intro";
 import { ShareTripButton } from "@/components/trip/share-trip-button";
 import { Card } from "@/components/ui/card";
 import { TripDetailSummary } from "@/components/trip/trip-detail-summary";
 import { getOptionalSessionUser } from "@/lib/auth";
 import { getTripById } from "@/lib/data/trips";
-import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
 
 export async function generateMetadata({
   params,
@@ -58,17 +57,11 @@ export default async function TripDetailPage({
     notFound();
   }
 
-  const pricing = calculateBookingBreakdown({
-    basePriceCents: trip.priceCents,
-    needsStairs: false,
-    stairsExtraCents: trip.rules.stairsExtraCents,
-    needsHelper: false,
-    helperExtraCents: trip.rules.helperExtraCents,
-  });
   const price = `$${Math.round(trip.priceCents / 100)}`;
+  const savingsCents = Math.max(0, trip.dedicatedEstimateCents - trip.priceCents);
 
   return (
-    <main id="main-content" className="page-shell">
+    <main id="main-content" className="page-shell pb-28 lg:pb-0">
       <PageIntro
         eyebrow="Trip detail"
         title="Confirm fit, then book into the trip"
@@ -76,35 +69,12 @@ export default async function TripDetailPage({
       />
 
       <TripDetailSummary trip={trip} />
+      <StickyBookingCta priceCents={trip.priceCents} savingsCents={savingsCents} />
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card className="p-4">
-          <div className="space-y-4">
-            <div>
-              <p className="section-label">Booking form</p>
-              <h2 className="mt-1 text-lg text-text">Item and address details</h2>
-            </div>
-            <Card className="border-success/20 bg-success/5 p-4">
-              <p className="section-label">Savings context</p>
-              <h3 className="mt-1 text-lg text-text">
-                Typically ${Math.max(120, Math.round((trip.dedicatedEstimateCents - trip.priceCents) / 100) - 40)} to $
-                {Math.round((trip.dedicatedEstimateCents - trip.priceCents) / 100) + 40} cheaper
-                than booking a dedicated van
-              </h3>
-              <p className="mt-2 text-sm text-text-secondary">
-                This listing is priced as spare capacity on a route the carrier is already taking,
-                so you are sharing the run instead of paying for a whole truck on its own.
-              </p>
-            </Card>
-            <BookingForm trip={trip} isAuthenticated={Boolean(user)} />
-          </div>
-        </Card>
+        <BookingCheckoutPanel trip={trip} isAuthenticated={Boolean(user)} />
 
         <div className="space-y-4">
-          <PriceBreakdown
-            pricing={pricing}
-            dedicatedEstimateCents={trip.dedicatedEstimateCents}
-          />
           <Card className="p-4">
             <p className="section-label">Share</p>
             <h2 className="mt-1 text-lg text-text">Send this trip to someone else involved</h2>

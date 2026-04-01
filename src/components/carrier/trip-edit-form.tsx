@@ -8,6 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Trip } from "@/types/trip";
 
+const acceptOptions = [
+  { value: "furniture", label: "Furniture" },
+  { value: "boxes", label: "Boxes" },
+  { value: "appliance", label: "Appliance" },
+  { value: "fragile", label: "Fragile" },
+] as const;
+
 export function TripEditForm({ trip }: { trip: Trip }) {
   const router = useRouter();
   const initialState = useMemo(
@@ -20,6 +27,11 @@ export function TripEditForm({ trip }: { trip: Trip }) {
       availableWeightKg: trip.availableWeightKg.toString(),
       detourRadiusKm: trip.detourRadiusKm.toString(),
       priceDollars: (trip.priceCents / 100).toString(),
+      accepts: trip.rules.accepts,
+      stairsOk: trip.rules.stairsOk ? "yes" : "no",
+      stairsExtraDollars: (trip.rules.stairsExtraCents / 100).toString(),
+      helperAvailable: trip.rules.helperAvailable ? "yes" : "no",
+      helperExtraDollars: (trip.rules.helperExtraCents / 100).toString(),
       specialNotes: trip.rules.specialNotes ?? "",
     }),
     [trip],
@@ -88,6 +100,11 @@ export function TripEditForm({ trip }: { trip: Trip }) {
           availableWeightKg: Number(formState.availableWeightKg),
           detourRadiusKm: Number(formState.detourRadiusKm),
           priceCents: Math.round(Number(formState.priceDollars) * 100),
+          accepts: formState.accepts,
+          stairsOk: formState.stairsOk === "yes",
+          stairsExtraCents: Math.round(Number(formState.stairsExtraDollars) * 100),
+          helperAvailable: formState.helperAvailable === "yes",
+          helperExtraCents: Math.round(Number(formState.helperExtraDollars) * 100),
           isReturnTrip: trip.isReturnTrip,
           status: formState.status,
           specialNotes: formState.specialNotes,
@@ -192,6 +209,86 @@ export function TripEditForm({ trip }: { trip: Trip }) {
           onChange={(event) => setFormState((current) => ({ ...current, priceDollars: event.target.value }))}
           required
         />
+      </div>
+
+      <div className="grid gap-3">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {acceptOptions.map((option) => {
+            const isSelected = formState.accepts.includes(option.value);
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setFormState((current) => ({
+                    ...current,
+                    accepts: current.accepts.includes(option.value)
+                      ? current.accepts.filter((value) => value !== option.value)
+                      : [...current.accepts, option.value],
+                  }))
+                }
+                className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                  isSelected
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Stairs support</span>
+            <select
+              name="stairsOk"
+              value={formState.stairsOk}
+              onChange={(event) => setFormState((current) => ({ ...current, stairsOk: event.target.value as "yes" | "no" }))}
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+            >
+              <option value="no">No stairs support</option>
+              <option value="yes">Stairs OK</option>
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Stairs surcharge (AUD)</span>
+            <Input
+              name="stairsExtraDollars"
+              type="number"
+              step="1"
+              value={formState.stairsExtraDollars}
+              onChange={(event) => setFormState((current) => ({ ...current, stairsExtraDollars: event.target.value }))}
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Helper support</span>
+            <select
+              name="helperAvailable"
+              value={formState.helperAvailable}
+              onChange={(event) => setFormState((current) => ({ ...current, helperAvailable: event.target.value as "yes" | "no" }))}
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+            >
+              <option value="no">No helper</option>
+              <option value="yes">Helper available</option>
+            </select>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Helper surcharge (AUD)</span>
+            <Input
+              name="helperExtraDollars"
+              type="number"
+              step="1"
+              value={formState.helperExtraDollars}
+              onChange={(event) => setFormState((current) => ({ ...current, helperExtraDollars: event.target.value }))}
+            />
+          </label>
+        </div>
       </div>
 
       <Textarea

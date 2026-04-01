@@ -511,6 +511,89 @@
   - Kept long-lived customer sessions warm from the root app layer so saved-search, browse, and booking flows degrade less often when a mobile user leaves and returns.
 - **Verification:** `npm run check`
 
+### `COMP-2026-04-01-26` — Admin verification queue now surfaces document expiry risk
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `src/components/admin/verification-queue.tsx`, `src/app/(admin)/admin/verification/page.tsx`
+- **Why it mattered:** Expiring licence or insurance documents are a trust and compliance risk, so approvers need that signal before they click approve.
+- **What was done:**
+  - Added expiry-state badges for carrier licence and insurance documents with healthy, review-soon, and immediate-action states.
+  - Re-sorted the queue so carriers with stale or expiring documents rise above healthier carriers.
+  - Added summary counters and a bulk-selection bar so review-ready carriers are easier to process in batches.
+- **Verification:** `npx eslint 'src/app/(admin)/admin/bookings/page.tsx' 'src/app/(admin)/admin/disputes/page.tsx' 'src/app/(admin)/admin/disputes/[id]/page.tsx' 'src/app/(admin)/admin/verification/page.tsx' 'src/app/(admin)/admin/dashboard/page.tsx' 'src/components/admin/copy-text-button.tsx' 'src/components/admin/admin-booking-support-panel.tsx' 'src/components/admin/admin-pagination.tsx' 'src/components/admin/ops-funnel-card.tsx' 'src/components/admin/resolve-dispute-actions.tsx' 'src/components/admin/verification-queue.tsx' 'src/components/admin/verify-carrier-actions.tsx'`
+
+### `COMP-2026-04-01-27` — Booking transitions, payments, and upload boundaries were hardened
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `middleware.ts`, `src/app/api/bookings/route.ts`, `src/app/api/bookings/[id]/route.ts`, `src/app/api/bookings/[id]/dispute/route.ts`, `src/app/api/payments/webhook/route.ts`, `src/app/api/upload/route.ts`, `src/lib/constants.ts`, `src/lib/data/bookings.ts`, `src/lib/data/feedback.ts`, `src/lib/data/trips.ts`, `src/lib/validation/booking.ts`, `src/types/booking.ts`, `src/types/database.ts`, `supabase/migrations/014_booking_payment_capture_failed.sql`
+- **Why it mattered:** Silent capture failures, unsafe actor transitions, and weak upload validation were the highest-trust risks left in the booking lifecycle.
+- **What was done:**
+  - Wrapped Stripe capture in guarded completion logic that marks `capture_failed`, records failure detail, and blocks completion when capture does not actually succeed.
+  - Fixed actor-role resolution so dual-role users can still access the right booking path and customers can no longer self-confirm carrier-side states.
+  - Expanded CSRF protection to mutating booking/payment routes, added booking creation rate limiting, and tightened dispute-state transitions through the real state machine.
+  - Added upload throttling plus magic-byte validation so proof and item-photo buckets reject mismatched or unsafe file types server-side.
+- **Verification:** `npm run check`; `npm run test`
+
+### `COMP-2026-04-01-28` — Customer browse and booking surfaces now reflect live intent more clearly
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `src/app/(customer)/bookings/page.tsx`, `src/app/(customer)/bookings/[id]/page.tsx`, `src/app/(customer)/search/page.tsx`, `src/app/(customer)/trip/[id]/page.tsx`, `src/components/booking/booking-checkout-panel.tsx`, `src/components/booking/booking-form.tsx`, `src/components/booking/booking-status-stepper.tsx`, `src/components/booking/price-breakdown.tsx`, `src/components/booking/sticky-booking-cta.tsx`, `src/components/search/search-bar.tsx`, `src/components/trip/trip-card.tsx`, `src/types/booking.ts`, `src/lib/data/bookings.ts`
+- **Why it mattered:** Browse-first demand converts better when pricing updates instantly, search starts cleanly, and customers can coordinate confidently once a trip is confirmed.
+- **What was done:**
+  - Reworked trip detail and booking form flow with a live checkout panel, sticky mobile CTA, session-backed draft restore, progress states, and a single truthful savings figure.
+  - Added empty-state recovery paths for bookings/search, URL-persisted sort controls, and desktop-first search autofocus without hardcoded suburbs.
+  - Fixed booking detail evidence timestamps, added a full timeline, surfaced carrier contact info for active jobs, and kept “book similar trip” recovery in the completed state.
+  - Tightened trip-card CTA language so search results feel like a clear booking surface rather than a passive listing index.
+- **Verification:** `npm run check`; `npm run test`
+
+### `COMP-2026-04-01-29` — Carrier onboarding, posting, and dashboard feedback loops became more actionable
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/app/(carrier)/carrier/onboarding/actions.ts`, `src/app/(carrier)/carrier/onboarding/page.tsx`, `src/app/(carrier)/carrier/payouts/page.tsx`, `src/app/(carrier)/carrier/post/page.tsx`, `src/app/(carrier)/carrier/stats/page.tsx`, `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/components/carrier/carrier-onboarding-form.tsx`, `src/components/carrier/carrier-post-prefill.tsx`, `src/components/carrier/carrier-post-success-card.tsx`, `src/components/carrier/carrier-trip-wizard.tsx`, `src/components/carrier/pending-bookings-alert.tsx`, `src/components/carrier/trip-checklist.tsx`, `src/components/carrier/trip-edit-form.tsx`, `src/lib/data/trips.ts`, `src/lib/validation/carrier.ts`, `src/lib/validation/trip.ts`
+- **Why it mattered:** Supply grows faster when first-trip carriers are guided around readiness blockers and repeat carriers can act on pending demand immediately.
+- **What was done:**
+  - Added per-step validation, readiness gating, debounced price guidance, onboarding return redirects, and a real success state after posting a trip.
+  - Scoped onboarding drafts by user, added ABN validation, and surfaced clearer verification readiness throughout the carrier flow.
+  - Upgraded carrier dashboards with pending-booking urgency, active-vs-past trip separation, and clearer payouts/performance empty states for new carriers.
+  - Expanded trip editing so carriers can actually update accepted categories, stairs support, and helper surcharges instead of cancel-and-repost workarounds.
+- **Verification:** `npm run check`; `npm run test`
+
+### `COMP-2026-04-01-30` — Admin support views and shared verification context were upgraded
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `src/app/(admin)/admin/bookings/page.tsx`, `src/app/(admin)/admin/dashboard/page.tsx`, `src/app/(admin)/admin/disputes/page.tsx`, `src/app/(admin)/admin/verification/page.tsx`, `src/app/api/admin/bookings/route.ts`, `src/app/api/admin/carriers/[id]/route.ts`, `src/app/api/admin/carriers/[id]/verify/route.ts`, `src/app/api/admin/disputes/[id]/route.ts`, `src/components/admin/admin-booking-support-panel.tsx`, `src/components/admin/admin-pagination.tsx`, `src/components/admin/copy-text-button.tsx`, `src/components/admin/ops-funnel-card.tsx`, `src/components/admin/resolve-dispute-actions.tsx`, `src/components/admin/verification-queue.tsx`, `src/lib/data/admin.ts`, `src/lib/data/bookings.ts`, `src/lib/data/carriers.ts`
+- **Why it mattered:** Early ops speed depends on fast booking lookup, visible dispute urgency, and shared admin context instead of one-browser-only notes.
+- **What was done:**
+  - Added admin booking search by booking reference or email, real pagination, and a quick-view support panel for the most common investigation details.
+  - Added dispute urgency signals, mandatory resolution notes, and booking-event audit metadata for dispute closures.
+  - Added a funnel snapshot card on the admin dashboard so ops can see weekly flow drop-off instead of isolated headline metrics.
+  - Moved carrier verification notes from local-only storage to debounced DB-backed autosave with local fallback, while preserving bulk verification actions.
+- **Verification:** `npm run check`; `npm run test`
+
+### `COMP-2026-04-01-31` — Runtime environment, health, and public metadata were tightened
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `.env.example`, `next.config.js`, `src/app/api/health/route.ts`, `src/app/layout.tsx`, `src/app/robots.ts`, `src/app/sitemap.ts`, `src/lib/env.ts`
+- **Why it mattered:** The app needs to fail fast on bad deploy config, expose a meaningful health signal, and publish safe metadata for iPhone and search surfaces.
+- **What was done:**
+  - Moved env enforcement to startup-oriented configuration, added security headers, and expanded `.env.example` to match the real runtime surface.
+  - Added a health endpoint that checks DB/env/payment readiness instead of returning a blind OK.
+  - Added robots and sitemap generation for public trip discovery, plus viewport-fit and theme-color metadata for safer iOS rendering.
+  - Updated the search page to the async `searchParams` shape expected by newer Next.js routing behavior.
+- **Verification:** `npm run check`
+
+### `COMP-2026-04-01-32` — Regression coverage now protects core pricing, status, and seed assumptions
+- **When:** `2026-04-01`
+- **By:** `Codex`
+- **Files changed:** `package.json`, `package-lock.json`, `src/lib/__tests__/breakdown.test.ts`, `src/lib/__tests__/seed.test.ts`, `src/lib/__tests__/status-machine.test.ts`
+- **Why it mattered:** Commission math, booking transitions, and future-dated demo data are product truths that should not drift quietly between backlog passes.
+- **What was done:**
+  - Added status-machine tests for documented valid and invalid transitions.
+  - Added pricing breakdown regression tests that lock the identity equation and base-only commission behavior.
+  - Added seed-data regression tests that verify listings stay relative-dated and avoid hardcoded calendar values.
+  - Wired a lightweight `npm run test` path into the repo so these invariants run alongside the normal checks.
+- **Verification:** `npm run test`; `npm run check`
+
 ---
 
 ## Already Present In Repo Before This Pass

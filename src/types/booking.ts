@@ -24,6 +24,7 @@ export type BookingPaymentStatus =
   | "pending"
   | "authorized"
   | "captured"
+  | "capture_failed"
   | "refunded"
   | "failed"
   | "authorization_cancelled";
@@ -51,6 +52,8 @@ export interface Booking {
   listingId: string;
   carrierId: string;
   customerId: string;
+  carrierBusinessName?: string;
+  carrierPhone?: string;
   itemDescription: string;
   itemCategory: ItemCategory;
   itemDimensions?: string | null;

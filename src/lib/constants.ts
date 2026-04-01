@@ -191,6 +191,7 @@ export const BOOKING_PAYMENT_LABELS: Record<BookingPaymentStatus, string> = {
   pending: "Payment pending",
   authorized: "Card authorized",
   captured: "Payment captured",
+  capture_failed: "Capture failed",
   refunded: "Refunded",
   failed: "Payment failed",
   authorization_cancelled: "Authorization cancelled",

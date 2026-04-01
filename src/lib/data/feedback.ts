@@ -1,4 +1,5 @@
 import { hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/env";
+import { updateBookingStatusForActor } from "@/lib/data/bookings";
 import { AppError } from "@/lib/errors";
 import { sendBookingTransactionalEmail } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -383,6 +384,14 @@ export async function createDisputeForBooking(
     throw new AppError("Booking not found.", 404, "booking_not_found");
   }
 
+  if (!["delivered", "completed", "disputed"].includes(context.booking.status)) {
+    throw new AppError(
+      "Disputes are only available after delivery has happened.",
+      400,
+      "dispute_booking_ineligible",
+    );
+  }
+
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("disputes")
@@ -401,12 +410,14 @@ export async function createDisputeForBooking(
     throw new AppError(error.message, 500, "dispute_create_failed");
   }
 
-  if (hasSupabaseAdminEnv()) {
-    const admin = createAdminClient();
-    await admin
-      .from("bookings")
-      .update({ status: "disputed" })
-      .eq("id", bookingId);
+  if (context.booking.status !== "disputed") {
+    await updateBookingStatusForActor({
+      userId,
+      bookingId,
+      nextStatus: "disputed",
+      actorRole: context.actorRole,
+      skipStatusEmails: true,
+    });
   }
 
   await recordBookingEvent({

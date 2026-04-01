@@ -79,9 +79,9 @@ export function BookingStatusStepper({
           <li key={step.status} className="flex gap-3">
             <div
               className={cn(
-                "mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full text-sm font-medium",
+                "mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm font-medium transition-all",
                 isDone && "bg-success text-white",
-                isActive && "bg-accent text-white",
+                isActive && "animate-pulse bg-accent text-white ring-4 ring-accent/10",
                 !isDone && !isActive && "bg-black/[0.06] text-text-secondary dark:bg-white/[0.08]",
               )}
             >
@@ -97,7 +97,12 @@ export function BookingStatusStepper({
                 {step.label}
               </p>
               {isActive ? (
-                <p className="text-sm text-text-secondary">{step.description}</p>
+                <p className="text-sm text-text-secondary">
+                  {step.description}
+                  <span className="ml-2 inline-flex rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.16em] text-accent">
+                    Current
+                  </span>
+                </p>
               ) : null}
             </div>
           </li>

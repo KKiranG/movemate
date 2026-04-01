@@ -7,7 +7,7 @@ import { geocodeAddress } from "@/lib/maps/geocode";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { toGeographyPoint, toTrip, toTripSearchResult, type ListingJoinedRecord } from "@/lib/data/mappers";
 import { tripSchema, tripUpdateSchema, type TripInput, type TripUpdateInput } from "@/lib/validation/trip";
-import { getDateOffsetIso } from "@/lib/utils";
+import { getDateOffsetIso, getTodayIsoDate } from "@/lib/utils";
 import type { Trip, TripSearchInput, TripSearchResponse, TripSearchResult } from "@/types/trip";
 
 type SearchRpcRow = {
@@ -101,6 +101,7 @@ export async function listPublicTrips(limit = SEARCH_PAGE_SIZE) {
   const { data, error } = await query
     .in("status", ["active", "booked_partial"])
     .lte("publish_at", new Date().toISOString())
+    .gte("trip_date", getTodayIsoDate())
     .order("trip_date", { ascending: true })
     .limit(limit);
 
@@ -152,8 +153,15 @@ async function geocodeSearchInput(input: TripSearchInput) {
   };
 }
 
-const cachedTextSearch = unstable_cache(
-  async (from: string, to: string, when?: string, what?: string, isReturnTrip?: boolean) => {
+async function cachedTextSearch(
+  from: string,
+  to: string,
+  when?: string,
+  what?: string,
+  isReturnTrip?: boolean,
+) {
+  return unstable_cache(
+    async () => {
     if (!hasSupabaseEnv()) {
       return [] as TripSearchResult[];
     }
@@ -165,6 +173,10 @@ const cachedTextSearch = unstable_cache(
       .ilike("destination_suburb", `%${to}%`)
       .order("trip_date", { ascending: true })
       .limit(SEARCH_PAGE_SIZE);
+
+    if (when) {
+      query.eq("trip_date", when);
+    }
 
     if (what === "furniture") {
       query.eq("accepts_furniture", true);
@@ -193,12 +205,19 @@ const cachedTextSearch = unstable_cache(
     }
 
     return ((data ?? []) as unknown as ListingJoinedRecord[])
-      .map((record) => toTripSearchResult(toTrip(record), 50))
-      .filter((trip) => !when || trip.tripDate === when);
+      .map((record) => toTripSearchResult(toTrip(record), 50));
   },
-  ["trip-text-search"],
-  { revalidate: SEARCH_REVALIDATE_SECONDS },
-);
+    [
+      "trip-text-search",
+      from,
+      to,
+      when ?? "any",
+      what ?? "any",
+      isReturnTrip ? "return" : "standard",
+    ],
+    { revalidate: SEARCH_REVALIDATE_SECONDS },
+  )();
+}
 
 export async function searchTrips(input: TripSearchInput) {
   if (!hasSupabaseEnv()) {
@@ -318,7 +337,12 @@ export async function searchTrips(input: TripSearchInput) {
   } satisfies TripSearchResponse;
 }
 
-export async function listCarrierTrips(userId: string) {
+export async function listCarrierTrips(
+  userId: string,
+  options?: {
+    activeOnly?: boolean;
+  },
+) {
   if (!hasSupabaseEnv()) {
     return [] as Trip[];
   }
@@ -335,9 +359,17 @@ export async function listCarrierTrips(userId: string) {
   }
 
   const query = getJoinedTripsQuery();
-  const { data, error } = await query
-    .eq("carrier_id", carrier.id)
-    .order("trip_date", { ascending: true });
+  query.eq("carrier_id", carrier.id).order("trip_date", { ascending: true });
+
+  if (options?.activeOnly) {
+    query
+      .in("status", ["active", "booked_partial", "draft"])
+      .gte("trip_date", getDateOffsetIso(getTodayIsoDate(), -1));
+  } else {
+    query.gte("trip_date", getDateOffsetIso(getTodayIsoDate(), -2));
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new AppError(error.message, 500, "carrier_trip_query_failed");
@@ -471,10 +503,32 @@ export async function cancelTripForCarrier(userId: string, tripId: string) {
   }
 
   const supabase = createServerSupabaseClient();
-  const carrierTrips = await listCarrierTrips(userId);
-  const ownsTrip = carrierTrips.some((trip) => trip.id === tripId);
+  const { data: carrier, error: carrierError } = await supabase
+    .from("carriers")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  if (!ownsTrip) {
+  if (carrierError) {
+    throw new AppError(carrierError.message, 500, "carrier_lookup_failed");
+  }
+
+  if (!carrier) {
+    throw new AppError("Carrier profile not found.", 404, "carrier_not_found");
+  }
+
+  const { data: ownedTrip, error: tripLookupError } = await supabase
+    .from("capacity_listings")
+    .select("id")
+    .eq("id", tripId)
+    .eq("carrier_id", carrier.id)
+    .maybeSingle();
+
+  if (tripLookupError) {
+    throw new AppError(tripLookupError.message, 500, "trip_lookup_failed");
+  }
+
+  if (!ownedTrip) {
     throw new AppError("Trip not found.", 404, "trip_not_found");
   }
 
@@ -545,6 +599,14 @@ export async function updateTripForCarrier(
       available_weight_kg: parsed.data.availableWeightKg,
       detour_radius_km: parsed.data.detourRadiusKm,
       price_cents: parsed.data.priceCents,
+      accepts_furniture: parsed.data.accepts.includes("furniture"),
+      accepts_boxes: parsed.data.accepts.includes("boxes"),
+      accepts_appliances: parsed.data.accepts.includes("appliance"),
+      accepts_fragile: parsed.data.accepts.includes("fragile"),
+      stairs_ok: parsed.data.stairsOk,
+      stairs_extra_cents: parsed.data.stairsExtraCents,
+      helper_available: parsed.data.helperAvailable,
+      helper_extra_cents: parsed.data.helperExtraCents,
       is_return_trip: parsed.data.isReturnTrip,
       status: parsed.data.status,
       publish_at: parsed.data.publishAt ?? null,

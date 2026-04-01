@@ -16,7 +16,7 @@ export async function listAdminDisputes() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("disputes")
-    .select("*, booking:bookings(booking_reference)")
+    .select("*, booking:bookings(booking_reference,total_price_cents,status)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -34,7 +34,7 @@ export async function getAdminDisputeById(disputeId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("disputes")
-    .select("*, booking:bookings(booking_reference)")
+    .select("*, booking:bookings(booking_reference,total_price_cents,status)")
     .eq("id", disputeId)
     .maybeSingle();
 
@@ -56,12 +56,22 @@ export async function resolveDispute(params: {
     throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
   }
 
+  const sanitizedResolutionNotes = sanitizeText(params.resolutionNotes);
+
+  if (sanitizedResolutionNotes.length < 20) {
+    throw new AppError(
+      "Resolution notes must be at least 20 characters.",
+      400,
+      "resolution_notes_too_short",
+    );
+  }
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("disputes")
     .update({
       status: params.status,
-      resolution_notes: params.resolutionNotes ? sanitizeText(params.resolutionNotes) : null,
+      resolution_notes: sanitizedResolutionNotes,
       resolved_by: params.status === "resolved" || params.status === "closed" ? params.resolvedBy : null,
       assigned_admin_user_id: params.resolvedBy,
       resolved_at:
@@ -77,10 +87,23 @@ export async function resolveDispute(params: {
     throw new AppError(error.message, 500, "dispute_resolve_failed");
   }
 
+  await supabase.from("booking_events").insert({
+    booking_id: data.booking_id,
+    actor_role: "admin",
+    actor_user_id: params.resolvedBy,
+    event_type: "dispute_resolution_updated",
+    metadata: {
+      status: params.status,
+      bookingStatus: params.bookingStatus ?? null,
+      reason: sanitizedResolutionNotes,
+    },
+  });
+
   let bookingPaymentStatus:
     | "pending"
     | "authorized"
     | "captured"
+    | "capture_failed"
     | "refunded"
     | "failed"
     | "authorization_cancelled"
@@ -154,7 +177,7 @@ export async function resolveDispute(params: {
           to: email,
           subject: `Booking dispute updated: ${bookingParties?.booking_reference ?? data.booking_id}`,
           html: `<p>Your moverrr dispute for booking <strong>${bookingParties?.booking_reference ?? data.booking_id}</strong> is now marked as ${params.status}. ${
-            params.resolutionNotes ? params.resolutionNotes : ""
+            sanitizedResolutionNotes
           }</p>`,
         }),
       ),
@@ -163,7 +186,7 @@ export async function resolveDispute(params: {
   return data;
 }
 
-export async function getValidationMetrics() {
+export async function getValidationMetrics(): Promise<ValidationMetric[]> {
   if (!hasSupabaseAdminEnv()) {
     return [] as ValidationMetric[];
   }

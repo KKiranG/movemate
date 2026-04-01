@@ -1,4 +1,5 @@
 import { BootstrapDatasetForm } from "@/components/admin/bootstrap-dataset-form";
+import { OpsFunnelCard } from "@/components/admin/ops-funnel-card";
 import { requirePageAdminUser } from "@/lib/auth";
 import { getValidationMetrics } from "@/lib/data/admin";
 import { PageIntro } from "@/components/layout/page-intro";
@@ -34,6 +35,8 @@ export default async function AdminDashboardPage() {
       <p className="text-sm text-text-secondary">
         Last updated {lastUpdated.toLocaleString("en-AU")}
       </p>
+
+      <OpsFunnelCard metrics={metrics} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (

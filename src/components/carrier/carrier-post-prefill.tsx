@@ -15,7 +15,7 @@ function numberParam(value: string | null) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-export function CarrierPostPrefill() {
+export function CarrierPostPrefill({ canPost = true }: { canPost?: boolean }) {
   const searchParams = useSearchParams();
 
   const initialOrigin = useMemo<AddressValue | null>(() => {
@@ -74,6 +74,7 @@ export function CarrierPostPrefill() {
       }
       initialPriceDollars={initialPriceDollars ?? undefined}
       initialDetourRadiusKm={initialDetourRadiusKm ?? undefined}
+      canPost={canPost}
     />
   );
 }

@@ -6,6 +6,7 @@ import { requirePageSessionUser } from "@/lib/auth";
 import { getBookingPaymentStateSummary } from "@/lib/booking-presenters";
 import { listUserBookings } from "@/lib/data/bookings";
 import { PageIntro } from "@/components/layout/page-intro";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
@@ -53,7 +54,18 @@ async function BookingsListSection({ userId }: { userId: string }) {
       ))}
       {bookings.length === 0 ? (
         <Card className="p-4">
-          <p className="subtle-text">You have no bookings yet.</p>
+          <div className="space-y-3">
+            <div>
+              <p className="section-label">No bookings yet</p>
+              <h2 className="mt-1 text-lg text-text">Browse trips to get started</h2>
+            </div>
+            <p className="subtle-text">
+              moverrr lets you book spare capacity on trips that are already heading your way.
+            </p>
+            <Button asChild className="min-h-[44px] active:opacity-80">
+              <Link href="/search">Browse available trips</Link>
+            </Button>
+          </div>
         </Card>
       ) : null}
     </div>

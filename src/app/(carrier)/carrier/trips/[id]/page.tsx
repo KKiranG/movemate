@@ -29,6 +29,9 @@ export default async function CarrierTripDetailPage({
     notFound();
   }
 
+  const savingsCents = trip.dedicatedEstimateCents - trip.priceCents;
+  const repostHref = `/carrier/post?from=${encodeURIComponent(trip.route.originSuburb)}&to=${encodeURIComponent(trip.route.destinationSuburb)}&space=${trip.spaceSize}&price=${Math.round(trip.priceCents / 100)}&originPostcode=${encodeURIComponent(trip.route.originPostcode ?? "")}&destinationPostcode=${encodeURIComponent(trip.route.destinationPostcode ?? "")}&originLat=${trip.route.originLatitude ?? ""}&originLng=${trip.route.originLongitude ?? ""}&destinationLat=${trip.route.destinationLatitude ?? ""}&destinationLng=${trip.route.destinationLongitude ?? ""}&detour=${trip.detourRadiusKm}`;
+
   const bookings = (await listCarrierBookings(user.id)).filter(
     (booking) => booking.listingId === trip.id,
   );
@@ -48,6 +51,18 @@ export default async function CarrierTripDetailPage({
         description="Edit live inventory, then manage proof-backed status changes for each booking on the run."
       />
 
+      {savingsCents > 0 ? (
+        <Card className="border-success/20 bg-success/5 p-4">
+          <p className="section-label">Route value</p>
+          <h2 className="mt-1 text-lg text-text">
+            Customers usually save {formatCurrency(savingsCents)} compared with a dedicated truck
+          </h2>
+          <p className="mt-2 text-sm text-text-secondary">
+            That estimate is based on moverrr&apos;s dedicated-route benchmarks for this space size.
+          </p>
+        </Card>
+      ) : null}
+
       <Card className="p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SaveTripTemplateAction
@@ -56,13 +71,13 @@ export default async function CarrierTripDetailPage({
           />
           {trip.status === "expired" || trip.status === "cancelled" ? (
             <Button asChild variant="secondary" className="min-h-[44px] active:opacity-80">
-              <Link
-                href={`/carrier/post?from=${encodeURIComponent(trip.route.originSuburb)}&to=${encodeURIComponent(trip.route.destinationSuburb)}&space=${trip.spaceSize}&price=${Math.round(trip.priceCents / 100)}&originPostcode=${encodeURIComponent(trip.route.originPostcode ?? "")}&destinationPostcode=${encodeURIComponent(trip.route.destinationPostcode ?? "")}&originLat=${trip.route.originLatitude ?? ""}&originLng=${trip.route.originLongitude ?? ""}&destinationLat=${trip.route.destinationLatitude ?? ""}&destinationLng=${trip.route.destinationLongitude ?? ""}&detour=${trip.detourRadiusKm}`}
-              >
-                Post similar trip
-              </Link>
+              <Link href={repostHref}>Re-post this route</Link>
             </Button>
-          ) : null}
+          ) : (
+            <p className="text-sm text-text-secondary">
+              Save this route as a template if you run it often.
+            </p>
+          )}
         </div>
       </Card>
 

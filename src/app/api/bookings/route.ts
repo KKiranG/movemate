@@ -4,6 +4,8 @@ import { requireSessionUser } from "@/lib/auth";
 import { createBookingForCustomer, listUserBookings } from "@/lib/data/bookings";
 import { toErrorResponse } from "@/lib/errors";
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { bookingSchema } from "@/lib/validation/booking";
 
 export async function GET() {
   try {
@@ -23,7 +25,21 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireSessionUser();
-    const payload = await request.json();
+    const rateLimit = await enforceRateLimit(`booking:create:${user.id}`, 5, 60_000);
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Booking rate limit reached.", code: "rate_limited" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.max(1, Math.ceil(rateLimit.retryAfterMs / 1000))),
+          },
+        },
+      );
+    }
+
+    const payload = bookingSchema.parse(await request.json());
     const idempotencyKey = request.headers.get("Idempotency-Key");
     const booking = await createBookingForCustomer(user.id, payload, { idempotencyKey });
 

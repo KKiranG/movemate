@@ -5,6 +5,7 @@ import { getAdminEmails, hasSupabaseEnv } from "@/lib/env";
 
 const protectedPrefixes = ["/bookings", "/carrier", "/admin"];
 const csrfProtectedPrefixes = ["/api/bookings", "/api/payments"];
+const mutatingMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 function hasValidOrigin(request: NextRequest) {
   const requestOrigin = request.headers.get("origin");
@@ -25,7 +26,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
-    request.method === "POST" &&
+    mutatingMethods.has(request.method) &&
     pathname !== "/api/payments/webhook" &&
     csrfProtectedPrefixes.some((prefix) => pathname.startsWith(prefix)) &&
     !hasValidOrigin(request)
@@ -79,10 +80,18 @@ export async function middleware(request: NextRequest) {
   }
 
   if (
-    pathname.startsWith("/admin") &&
-    !getAdminEmails().includes((user.email ?? "").toLowerCase())
+    pathname.startsWith("/admin")
   ) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const adminEmailMatch = getAdminEmails().includes((user.email ?? "").toLowerCase());
+    const { data: adminRow } = await supabase
+      .from("admin_users")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!adminEmailMatch && !adminRow) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return response;

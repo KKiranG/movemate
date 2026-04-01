@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { hasSupabaseEnv } from "@/lib/env";
@@ -7,8 +8,18 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { searchTrips } from "@/lib/data/trips";
 import type { ItemCategory } from "@/types/trip";
+import { sanitizeText } from "@/lib/utils";
 
 export const revalidate = 30;
+
+const waitlistSchema = z.object({
+  email: z.string().email(),
+  from: z.string().min(2).max(120),
+  to: z.string().min(2).max(120),
+  itemCategory: z.string().min(2).max(60),
+  preferredDate: z.string().min(1).optional(),
+  notes: z.string().max(240).optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,23 +81,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = (await request.json()) as {
-      email: string;
-      from: string;
-      to: string;
-      itemCategory: string;
-      preferredDate?: string;
-      notes?: string;
-    };
+    const body = waitlistSchema.parse(await request.json());
 
     const supabase = createServerSupabaseClient();
     const { error } = await supabase.from("waitlist_entries").insert({
       email: body.email,
-      from_location: body.from,
-      to_location: body.to,
-      item_category: body.itemCategory,
+      from_location: sanitizeText(body.from),
+      to_location: sanitizeText(body.to),
+      item_category: sanitizeText(body.itemCategory),
       preferred_date: body.preferredDate ?? null,
-      notes: body.notes ?? null,
+      notes: body.notes ? sanitizeText(body.notes) : null,
     });
 
     if (error) {

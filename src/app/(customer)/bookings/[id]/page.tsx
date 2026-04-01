@@ -19,6 +19,10 @@ import { getBookingByIdForUser } from "@/lib/data/bookings";
 import { getBookingFeedbackForUser } from "@/lib/data/feedback";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
+function getBookingEventTimestamp(booking: { events?: Array<{ eventType: string; createdAt: string }> }, eventType: string) {
+  return booking.events?.find((event) => event.eventType === eventType)?.createdAt ?? null;
+}
+
 export default async function BookingDetailPage({
   params,
 }: {
@@ -36,6 +40,8 @@ export default async function BookingDetailPage({
 
   const paymentSummary = getBookingPaymentStateSummary(booking);
   const checklist = getConfirmedBookingChecklist();
+  const pickupProofAt = getBookingEventTimestamp(booking, "status_picked_up");
+  const deliveredAt = getBookingEventTimestamp(booking, "status_delivered");
   const bookSimilarHref = `/search?${new URLSearchParams({
     from: booking.pickupSuburb ?? "",
     to: booking.dropoffSuburb ?? "",
@@ -100,6 +106,35 @@ export default async function BookingDetailPage({
         </Card>
       ) : null}
 
+      {["confirmed", "picked_up", "in_transit"].includes(booking.status) &&
+      (booking.carrierBusinessName || booking.carrierPhone) ? (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div>
+              <p className="section-label">Carrier contact</p>
+              <h2 className="mt-1 text-lg text-text">Day-of-job coordination</h2>
+            </div>
+            {booking.carrierBusinessName ? (
+              <div className="rounded-xl border border-border p-3">
+                <p className="text-sm text-text-secondary">Business</p>
+                <p className="mt-1 text-sm text-text">{booking.carrierBusinessName}</p>
+              </div>
+            ) : null}
+            {booking.carrierPhone ? (
+              <div className="rounded-xl border border-border p-3">
+                <p className="text-sm text-text-secondary">Phone</p>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-text">{booking.carrierPhone}</p>
+                  <Button asChild variant="secondary">
+                    <a href={`tel:${booking.carrierPhone}`}>Call carrier</a>
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </Card>
+      ) : null}
+
       {booking.pickupProofPhotoUrl || booking.deliveryProofPhotoUrl ? (
         <Card className="p-4">
           <div className="space-y-4">
@@ -112,15 +147,49 @@ export default async function BookingDetailPage({
                 bucket={PRIVATE_BUCKETS.proofPhotos}
                 path={booking.pickupProofPhotoUrl}
                 title="Pickup proof"
-                subtitle={booking.createdAt ? `Uploaded after ${formatDateTime(booking.createdAt)}` : undefined}
+                subtitle={pickupProofAt ? `Uploaded after ${formatDateTime(pickupProofAt)}` : undefined}
               />
               <PrivateProofTile
                 bucket={PRIVATE_BUCKETS.proofPhotos}
                 path={booking.deliveryProofPhotoUrl}
                 title="Delivery proof"
-                subtitle={booking.deliveredAt ? `Uploaded ${formatDateTime(booking.deliveredAt)}` : undefined}
+                subtitle={deliveredAt ? `Uploaded ${formatDateTime(deliveredAt)}` : undefined}
               />
             </div>
+          </div>
+        </Card>
+      ) : null}
+
+      {booking.events && booking.events.length > 0 ? (
+        <Card className="p-4">
+          <div className="space-y-4">
+            <div>
+              <p className="section-label">Timeline</p>
+              <h2 className="mt-1 text-lg text-text">Booking state history</h2>
+            </div>
+            <details className="rounded-xl border border-border p-3">
+              <summary className="min-h-[44px] cursor-pointer list-none text-sm font-medium text-text active:opacity-80 [&::-webkit-details-marker]:hidden">
+                View all booking events
+              </summary>
+              <div className="mt-4 space-y-3">
+                {booking.events
+                  .slice()
+                  .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                  .map((event) => (
+                    <div key={event.id} className="rounded-xl border border-border px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-text">
+                          {event.eventType.replaceAll("_", " ")}
+                        </p>
+                        <p className="text-xs text-text-secondary">{formatDateTime(event.createdAt)}</p>
+                      </div>
+                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-text-secondary">
+                        {event.actorRole}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            </details>
           </div>
         </Card>
       ) : null}
@@ -181,7 +250,13 @@ export default async function BookingDetailPage({
               <p className="subtle-text">No disputes have been raised for this booking.</p>
             ) : null}
           </div>
-          {booking.status !== "cancelled" ? <DisputeForm bookingId={booking.id} /> : null}
+          {["delivered", "completed", "disputed"].includes(booking.status) ? (
+            <DisputeForm bookingId={booking.id} />
+          ) : (
+            <p className="subtle-text">
+              Disputes can only be raised after the booking has been delivered or completed.
+            </p>
+          )}
         </div>
       </Card>
 

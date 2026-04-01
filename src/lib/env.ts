@@ -4,6 +4,7 @@ const REQUIRED_PRODUCTION_ENV = requiredProductionEnv as string[];
 
 export function assertRequiredEnv() {
   if (process.env.NODE_ENV !== "production") return;
+  if (process.env.MOVERRR_REQUIRED_ENV_VALIDATED === "true") return;
 
   const missing = REQUIRED_PRODUCTION_ENV.filter((key) => !process.env[key]);
   if (missing.length > 0) {

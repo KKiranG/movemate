@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Truck } from "lucide-react";
+import { BadgeCheck, Truck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -80,16 +80,27 @@ export function TripCard({ trip, href }: TripCardProps) {
           <p className="text-2xl font-medium text-text">
             {formatCurrency(trip.priceCents)}
           </p>
-          <p className="text-sm text-text-secondary line-through">
-            {formatCurrency(trip.dedicatedEstimateCents)}
-          </p>
-          <p className="text-sm font-medium text-savings">
-            {formatSavings(trip.savingsPct)}
-          </p>
+          {trip.savingsPct > 5 ? (
+            <>
+              <p className="text-sm text-text-secondary line-through">
+                {formatCurrency(trip.dedicatedEstimateCents)}
+              </p>
+              <p className="text-sm font-medium text-savings">
+                {formatSavings(trip.savingsPct)}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-text-secondary">Dedicated van pricing varies by route.</p>
+          )}
           {capacityIndicator ? (
             <p className="mt-2 text-xs text-text-secondary">{capacityIndicator.description}</p>
           ) : null}
         </div>
+      </div>
+      <div className="mt-4 flex items-center justify-end">
+        <span className="inline-flex min-h-[44px] items-center rounded-xl bg-accent px-4 text-sm font-medium text-white active:bg-[#0047b3]">
+          Book into this trip
+        </span>
       </div>
     </Card>
   );
@@ -101,10 +112,6 @@ export function TripCard({ trip, href }: TripCardProps) {
   return (
     <Link href={href} className="group block active:opacity-95">
       {content}
-      <div className="mt-2 flex items-center justify-end gap-2 text-sm font-medium text-accent">
-        View trip
-        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
-      </div>
     </Link>
   );
 }

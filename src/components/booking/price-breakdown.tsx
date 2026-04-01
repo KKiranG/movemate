@@ -1,16 +1,33 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
+import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
 import { formatCurrency } from "@/lib/utils";
-import type { BookingPriceBreakdown } from "@/types/booking";
 
 interface PriceBreakdownProps {
-  pricing: BookingPriceBreakdown;
+  basePriceCents: number;
+  needsStairs: boolean;
+  stairsExtraCents: number;
+  needsHelper: boolean;
+  helperExtraCents: number;
   dedicatedEstimateCents?: number;
 }
 
 export function PriceBreakdown({
-  pricing,
+  basePriceCents,
+  needsStairs,
+  stairsExtraCents,
+  needsHelper,
+  helperExtraCents,
   dedicatedEstimateCents,
 }: PriceBreakdownProps) {
+  const pricing = calculateBookingBreakdown({
+    basePriceCents,
+    needsStairs,
+    stairsExtraCents,
+    needsHelper,
+    helperExtraCents,
+  });
   const savings = dedicatedEstimateCents
     ? Math.max(0, dedicatedEstimateCents - pricing.totalPriceCents)
     : null;
@@ -46,7 +63,7 @@ export function PriceBreakdown({
             </dd>
           </div>
         </dl>
-        {savings ? (
+        {savings && savings > 0 ? (
           <p className="rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-sm font-medium text-success">
             Dedicated estimate {formatCurrency(dedicatedEstimateCents ?? 0)}.
             You save {formatCurrency(savings)} on this route-fit booking.

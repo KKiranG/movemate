@@ -14,6 +14,37 @@ const optionalSanitizedString = (max: number) =>
     z.string().max(max).optional(),
   );
 
+function isValidPhoneNumber(value: string) {
+  const compact = value.replace(/\s+/g, "");
+
+  if (!compact) {
+    return true;
+  }
+
+  return (
+    /^(?:\+61|0)4\d{8}$/.test(compact) ||
+    /^(?:\+61|0)[2378]\d{8}$/.test(compact) ||
+    /^\+\d{6,15}$/.test(compact)
+  );
+}
+
+const optionalPhoneNumber = () =>
+  z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const sanitized = sanitizeText(value);
+      return sanitized.length > 0 ? sanitized : undefined;
+    },
+    z
+      .string()
+      .max(24)
+      .refine(isValidPhoneNumber, "Enter a valid Australian or international phone number.")
+      .optional(),
+  );
+
 export const bookingSchema = z.object({
   listingId: z.string().uuid(),
   carrierId: z.string().uuid(),
@@ -38,9 +69,9 @@ export const bookingSchema = z.object({
   pickupAccessNotes: optionalSanitizedString(240),
   dropoffAccessNotes: optionalSanitizedString(240),
   pickupContactName: optionalSanitizedString(120),
-  pickupContactPhone: optionalSanitizedString(24),
+  pickupContactPhone: optionalPhoneNumber(),
   dropoffContactName: optionalSanitizedString(120),
-  dropoffContactPhone: optionalSanitizedString(24),
+  dropoffContactPhone: optionalPhoneNumber(),
 });
 
 export const bookingCancellationReasonCodeSchema = z.enum([

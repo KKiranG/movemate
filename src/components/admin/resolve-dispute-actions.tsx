@@ -18,6 +18,11 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
   >(null);
 
   async function submit(status: "investigating" | "resolved" | "closed") {
+    if (resolutionNotes.trim().length < 20) {
+      setError("Add at least 20 characters so the audit trail is useful.");
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
     setActiveAction(status);
@@ -54,7 +59,11 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
         onChange={(event) => setResolutionNotes(event.target.value)}
         placeholder="Admin notes, evidence summary, refund/credit decision, next action"
         disabled={isSubmitting}
+        minLength={20}
       />
+      <p className="text-xs text-text-secondary">
+        Resolution notes are required and should be at least 20 characters.
+      </p>
       <select
         value={bookingStatus}
         onChange={(event) => setBookingStatus(event.target.value as "keep" | "completed" | "cancelled")}
@@ -66,15 +75,29 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
         <option value="cancelled">Mark booking cancelled</option>
       </select>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" disabled={isSubmitting} onClick={() => submit("investigating")}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isSubmitting || resolutionNotes.trim().length < 20}
+          onClick={() => submit("investigating")}
+        >
           {activeAction === "investigating" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Mark investigating
         </Button>
-        <Button type="button" disabled={isSubmitting} onClick={() => submit("resolved")}>
+        <Button
+          type="button"
+          disabled={isSubmitting || resolutionNotes.trim().length < 20}
+          onClick={() => submit("resolved")}
+        >
           {activeAction === "resolved" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Resolve dispute
         </Button>
-        <Button type="button" variant="secondary" disabled={isSubmitting} onClick={() => submit("closed")}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isSubmitting || resolutionNotes.trim().length < 20}
+          onClick={() => submit("closed")}
+        >
           {activeAction === "closed" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Close
         </Button>

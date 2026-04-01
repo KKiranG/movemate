@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
+import Stripe from "stripe";
 
 import { canTransitionBooking } from "@/lib/status-machine";
 import { hasSupabaseEnv, hasSupabaseAdminEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { sendBookingTransactionalEmail } from "@/lib/notifications";
+import { captureAppError } from "@/lib/sentry";
 import { getStripeServerClient } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
@@ -13,7 +15,33 @@ import type { Database } from "@/types/database";
 import type { BookingCancellationReasonCode } from "@/types/booking";
 import { getConfirmedBookingChecklist } from "@/lib/booking-presenters";
 
-async function getBookingRowForUser(userId: string, bookingId: string) {
+async function getBookingRowByRole(params: {
+  supabase: ReturnType<typeof createServerSupabaseClient>;
+  bookingId: string;
+  entityId: string;
+  role: "carrier" | "customer";
+}) {
+  const bookingQuery = params.supabase
+    .from("bookings")
+    .select("*, events:booking_events(*)")
+    .eq("id", params.bookingId);
+
+  if (params.role === "carrier") {
+    bookingQuery.eq("carrier_id", params.entityId);
+  } else {
+    bookingQuery.eq("customer_id", params.entityId);
+  }
+
+  const { data, error } = await bookingQuery.maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_lookup_failed");
+  }
+
+  return (data as unknown as BookingJoinedRecord | null) ?? null;
+}
+
+async function getBookingAccessForUser(userId: string, bookingId: string) {
   const supabase = createServerSupabaseClient();
   const { data: carrier } = await supabase
     .from("carriers")
@@ -26,26 +54,47 @@ async function getBookingRowForUser(userId: string, bookingId: string) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  const bookingQuery = supabase
-    .from("bookings")
-    .select("*, events:booking_events(*)")
-    .eq("id", bookingId);
-
   if (carrier?.id) {
-    bookingQuery.eq("carrier_id", carrier.id);
-  } else if (customer?.id) {
-    bookingQuery.eq("customer_id", customer.id);
-  } else {
-    return null;
+    const row = await getBookingRowByRole({
+      supabase,
+      bookingId,
+      entityId: carrier.id,
+      role: "carrier",
+    });
+
+    if (row) {
+      return { row, actorRole: "carrier" as const };
+    }
   }
 
-  const { data, error } = await bookingQuery.maybeSingle();
+  if (customer?.id) {
+    const row = await getBookingRowByRole({
+      supabase,
+      bookingId,
+      entityId: customer.id,
+      role: "customer",
+    });
 
-  if (error) {
-    throw new AppError(error.message, 500, "booking_lookup_failed");
+    if (row) {
+      return { row, actorRole: "customer" as const };
+    }
   }
 
-  return data as unknown as BookingJoinedRecord | null;
+  return null;
+}
+
+async function getBookingRowForUser(userId: string, bookingId: string) {
+  return (await getBookingAccessForUser(userId, bookingId))?.row ?? null;
+}
+
+export async function getBookingActorRoleForUser(userId: string, bookingId: string) {
+  const access = await getBookingAccessForUser(userId, bookingId);
+
+  if (!access) {
+    throw new AppError("Booking not found.", 404, "booking_not_found");
+  }
+
+  return access.actorRole;
 }
 
 async function recordBookingEvent(params: {
@@ -73,6 +122,66 @@ function getPrivilegedSupabaseClient() {
   return hasSupabaseAdminEnv()
     ? createAdminClient()
     : createServerSupabaseClient();
+}
+
+function canActorTransitionBooking(params: {
+  actorRole: "carrier" | "customer" | "admin";
+  nextStatus: Database["public"]["Tables"]["bookings"]["Row"]["status"];
+}) {
+  if (params.actorRole === "admin") {
+    return true;
+  }
+
+  if (["confirmed", "picked_up", "in_transit", "delivered"].includes(params.nextStatus)) {
+    return params.actorRole === "carrier";
+  }
+
+  if (params.nextStatus === "completed") {
+    return params.actorRole === "customer";
+  }
+
+  if (params.nextStatus === "cancelled") {
+    return true;
+  }
+
+  if (params.nextStatus === "disputed") {
+    return params.actorRole === "carrier" || params.actorRole === "customer";
+  }
+
+  return false;
+}
+
+async function markBookingCaptureFailed(params: {
+  supabase: ReturnType<typeof createServerSupabaseClient> | ReturnType<typeof createAdminClient>;
+  bookingId: string;
+  paymentIntentId: string;
+  error: unknown;
+}) {
+  const stripeErrorCode =
+    params.error instanceof Stripe.errors.StripeError ? params.error.code ?? null : null;
+  const errorMessage =
+    params.error instanceof Error ? params.error.message : "Stripe capture failed.";
+
+  await params.supabase
+    .from("bookings")
+    .update({
+      payment_status: "capture_failed",
+      payment_failure_code: stripeErrorCode,
+      payment_failure_reason: errorMessage,
+    })
+    .eq("id", params.bookingId);
+
+  captureAppError(
+    params.error,
+    {
+      feature: "payments",
+      action: "payment_capture_failed",
+      tags: {
+        bookingId: params.bookingId,
+        paymentIntentId: params.paymentIntentId,
+      },
+    },
+  );
 }
 
 function createBookingRequestHash(input: BookingInput) {
@@ -180,7 +289,24 @@ export async function getBookingByIdForUser(userId: string, bookingId: string) {
   }
 
   const row = await getBookingRowForUser(userId, bookingId);
-  return row ? toBooking(row) : null;
+
+  if (!row) {
+    return null;
+  }
+
+  const booking = toBooking(row);
+  const supabase = createServerSupabaseClient();
+  const { data: carrier } = await supabase
+    .from("carriers")
+    .select("business_name, phone")
+    .eq("id", booking.carrierId)
+    .maybeSingle();
+
+  return {
+    ...booking,
+    carrierBusinessName: carrier?.business_name ?? undefined,
+    carrierPhone: carrier?.phone ?? undefined,
+  };
 }
 
 export async function createBookingForCustomer(
@@ -450,21 +576,43 @@ export async function updateBookingStatusForActor(params: {
     throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
   }
 
-  const row =
-    params.actorRole === "admin" && hasSupabaseAdminEnv()
-      ? ((await createAdminClient()
-          .from("bookings")
-          .select("*, events:booking_events(*)")
-          .eq("id", params.bookingId)
-          .maybeSingle()).data as unknown as BookingJoinedRecord | null)
-      : await getBookingRowForUser(params.userId, params.bookingId);
+  if (params.actorRole === "admin" && !hasSupabaseAdminEnv()) {
+    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
+  }
+
+  const access =
+    params.actorRole === "admin"
+      ? {
+          row: ((
+            await createAdminClient()
+              .from("bookings")
+              .select("*, events:booking_events(*)")
+              .eq("id", params.bookingId)
+              .maybeSingle()
+          ).data as unknown as BookingJoinedRecord | null),
+          actorRole: "admin" as const,
+        }
+      : await getBookingAccessForUser(params.userId, params.bookingId);
+  const row = access?.row ?? null;
 
   if (!row) {
     throw new AppError("Booking not found.", 404, "booking_not_found");
   }
 
+  if (
+    params.actorRole !== "admin" &&
+    access?.actorRole &&
+    access.actorRole !== params.actorRole
+  ) {
+    throw new AppError("You cannot update this booking as that role.", 403, "invalid_actor_role");
+  }
+
   if (!canTransitionBooking(row.status, params.nextStatus)) {
     throw new AppError("Invalid booking transition.", 400, "invalid_booking_transition");
+  }
+
+  if (!canActorTransitionBooking({ actorRole: params.actorRole, nextStatus: params.nextStatus })) {
+    throw new AppError("You cannot perform this booking transition.", 403, "booking_transition_forbidden");
   }
 
   // Guard: disputed → completed requires the dispute to be resolved or closed
@@ -534,6 +682,47 @@ export async function updateBookingStatusForActor(params: {
     params.actorRole === "admin" && hasSupabaseAdminEnv()
       ? createAdminClient()
       : createServerSupabaseClient();
+
+  if (
+    params.nextStatus === "completed" &&
+    row.stripe_payment_intent_id &&
+    process.env.STRIPE_SECRET_KEY
+  ) {
+    if (row.payment_status !== "captured") {
+      const stripe = getStripeServerClient();
+      const paymentIntent = await stripe.paymentIntents.retrieve(row.stripe_payment_intent_id);
+
+      if (paymentIntent.status === "requires_capture") {
+        try {
+          await stripe.paymentIntents.capture(row.stripe_payment_intent_id);
+        } catch (error) {
+          await markBookingCaptureFailed({
+            supabase,
+            bookingId: row.id,
+            paymentIntentId: row.stripe_payment_intent_id,
+            error,
+          });
+
+          throw new AppError(
+            "Stripe capture failed. Booking completion has been held for manual review.",
+            409,
+            "payment_capture_failed",
+          );
+        }
+      } else if (paymentIntent.status !== "succeeded") {
+        throw new AppError(
+          "Payment is not ready to be captured.",
+          409,
+          "payment_not_capturable",
+        );
+      }
+
+      patch.payment_status = "captured";
+      patch.payment_failure_code = null;
+      patch.payment_failure_reason = null;
+    }
+  }
+
   const { data, error } = await supabase
     .from("bookings")
     .update(patch)
@@ -579,16 +768,6 @@ export async function updateBookingStatusForActor(params: {
     } catch {
       // Best effort: the booking cancellation is already persisted.
     }
-  }
-
-  if (params.nextStatus === "completed" && data.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
-    const stripe = getStripeServerClient();
-    await stripe.paymentIntents.capture(data.stripe_payment_intent_id);
-    await supabase
-      .from("bookings")
-      .update({ payment_status: "captured" })
-      .eq("id", data.id);
-    data.payment_status = "captured";
   }
 
   const recipients = await getBookingNotificationRecipients({
@@ -640,9 +819,39 @@ export async function updateBookingStatusForActor(params: {
   return toBooking(data as unknown as BookingJoinedRecord);
 }
 
-export async function listAdminBookings(params?: { page?: number; pageSize?: number; query?: string }) {
+async function getAdminBookingSearchEntityIds(searchQuery: string) {
+  const supabase = createAdminClient();
+  const [{ data: customers }, { data: carriers }] = await Promise.all([
+    supabase
+      .from("customers")
+      .select("id")
+      .ilike("email", `%${searchQuery}%`)
+      .limit(25),
+    supabase
+      .from("carriers")
+      .select("id")
+      .ilike("email", `%${searchQuery}%`)
+      .limit(25),
+  ]);
+
+  return {
+    customerIds: (customers ?? []).map((row) => row.id),
+    carrierIds: (carriers ?? []).map((row) => row.id),
+  };
+}
+
+export async function listAdminBookingsPageData(params?: {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+}) {
   if (!hasSupabaseAdminEnv()) {
-    return [];
+    return {
+      bookings: [],
+      totalCount: 0,
+      page: params?.page ?? 1,
+      pageSize: params?.pageSize ?? 25,
+    };
   }
 
   const page = params?.page ?? 1;
@@ -653,23 +862,44 @@ export async function listAdminBookings(params?: { page?: number; pageSize?: num
   const supabase = createAdminClient();
   let query = supabase
     .from("bookings")
-    .select("*, events:booking_events(*)")
+    .select("*, events:booking_events(*)", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to);
 
   const searchQuery = params?.query?.trim();
 
   if (searchQuery) {
-    query = query.ilike("booking_reference", `%${searchQuery}%`);
+    const { customerIds, carrierIds } = await getAdminBookingSearchEntityIds(searchQuery);
+    const filters = [`booking_reference.ilike.%${searchQuery}%`];
+
+    if (customerIds.length > 0) {
+      filters.push(`customer_id.in.(${customerIds.join(",")})`);
+    }
+
+    if (carrierIds.length > 0) {
+      filters.push(`carrier_id.in.(${carrierIds.join(",")})`);
+    }
+
+    query = query.or(filters.join(","));
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
 
   if (error) {
     throw new AppError(error.message, 500, "admin_booking_query_failed");
   }
 
-  return ((data ?? []) as unknown as BookingJoinedRecord[]).map(toBooking);
+  return {
+    bookings: ((data ?? []) as unknown as BookingJoinedRecord[]).map(toBooking),
+    totalCount: count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
+export async function listAdminBookings(params?: { page?: number; pageSize?: number; query?: string }) {
+  const { bookings } = await listAdminBookingsPageData(params);
+  return bookings;
 }
 
 export async function expirePendingBookings(params?: {

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 
 import { LiveBookingsList } from "@/components/carrier/live-bookings-list";
+import { PendingBookingsAlert } from "@/components/carrier/pending-bookings-alert";
 import { QuickPostTemplates } from "@/components/carrier/quick-post-templates";
 import { TripListSkeleton } from "@/components/carrier/trip-list-skeleton";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
@@ -16,6 +17,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
+function isTripActive(tripDate: string, status?: string | null) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 1);
+  const tripDay = new Date(`${tripDate}T00:00:00`);
+
+  return (
+    ["active", "booked_partial"].includes(status ?? "active") &&
+    !Number.isNaN(tripDay.getTime()) &&
+    tripDay >= cutoff
+  );
+}
+
 async function CarrierDashboardContent({ userId }: { userId: string }) {
   const [carrier, carrierTrips, carrierBookings] = await Promise.all([
     getCarrierByUserId(userId),
@@ -24,9 +37,8 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
   ]);
   const laneInsights = await getCarrierLaneInsights(userId);
   const templates = carrier ? await listCarrierTemplates(carrier.id) : [];
-  const liveListings = carrierTrips.filter((trip) =>
-    ["active", "booked_partial"].includes(trip.status ?? "active"),
-  ).length;
+  const liveListings = carrierTrips.filter((trip) => isTripActive(trip.tripDate, trip.status)).length;
+  const pendingBookings = carrierBookings.filter((booking) => booking.status === "pending");
   const awaitingDecision = carrierBookings.filter((booking) => booking.status === "pending").length;
   const bookedWork = carrierBookings.filter((booking) =>
     ["confirmed", "picked_up", "in_transit", "delivered"].includes(booking.status),
@@ -57,9 +69,13 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
   ]
     .sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime())
     .slice(0, 20);
+  const activeTrips = carrierTrips.filter((trip) => isTripActive(trip.tripDate, trip.status));
+  const pastTrips = carrierTrips.filter((trip) => !isTripActive(trip.tripDate, trip.status));
 
   return (
     <>
+      <PendingBookingsAlert bookings={pendingBookings} />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4">
           <p className="section-label">Live listings</p>
@@ -79,7 +95,7 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
         </Card>
       </div>
 
-      <TripChecklist />
+      <TripChecklist carrier={carrier} />
 
       {carrier && carrier.verificationStatus !== "verified" ? (
         <Card className="border-warning/20 bg-warning/10 p-4">
@@ -151,7 +167,7 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
       ) : null}
 
       <div className="grid gap-4">
-        {carrierTrips.map((trip) => (
+        {activeTrips.map((trip) => (
           <Link
             key={trip.id}
             href={`/carrier/trips/${trip.id}`}
@@ -169,7 +185,7 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
             </Card>
           </Link>
         ))}
-        {carrierTrips.length === 0 ? (
+        {activeTrips.length === 0 ? (
           <Card className="p-4">
             <p className="subtle-text">
               No trips yet. Complete onboarding and post your first spare-capacity run.
@@ -177,6 +193,34 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
           </Card>
         ) : null}
       </div>
+
+      {pastTrips.length > 0 ? (
+        <details className="rounded-xl border border-border bg-surface p-4">
+          <summary className="min-h-[44px] cursor-pointer list-none text-sm font-medium text-text active:opacity-80 [&::-webkit-details-marker]:hidden">
+            Past trips
+          </summary>
+          <div className="mt-4 grid gap-4">
+            {pastTrips.map((trip) => (
+              <Link
+                key={trip.id}
+                href={`/carrier/trips/${trip.id}`}
+                className="block min-h-11 active:opacity-95"
+              >
+                <Card className="p-4">
+                  <h2 className="text-lg text-text">{trip.route.label}</h2>
+                  <p className="mt-2 subtle-text">
+                    {trip.tripDate} · {trip.timeWindow} · Space {trip.spaceSize}
+                  </p>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Status {trip.status?.replace("_", " ") ?? "active"} · Remaining capacity{" "}
+                    {trip.remainingCapacityPct}%
+                  </p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </>
   );
 }

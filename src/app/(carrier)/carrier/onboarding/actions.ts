@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { requireSessionUser } from "@/lib/auth";
@@ -42,4 +43,5 @@ export async function saveCarrierOnboarding(formData: FormData) {
 
   revalidatePath("/carrier/onboarding");
   revalidatePath("/carrier/dashboard");
+  redirect("/carrier/post");
 }
