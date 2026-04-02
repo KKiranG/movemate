@@ -465,6 +465,8 @@ export async function createBookingForCustomer(
         <ul style="padding-left:20px;margin-top:0">
           <li>Keep access notes and contact numbers handy.</li>
           <li>Make sure the item is ready inside the agreed pickup window.</li>
+          <li>Your payment stays in moverrr until proof and completion logic are satisfied.</li>
+          <li>If anyone asks for cash, bank transfer, or extra charges outside the listed add-ons, stop and report it in-platform.</li>
           <li>Keep this reference for support: ${booking.bookingReference}</li>
         </ul>
       </div>
@@ -492,7 +494,12 @@ export async function createBookingForCustomer(
             <p style="margin:0 0 8px"><strong>Trip window:</strong> ${listing.trip_date} · ${listing.time_window}</p>
             <p style="margin:0"><strong>Customer total:</strong> ${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(booking.pricing.totalPriceCents / 100)}</p>
           </div>
-          <p>Please review the booking in your dashboard and confirm it as soon as possible.</p>
+          <p>Please review the booking in your dashboard and confirm it before the pending hold expires.</p>
+          <ul style="padding-left:20px;margin-top:12px">
+            <li>Keep payment and extra charges inside moverrr.</li>
+            <li>Pickup and delivery proof will be required before payout release.</li>
+            <li>Important booking replies should still land within 24 hours.</li>
+          </ul>
         </div>
       `,
     });
@@ -810,6 +817,16 @@ export async function updateBookingStatusForActor(params: {
             .map((item) => `<li>${item}</li>`)
             .join("")}</ul>`
         : "";
+    const statusMessageHtml =
+      params.nextStatus === "confirmed"
+        ? `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is confirmed.</p><p>Preparation checklist:</p>${checklistHtml}<p>Keep payment and any extras inside moverrr while the booking runs.</p>`
+        : params.nextStatus === "delivered"
+          ? `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is now marked as delivered.</p><p>Please confirm receipt in moverrr once the handoff is complete, or raise a dispute if anything is wrong.</p>`
+          : params.nextStatus === "completed"
+            ? `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is complete.</p><p>Proof, completion, and payout release logic have all been advanced in-platform.</p>`
+            : params.nextStatus === "cancelled"
+              ? `<p>Your moverrr booking <strong>${data.booking_reference}</strong> was cancelled.</p><p>No extra payment should move outside moverrr for this booking.</p>`
+              : `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is now marked as ${params.nextStatus.replace("_", " ")}.</p>`;
 
     await Promise.all(
       emailTargets
@@ -821,10 +838,7 @@ export async function updateBookingStatusForActor(params: {
             emailType: "booking_status_update",
             to: email,
             subject: `${subjectByStatus[params.nextStatus] ?? "Booking updated"}: ${data.booking_reference}`,
-            html:
-              params.nextStatus === "confirmed"
-                ? `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is confirmed.</p><p>Preparation checklist:</p>${checklistHtml}`
-                : `<p>Your moverrr booking <strong>${data.booking_reference}</strong> is now marked as ${params.nextStatus.replace("_", " ")}.</p>`,
+            html: statusMessageHtml,
           }),
         ),
     );
@@ -1078,7 +1092,14 @@ export async function expirePendingBookings(params?: {
 }
 
 export async function getCarrierPayoutDashboard(userId: string) {
-  const bookings = await listCarrierBookings(userId);
+  const [bookings, carrierRow] = await Promise.all([
+    listCarrierBookings(userId),
+    createServerSupabaseClient()
+      .from("carriers")
+      .select("stripe_onboarding_complete")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
 
   const upcomingExpectedPayoutCents = bookings
     .filter((booking) => ["confirmed", "picked_up", "in_transit", "delivered"].includes(booking.status))
@@ -1089,6 +1110,103 @@ export async function getCarrierPayoutDashboard(userId: string) {
   const refundedJobs = bookings.filter((booking) =>
     ["refunded", "authorization_cancelled"].includes(booking.paymentStatus ?? "pending"),
   );
+  const payoutHolds = bookings
+    .flatMap((booking) => {
+      if (
+        booking.status === "cancelled" ||
+        ["refunded", "authorization_cancelled"].includes(booking.paymentStatus ?? "pending")
+      ) {
+        return [];
+      }
+
+      if (booking.status === "confirmed") {
+        return [
+          {
+            bookingId: booking.id,
+            bookingReference: booking.bookingReference,
+            heldCents: booking.pricing.carrierPayoutCents,
+            stage: "Confirmed",
+            missingStep: "Pickup proof pack still missing",
+            explanation:
+              "Funds stay on hold while the job is still ahead of pickup. Capture pickup proof before moving the booking forward.",
+            nextAction:
+              "Open the trip on pickup day, upload pickup proof, and keep any exceptions inside moverrr.",
+            priority: 4,
+          },
+        ];
+      }
+
+      if (booking.status === "picked_up" || booking.status === "in_transit") {
+        return [
+          {
+            bookingId: booking.id,
+            bookingReference: booking.bookingReference,
+            heldCents: booking.pricing.carrierPayoutCents,
+            stage: booking.status === "picked_up" ? "Picked up" : "In transit",
+            missingStep: "Delivery proof pack still missing",
+            explanation:
+              "The run is live, but payout cannot move until delivery proof is captured and any issues are logged in-platform.",
+            nextAction:
+              "Upload delivery proof at handoff and use the issue flow immediately if access, item-fit, or damage problems appear.",
+            priority: 3,
+          },
+        ];
+      }
+
+      if (booking.status === "delivered") {
+        return [
+          {
+            bookingId: booking.id,
+            bookingReference: booking.bookingReference,
+            heldCents: booking.pricing.carrierPayoutCents,
+            stage: "Delivered",
+            missingStep: "Waiting for customer receipt confirmation",
+            explanation:
+              "The item was delivered, but funds stay held until the customer confirms receipt or a dispute is opened and resolved.",
+            nextAction:
+              "Ask the customer to confirm inside moverrr. Do not move payment or follow-up off-platform.",
+            priority: 1,
+          },
+        ];
+      }
+
+      if (booking.status === "completed" && booking.paymentStatus === "capture_failed") {
+        return [
+          {
+            bookingId: booking.id,
+            bookingReference: booking.bookingReference,
+            heldCents: booking.pricing.carrierPayoutCents,
+            stage: "Completed",
+            missingStep: "Manual capture review required",
+            explanation:
+              "Completion is recorded, but Stripe capture failed. Ops needs to review the payment state before payout can release.",
+            nextAction:
+              "Escalate this booking through admin payments so capture can be retried or manually resolved.",
+            priority: 0,
+          },
+        ];
+      }
+
+      if (booking.status === "completed" && booking.paymentStatus !== "captured") {
+        return [
+          {
+            bookingId: booking.id,
+            bookingReference: booking.bookingReference,
+            heldCents: booking.pricing.carrierPayoutCents,
+            stage: "Completed",
+            missingStep: "Capture still pending",
+            explanation:
+              "The job is complete, but payment capture has not cleared yet. That hold usually resolves after the completion flow settles.",
+            nextAction:
+              "If this lingers, check admin payments for capture issues before chasing the customer.",
+            priority: 2,
+          },
+        ];
+      }
+
+      return [];
+    })
+    .sort((left, right) => left.priority - right.priority);
   const historyByMonth = Array.from(
     bookings
       .filter((booking) => booking.paymentStatus === "captured" || booking.paymentStatus === "refunded")
@@ -1120,6 +1238,8 @@ export async function getCarrierPayoutDashboard(userId: string) {
     upcomingExpectedPayoutCents,
     completedButUnreleasedCents,
     refundedJobs,
+    payoutSetupReady: carrierRow.data?.stripe_onboarding_complete ?? false,
+    payoutHolds,
     historyByMonth,
   };
 }

@@ -7,7 +7,9 @@ import type { CarrierProfile } from "@/types/carrier";
 const items = [
   "Post route, date, space, and price in under 60 seconds.",
   "Keep detour tolerance honest so matches stay trustworthy.",
-  "Upload licence and insurance once for manual verification.",
+  "Respond to booking updates within 24 hours. Pending requests still expire in 2 hours.",
+  "Keep all extras and payment changes on moverrr. Do not switch to cash or bank transfer.",
+  "Unsafe loads like asbestos, contaminated waste, and regulated disposal jobs are out of scope.",
   "Use pickup and delivery photos as proof before payout release.",
 ];
 

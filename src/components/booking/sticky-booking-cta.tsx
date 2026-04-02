@@ -31,6 +31,7 @@ export function StickyBookingCta({
               </span>
             ) : null}
           </p>
+          <p className="text-xs text-text-secondary">Starting total incl. booking fee</p>
           {savingsNote ? (
             <p className="truncate text-xs text-text-secondary">{savingsNote}</p>
           ) : null}

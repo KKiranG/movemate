@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { GoogleAutocompleteInput } from "@/components/shared/google-autocomplete-input";
 import { ITEM_SIZE_DESCRIPTIONS } from "@/lib/constants";
+import { getBookingTrustIssues } from "@/lib/validation/booking";
 import type { Trip } from "@/types/trip";
 
 interface ResolvedAddress {
@@ -73,6 +74,26 @@ export function BookingForm({
       `${trip.route.destinationSuburb} NSW ${trip.route.destinationPostcode ?? ""}`.trim(),
     [trip.route.destinationPostcode, trip.route.destinationSuburb],
   );
+  const trustIssues = useMemo(
+    () =>
+      getBookingTrustIssues({
+        itemDescription,
+        specialInstructions,
+        itemWeightKg: itemWeightKg.trim() ? Number(itemWeightKg) : undefined,
+        needsHelper,
+        pickupAccessNotes,
+        dropoffAccessNotes,
+      }),
+    [
+      dropoffAccessNotes,
+      itemDescription,
+      itemWeightKg,
+      needsHelper,
+      pickupAccessNotes,
+      specialInstructions,
+    ],
+  );
+  const blockingTrustIssues = trustIssues.filter((issue) => issue.severity === "blocking");
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -270,6 +291,11 @@ export function BookingForm({
       return;
     }
 
+    if (blockingTrustIssues.length > 0) {
+      setError(blockingTrustIssues[0]?.message ?? "Resolve the booking trust blockers first.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -430,6 +456,37 @@ export function BookingForm({
         </div>
       </div>
 
+      {trustIssues.length > 0 ? (
+        <div
+          className={`rounded-xl border p-3 ${
+            blockingTrustIssues.length > 0
+              ? "border-warning/20 bg-warning/10"
+              : "border-border bg-black/[0.02] dark:bg-white/[0.04]"
+          }`}
+        >
+          <p className="text-sm font-medium text-text">
+            {blockingTrustIssues.length > 0
+              ? "Resolve these before you continue"
+              : "Manual-handling and trust prompts"}
+          </p>
+          <div className="mt-2 grid gap-2">
+            {trustIssues.map((issue) => (
+              <div
+                key={`${issue.code}:${issue.message}`}
+                className={`rounded-xl border px-3 py-2 text-sm ${
+                  issue.severity === "blocking"
+                    ? "border-warning/20 bg-white/70 text-text"
+                    : "border-border bg-background text-text-secondary"
+                }`}
+              >
+                <p className="font-medium text-text">{issue.message}</p>
+                <p className="mt-1">{issue.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-text">Item photo</span>
         <div className="space-y-2">
@@ -549,6 +606,10 @@ export function BookingForm({
           />
         </label>
       </div>
+      <p className="text-xs text-text-secondary">
+        Contact numbers are for the booked handoff only. Keep payment and any extra charges inside
+        moverrr.
+      </p>
       <label className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-text">Dropoff access notes</span>
@@ -605,6 +666,11 @@ export function BookingForm({
           placeholder="Fragile edges, preferred loading side, timing constraints"
         />
       </label>
+      <div className="rounded-xl border border-border bg-black/[0.02] p-3 text-sm text-text-secondary dark:bg-white/[0.04]">
+        moverrr holds payment on-platform and only supports the listed add-ons. If anyone asks to
+        switch to cash, bank transfer, or side-payment extras, stop and report it inside the
+        booking.
+      </div>
       </fieldset>
 
       <div className="space-y-3">
@@ -625,7 +691,13 @@ export function BookingForm({
         ) : null}
         <Button
           type="submit"
-          disabled={isSubmitting || Boolean(retryBookingId) || stairsUnsupported || !isAddressResolved}
+          disabled={
+            isSubmitting ||
+            Boolean(retryBookingId) ||
+            stairsUnsupported ||
+            !isAddressResolved ||
+            blockingTrustIssues.length > 0
+          }
         >
           {isSubmitting ? "Creating booking..." : "Continue to payment"}
         </Button>

@@ -1,3 +1,507 @@
+# moverrr — Frontier Upgrades And Learnings
+
+Last revised: 2 April 2026 (Sydney)
+
+> Status note (2 April 2026): this file remains the active frontier backlog. Completed work from the current frontier sweep was moved to `completed.md` under `COMP-2026-04-02-36`, `COMP-2026-04-02-37`, and `COMP-2026-04-02-38`. Treat `completed.md` as the source of truth for what shipped; keep unresolved or future frontier work here until it is actually implemented.
+
+## What This First Half Is
+
+This first half converts lessons mainly from:
+
+- `claude code src/CLAUDE_CODE_50_LESSONS.md`
+- `claude code src/CLAUDE_CODE_DETAILED_PROJECT_ANALYSIS.md`
+- `claw-code-main- src/README.md`
+- `claw-code-main- src/PARITY.md`
+- `autoresearch/README.md`
+- `autoresearch/program.md`
+
+into implementation-ready tasks for moverrr's agent operating system.
+
+This is not about cloning Claude Code.
+It is about stealing the highest-signal harness, workflow, verification, and operating-discipline ideas, then translating them into tasks that fit moverrr.
+
+## Product Truth We Must Protect
+
+Before any frontier-style improvement gets built, ask:
+
+1. Does this make moverrr better at being a browse-first spare-capacity marketplace?
+2. Does this help carriers post real supply faster?
+3. Does this make customer trust or clarity stronger?
+4. Does this reduce founder ops pain without adding fake complexity?
+5. Does this avoid drifting into dispatch, bidding, quote comparison, or removalist workflows?
+
+If not, do not build it yet.
+
+## Why These Lessons Matter
+
+The strongest Claude Code lessons are not "use a smarter model."
+They are:
+
+1. separate explore, plan, implement, and verify
+2. make instructions layered and local
+3. treat tools as governed capabilities, not random helpers
+4. make verification adversarial and explicit
+5. keep memory, tasks, and long-session work structured
+6. use isolation and worktrees for parallelism instead of chaos
+7. use keep/discard experiment loops instead of vague ideation
+
+`autoresearch` adds one especially important founder lesson:
+
+> establish a baseline, change one meaningful variable, measure, then explicitly keep or discard the result.
+
+## How To Use This Half
+
+Every task below follows one format:
+
+- `What to do`: the smallest useful implementation
+- `Why it matters`: why this helps moverrr
+- `Done when`: the practical finish line
+
+Priority labels:
+
+- `Now`: worth doing soon because it improves leverage, clarity, trust, or verification
+- `Soon`: valuable after the current instruction system is stable
+- `Later`: useful, but not urgent yet
+
+## 84 Actionable Frontier Tasks
+
+## A. Instruction Architecture And Project Memory
+
+1. **Instruction system map** (`Now`)
+What to do: Add one short section to this file or a nearby repo doc that explains the purpose and precedence of `CLAUDE.md`, `.claude/rules/`, `.agent-skills/`, and `.claude/skills/`.
+Why it matters: Claude Code's strongest markdown lesson is instruction layering with explicit precedence.
+Done when: A future agent can answer "where should this truth live?" without guessing.
+
+2. **Scoped rule coverage matrix** (`Now`)
+What to do: Audit which important moverrr surfaces still do not have dedicated `.claude/rules/` coverage, especially search/matching, payouts, analytics, and admin ops.
+Why it matters: The Claude Code material repeatedly shows that local instructions beat broad global prose.
+Done when: There is a simple list of high-value missing rule files and their intended path scopes.
+
+3. **Search and matching rule** (`Now`)
+What to do: Create `.claude/rules/search-and-matching.md` for `src/lib/matching/**`, search APIs, and customer search UI.
+Why it matters: Matching is product-shaping logic and should not rely on generic memory.
+Done when: Search and matching work automatically loads route-fit, disqualifier, and explainability constraints.
+
+4. **Payments and payouts rule** (`Now`)
+What to do: Create `.claude/rules/payments-and-payouts.md` for payment intent, webhook, payout, and ledger files.
+Why it matters: Funds flow is one of the highest-risk product areas and deserves narrower memory.
+Done when: Payment-related changes automatically load payout timing, trust, and reconciliation guidance.
+
+5. **Supabase schema rule** (`Now`)
+What to do: Create `.claude/rules/supabase-schema.md` for `supabase/**` and `src/types/database.ts`.
+Why it matters: The fuller Claude material shows how much runtime quality depends on strong typed contracts and explicit schema discipline.
+Done when: Migration, RPC, RLS, rollback, and type-sync expectations are local to schema work.
+
+6. **Analytics and metrics rule** (`Soon`)
+What to do: Create `.claude/rules/analytics-and-metrics.md` so future analytics changes stay tied to core marketplace questions.
+Why it matters: Tooling and event systems become noisy fast when no metric layer exists.
+Done when: Analytics tasks have a local instruction file that says what moverrr actually measures and why.
+
+7. **Customer-trust rule** (`Soon`)
+What to do: Create `.claude/rules/customer-trust.md` for trip detail, pricing presentation, saved-search empty states, and confirmation flows.
+Why it matters: The frontier harness lesson is to move deep context close to the work.
+Done when: Customer-facing trust, pricing, and reassurance surfaces load a specific trust-focused rule.
+
+8. **Carrier-growth rule** (`Soon`)
+What to do: Create `.claude/rules/carrier-growth.md` for onboarding, posting, templates, and carrier dashboard flows.
+Why it matters: Carrier activation is moverrr's most important growth loop and deserves its own scoped memory.
+Done when: Supply-side work automatically loads activation, repeat-posting, and speed-to-listing priorities.
+
+9. **Admin-operations rule** (`Soon`)
+What to do: Create `.claude/rules/admin-operations.md` for admin dashboard, disputes, verification, and ops tooling.
+Why it matters: Manual-first marketplace ops are a real subsystem, not a generic admin afterthought.
+Done when: Admin and ops changes inherit queue, trust, and exception-handling guidance automatically.
+
+10. **Docs precedence note** (`Now`)
+What to do: Write a short explicit precedence rule for what wins when two instructions conflict.
+Why it matters: The detailed Claude analysis makes clear that instruction layering without precedence becomes ambiguous.
+Done when: There is one canonical answer for conflict resolution across memory layers.
+
+11. **Rule naming convention** (`Now`)
+What to do: Standardize how new `.claude/rules/` files should be named and how narrow their `paths` frontmatter should be.
+Why it matters: Claude Code's memory system works because locality is deliberate.
+Done when: New rule files follow a repeatable naming and scoping standard.
+
+12. **Include/import policy for docs** (`Soon`)
+What to do: Define when docs may reference other files and what kinds of files are safe to include conceptually.
+Why it matters: The Claude memory loader treats include power carefully because uncontrolled inclusion creates context and trust problems.
+Done when: The repo has a small written policy for composable docs without turning every file into a context dump.
+
+## B. Skills, Commands, And Reusable Workflows
+
+13. **Skill inventory audit** (`Now`)
+What to do: Review existing `.claude/skills/` and identify which are true repeatable workflows versus just good reference notes.
+Why it matters: The Claude skill system treats workflows and references as different things.
+Done when: Every existing skill either has a clear workflow role or is moved to a better home later.
+
+14. **Release-readiness skill** (`Now`)
+What to do: Create a `release-readiness` skill for final doc, verification, key-flow, and open-risk review before any serious deploy.
+Why it matters: Claude Code turns "ship checks" into explicit workflows instead of vibes.
+Done when: A future agent can run one repeatable release-readiness process instead of improvising one.
+
+15. **Dispute-resolution-audit skill** (`Now`)
+What to do: Create a skill specifically for changes touching disputes, proof review, admin resolution, or status guard logic.
+Why it matters: High-risk flows deserve high-specificity workflows.
+Done when: Dispute work has a repeatable verification and review runbook.
+
+16. **Saved-search-demand-review skill** (`Now`)
+What to do: Create a skill that reads saved-search demand and turns it into supply, copy, and ops recommendations.
+Why it matters: Demand signals are easy to collect and easy to waste.
+Done when: There is one repeatable way to interpret saved-search demand in moverrr terms.
+
+17. **Carrier-quality-review skill** (`Soon`)
+What to do: Create a skill for reviewing weak listings, poor proof quality, or low-trust carrier surfaces.
+Why it matters: Marketplace quality work repeats and should not be reinvented every time.
+Done when: Listing-quality audits can be run from one standard skill.
+
+18. **Admin-queue-review skill** (`Soon`)
+What to do: Create a skill for auditing the current admin queue: disputes, verification, stuck bookings, payout blockers, and urgent follow-ups.
+Why it matters: A one-founder ops surface benefits from a repeatable daily or weekly review loop.
+Done when: Admin review can be run from one skill with a clear output structure.
+
+19. **Metrics-review skill** (`Soon`)
+What to do: Create a skill that reads current marketplace metrics and returns decisions, not just summaries.
+Why it matters: The frontier lesson is that output format matters; decisions beat dashboards.
+Done when: Metrics review always ends with interpretation, recommended actions, and known uncertainty.
+
+20. **Copy-guardian skill** (`Soon`)
+What to do: Create a skill that audits customer and carrier copy for drift into quote-engine, dispatch, or removalist language.
+Why it matters: Product-shape drift often happens through copy first.
+Done when: Messaging can be reviewed against moverrr's wedge from one reusable workflow.
+
+21. **Postmortem skill** (`Soon`)
+What to do: Create a skill for writing postmortems after broken bookings, payment issues, trust incidents, or production regressions.
+Why it matters: Strong frontier systems operationalize learning loops after failure.
+Done when: Incidents can be documented in one consistent, action-oriented format.
+
+22. **Experiment-design skill** (`Soon`)
+What to do: Create a skill that formats product or ops experiments with baseline, single change, metric, and keep/discard rule.
+Why it matters: This is the clearest `autoresearch` lesson to steal.
+Done when: New experiments stop being vague enhancement ideas and become bounded tests.
+
+23. **Verifier skill per surface** (`Now`)
+What to do: Add separate verifier skills for core web UI, core API, and admin or ops surfaces.
+Why it matters: The fuller Claude material shows that verification works best when surface-specific.
+Done when: Verification is no longer one generic catch-all process.
+
+24. **Command catalog for repo workflows** (`Soon`)
+What to do: Create a small command or document catalog for repo-specific workflows, so future agents know what repeatable flows exist.
+Why it matters: Claude Code benefits from explicit command surfaces instead of hidden workflows.
+Done when: The repo has one discoverable place listing high-value workflows, skills, and where to use them.
+
+## C. Agent Roles, Plan Mode, And Verification Discipline
+
+25. **Product researcher agent** (`Now`)
+What to do: Add an agent role dedicated to reading current behavior and translating it into product insight without editing code.
+Why it matters: Claude Code separates read-heavy exploration from implementation for a reason.
+Done when: Product research questions have a role that does not silently mutate the codebase.
+
+26. **Payments verifier agent** (`Now`)
+What to do: Add a role that specializes in payment, payout, webhook, and ledger verification.
+Why it matters: High-stakes flows deserve narrower verification authority and stronger discipline.
+Done when: Payment changes can be handed to a verifier that is purpose-built for the job.
+
+27. **Mobile verifier agent** (`Now`)
+What to do: Add a role focused on 375px checks, tap targets, proof uploads, and iPhone-specific behavior.
+Why it matters: moverrr is iOS-first, so mobile verification should not be treated as generic frontend QA.
+Done when: UI work has a verifier that thinks like an iPhone user first.
+
+28. **Schema reviewer agent** (`Soon`)
+What to do: Add a role for reviewing migrations, policies, RPC changes, and schema implications before merge.
+Why it matters: The fuller Claude material emphasizes typed surfaces, parity checks, and runtime contracts.
+Done when: Database changes have a designated reviewer role with clear scope.
+
+29. **Copy guardian agent** (`Soon`)
+What to do: Add an agent role that reviews product language, empty states, and trust messaging for wedge drift.
+Why it matters: Product shape is often lost through tone and copy before logic changes.
+Done when: Copy-sensitive tasks can be reviewed independently from implementation.
+
+30. **Delegation triggers note** (`Now`)
+What to do: Define exactly when moverrr work should spawn an explorer, verifier, or founder-critic style review.
+Why it matters: Claude Code works because role usage is intentional, not random.
+Done when: There is a written set of triggers for when specialized agents should be used.
+
+31. **Plan-mode template for bigger tasks** (`Now`)
+What to do: Create a standard plan template for medium or large tasks: problem, files, reuse candidates, risks, verification path.
+Why it matters: The detailed Claude analysis shows that planning is a runtime state because it improves quality.
+Done when: Bigger tasks consistently produce a useful plan artifact before implementation.
+
+32. **Plan approval checklist** (`Soon`)
+What to do: Define what a plan must answer before implementation begins on larger tasks.
+Why it matters: A plan only helps if it is reviewable against explicit questions.
+Done when: Plans are evaluated against the same checklist every time.
+
+33. **Verification gate after 3+ subtasks** (`Now`)
+What to do: Add a repo rule that any multi-step task with three or more major sub-parts must include an explicit verification step.
+Why it matters: Claude Code literally nudges verification when task lists close without it.
+Done when: Multi-part work cannot be called done without a verification lane.
+
+34. **Reproduce-first bugfix rule** (`Now`)
+What to do: Require every real bug fix to describe how the bug was reproduced before claiming it is fixed.
+Why it matters: The verification agent pattern in Claude Code is built around evidence, not confidence.
+Done when: Bugfix tasks always record reproduction, fix, and confirmation.
+
+35. **Second-opinion pattern** (`Soon`)
+What to do: Document when moverrr work should ask for an independent second opinion before merge, especially for pricing, booking, payments, and schema changes.
+Why it matters: Fresh-agent review is one of the strongest Claude Code delegation lessons.
+Done when: High-risk work has a defined trigger for independent review.
+
+36. **Final summary format** (`Soon`)
+What to do: Standardize the close-out format for future agent work: what changed, what was verified, what remains risky.
+Why it matters: Claude Code's runtime is strong partly because completion is structured.
+Done when: Final updates are consistent, verifiable, and easy to scan.
+
+## D. Tooling, Capability Discovery, And Permission Rails
+
+37. **Capability index** (`Now`)
+What to do: Create a project-level inventory of what the repo's agent system can currently do: roles, skills, rules, verifiers, and repeatable workflows.
+Why it matters: Claude Code includes tool discovery because large capability surfaces are hard to remember.
+Done when: A future agent or human can quickly see the current operating-system surface of the repo.
+
+38. **Tool semantics note** (`Soon`)
+What to do: Define a small vocabulary for internal repo workflows: read-only, destructive, open-world, verification-only, or release-sensitive.
+Why it matters: Claude Code attaches meaning to tool metadata, not just names.
+Done when: High-risk repo workflows are tagged with clear semantics, even if only in docs at first.
+
+39. **MCP adoption strategy** (`Soon`)
+What to do: Write down which external systems would actually be worth exposing through MCP or similar integrations for moverrr.
+Why it matters: The fuller Claude material shows MCP is useful when it turns real external systems into native capabilities.
+Done when: There is a short list of high-value future integrations and why they matter.
+
+40. **Permission matrix** (`Now`)
+What to do: Create a simple matrix of which kinds of tasks are safe to run autonomously and which require confirmation or stronger review.
+Why it matters: The Claude harness treats permission state as architecture, not UI chrome.
+Done when: The repo has a documented autonomy policy for destructive, risky, or high-stakes work.
+
+41. **Dangerous allowlist audit** (`Soon`)
+What to do: Review current assumptions about broad permissions and document which ones should never become blanket defaults.
+Why it matters: The detailed Claude lessons warn that broad allow rules quietly bypass safeguards.
+Done when: The repo has a short written list of capability patterns that should stay gated.
+
+42. **Shell safety policy** (`Soon`)
+What to do: Write a repo-specific note on shell commands that are high-risk here, like destructive git operations or anything that bypasses checks.
+Why it matters: Claude Code encodes shell caution in the runtime because it matters a lot in practice.
+Done when: The repo has a shell-safety note future agents can follow without reinventing caution.
+
+43. **Ask-user escalation policy** (`Soon`)
+What to do: Define when an agent should stop and ask rather than continue autonomously.
+Why it matters: Claude Code's runtime strength comes partly from knowing when to escalate.
+Done when: High-risk ambiguity has a consistent escalation rule.
+
+44. **Hook opportunity audit** (`Soon`)
+What to do: List which repo behaviors are good hook candidates, such as formatting, documentation drift checks, or verification reminders.
+Why it matters: The parity material shows hooks are powerful only when they actually execute real discipline.
+Done when: The repo has a shortlist of hook candidates ordered by value.
+
+45. **Hook adoption plan** (`Later`)
+What to do: Decide which hook candidates are worth implementing first and which are still too annoying or premature.
+Why it matters: Hooks should enforce valuable discipline, not create friction theater.
+Done when: There is a staged adoption plan rather than a vague desire to "use hooks."
+
+46. **Plugin opportunity audit** (`Later`)
+What to do: Identify which plugin-like bundles would make sense for moverrr or sister projects: roles, rules, skills, and integrations packaged together.
+Why it matters: Claude Code treats plugins as capability bundles, not cosmetic add-ons.
+Done when: You have a shortlist of plugin-style bundles worth creating later.
+
+47. **Structured output cleanliness check** (`Soon`)
+What to do: Document what "clean structured output" means for any future machine-readable reporting or automation you add.
+Why it matters: The Python port parity notes show how small output impurities break structured automation.
+Done when: Future structured outputs have an explicit cleanliness standard.
+
+48. **Repo transport surfaces list** (`Later`)
+What to do: List which current or future workflows need chat-only output versus machine-readable output versus background task output.
+Why it matters: The detailed analysis emphasizes that transport and rendering shape behavior.
+Done when: Future automation work has a clear output-channel plan.
+
+## E. Worktrees, Isolation, And Parallel Execution
+
+49. **Worktree usage rules** (`Now`)
+What to do: Document when future moverrr sweeps, refactors, or verification passes should happen in worktrees instead of the main checkout.
+Why it matters: Claude Code uses worktrees because safe parallelism needs real isolation.
+Done when: There is a written rule for when worktrees are the default safe path.
+
+50. **Worktree naming convention** (`Now`)
+What to do: Standardize worktree names for docs, product research, feature work, and verification.
+Why it matters: The Claude material even validates worktree slugs because path-like identifiers can become messy or unsafe.
+Done when: Worktree naming is predictable and low-risk.
+
+51. **Selective file propagation policy** (`Soon`)
+What to do: Decide which ignored local files, if any, should ever be allowed into isolated worktrees.
+Why it matters: Claude Code's `.worktreeinclude` pattern exists because blanket copying is unsafe.
+Done when: The repo has a narrow policy for what private or local files may be propagated.
+
+52. **Sparse-worktree opportunity audit** (`Later`)
+What to do: Decide whether future large-scope work would benefit from sparse worktrees that only load a subset of the repo.
+Why it matters: The frontier harness makes isolation practical partly by making it cheaper.
+Done when: You know whether sparse worktrees would help moverrr or are unnecessary right now.
+
+53. **Parallel PR workflow** (`Soon`)
+What to do: Write down how large parallel changes should be decomposed into independent units and PRs.
+Why it matters: Claude Code's batch-style orchestration only works because work units are independently mergeable.
+Done when: Big sweeps can be split without merge-conflict roulette.
+
+54. **Branch lifecycle guide** (`Soon`)
+What to do: Define how feature, doc, verifier, and experiment branches should be created, published, and merged.
+Why it matters: Runtime discipline extends to how changes move through git.
+Done when: Parallel work follows a consistent branch lifecycle.
+
+55. **Verification-in-isolation workflow** (`Soon`)
+What to do: Define when a verifier or independent reviewer should validate work from a clean or isolated branch rather than the edited tree.
+Why it matters: Claude Code's verifier is powerful partly because it is not the implementer.
+Done when: High-risk verification has an isolation pattern, not just a good intention.
+
+56. **Sweep-task batching rule** (`Later`)
+What to do: Define how to break large mechanical or repeated changes into small independently shippable batches.
+Why it matters: Batch orchestration is one of the clearest operational lessons in the fuller harness material.
+Done when: Big sweeps stop being "one giant PR" by default.
+
+57. **Trust boundary for local reference folders** (`Now`)
+What to do: Document that external or reference folders added to the repo root should not silently become trusted instruction sources.
+Why it matters: Claude Code explicitly avoids auto-loading skills from unsafe or ignored places.
+Done when: There is a short repo note defining trust boundaries for local archives, references, and imported materials.
+
+58. **Scratchpad directory policy** (`Later`)
+What to do: Decide where temporary notes, generated summaries, or transient artifacts should live if future workflows need them.
+Why it matters: The Claude harness treats session state and scratch data as part of the environment design.
+Done when: Future transient artifacts have a clean, non-chaotic home.
+
+## F. Session Memory, Compaction, And Parity Thinking
+
+59. **Memory layering diagram** (`Now`)
+What to do: Add a small diagram or note showing how moverrr's project memory is layered today.
+Why it matters: The detailed Claude analysis shows memory layering is one of the most important runtime concepts.
+Done when: A human or agent can explain the repo's memory model in one glance.
+
+60. **Local versus checked-in memory split** (`Soon`)
+What to do: Clarify what belongs in checked-in project memory versus private local memory for this repo.
+Why it matters: Claude Code distinguishes project and local memory because they solve different problems.
+Done when: Sensitive or personal instructions stop drifting into shared repo memory.
+
+61. **Context budget note** (`Soon`)
+What to do: Add a short repo note that always-loaded docs should stay lean and that deep detail belongs in scoped rules or skills.
+Why it matters: Claude Code treats context as a real budget, not an infinite pool.
+Done when: Future docs do not bloat the always-loaded instruction layer casually.
+
+62. **Compaction-ready summary template** (`Later`)
+What to do: Define a standard format for summarizing long work sessions: decisions, files, verification, unresolved risk.
+Why it matters: The Claude runtime keeps long sessions alive by compressing them into useful summaries.
+Done when: Long-running work can be summarized without losing the important state.
+
+63. **Session replay note for major work** (`Later`)
+What to do: Decide whether important implementation or ops sessions should leave a short replayable summary artifact.
+Why it matters: The Python port and Claude runtime both treat transcripts and session state as first-class assets.
+Done when: Major work can be reconstructed from a concise durable summary if needed.
+
+64. **Parity audit for repo operating system** (`Soon`)
+What to do: Create a periodic audit that asks which intended roles, rules, skills, and verifiers exist versus are still missing.
+Why it matters: The Python port's parity audit is a strong example of turning ambition into measurable gaps.
+Done when: The repo has a measurable "operating system parity" checklist instead of vague aspirations.
+
+65. **Project manifest for agent surfaces** (`Soon`)
+What to do: Create a small markdown manifest of current rules, agents, skills, and verification surfaces.
+Why it matters: The port manifest idea is useful because it makes the current surface visible.
+Done when: You can inspect the current repo operating system from one summary file.
+
+66. **Stale-reference detector** (`Soon`)
+What to do: Add a recurring check for docs and skill references that point to paths, commands, or flows that no longer exist.
+Why it matters: Markdown-driven systems rot when references silently die.
+Done when: Broken references are surfaced regularly instead of discovered by accident.
+
+67. **Monthly memory refactor pass** (`Now`)
+What to do: Keep a recurring habit of pruning stale docs, collapsing duplicates, and moving repeated guidance into better homes.
+Why it matters: Claude Code stays sharp because its instruction system is treated like product infrastructure.
+Done when: Memory cleanup is a recurring task, not an emergency repair.
+
+68. **Change-journal for operating system edits** (`Later`)
+What to do: Keep a short log of major changes to the repo's agent operating system and why they were made.
+Why it matters: Once the markdown layer becomes important, its evolution deserves traceability.
+Done when: Major operating-system changes are no longer only visible through git archaeology.
+
+## G. Verification, QA, And Runtime Reliability
+
+69. **Booking concurrency integration test** (`Now`)
+What to do: Add a real integration test that proves only one booking can win the race on the same listing.
+Why it matters: The strongest Claude verifier lesson is to attack the unhappy path directly.
+Done when: Concurrent booking attempts demonstrably cannot oversell capacity.
+
+70. **Dispute-completion regression test** (`Now`)
+What to do: Add a test proving unresolved disputes cannot transition to completed.
+Why it matters: This is one of moverrr's core business guards and should never depend on memory alone.
+Done when: The guard fails loudly if it regresses.
+
+71. **Webhook replay harness** (`Now`)
+What to do: Build a replay path for payment-webhook sequences so failures can be debugged intentionally.
+Why it matters: High-stakes flows need reproducible verification, not anecdotal investigation.
+Done when: A broken payment sequence can be replayed locally from a known fixture or script.
+
+72. **Route-contract smoke suite** (`Soon`)
+What to do: Add a fast suite that checks response shape and auth expectations for core public, carrier, customer, and admin routes.
+Why it matters: The parity and harness material show the value of broad surface visibility, not only deep unit tests.
+Done when: Core route drift is caught quickly by one standard smoke pass.
+
+73. **Mobile proof-upload harness** (`Soon`)
+What to do: Add a focused verification harness for proof upload flows, including HEIC acceptance and camera-first behavior.
+Why it matters: moverrr's mobile proof path is part of trust, not just UI.
+Done when: Proof upload regressions are testable and obvious.
+
+74. **Verifier report template** (`Now`)
+What to do: Standardize how future verification reports should present checks run, evidence observed, pass/fail result, and residual risk.
+Why it matters: Claude Code's verifier is strong because its output is structured and evidence-led.
+Done when: Verification reports across the repo become comparable and easy to trust.
+
+75. **Adversarial probe checklist** (`Now`)
+What to do: Define a short list of adversarial probes future verifiers should consider: concurrency, boundary values, duplicate actions, stale states, narrow viewport, or missing config.
+Why it matters: The verification agent's biggest lesson is "try to break it."
+Done when: Every serious verification pass includes at least one adversarial probe.
+
+76. **Bug reproduction template** (`Soon`)
+What to do: Create a one-page bug template that captures steps, expected behavior, actual behavior, impacted user, and verification path.
+Why it matters: Reliable bug work begins with reproducibility, not just issue labels.
+Done when: New bugfix work starts from a reproducible template.
+
+## H. Experiment Loops, Review Rituals, And Ongoing Projects
+
+77. **Experiment ledger** (`Now`)
+What to do: Create one place to record experiment baseline, hypothesis, change, result, and keep/discard decision.
+Why it matters: This is the most transferable `autoresearch` lesson.
+Done when: Meaningful experiments stop disappearing into memory or chat history.
+
+78. **Baseline template** (`Now`)
+What to do: Require every experiment or optimization task to state the current baseline before work begins.
+Why it matters: Without a baseline, improvement claims are mostly storytelling.
+Done when: Future experiment ideas begin with a real number or clear current-state description.
+
+79. **Keep/discard threshold rule** (`Now`)
+What to do: Require every experiment to name the outcome that means keep and the outcome that means discard or reframe.
+Why it matters: `autoresearch` is powerful because it advances only when the result is better.
+Done when: Experiments have an explicit decision rule before they start.
+
+80. **Near-miss review loop** (`Soon`)
+What to do: Create a periodic review for experiments that almost worked but were inconclusive.
+Why it matters: Frontier loops improve faster when they revisit promising near-misses deliberately.
+Done when: Near-miss experiments get a structured revisit decision instead of being forgotten.
+
+81. **Simplification win log** (`Soon`)
+What to do: Track cases where deleting or simplifying something kept or improved outcomes.
+Why it matters: `autoresearch` treats simplification as a real win, and moverrr should too.
+Done when: The repo has a visible record of "complexity removed" wins.
+
+82. **Weekly operating review** (`Soon`)
+What to do: Run one weekly review across instruction quality, verification debt, broken trust flows, and experiment outcomes.
+Why it matters: Claude Code's runtime discipline is powerful because maintenance is continuous, not occasional.
+Done when: There is a repeatable weekly review ritual with a written format.
+
+83. **Cross-project operating-system template** (`Later`)
+What to do: Distill the best moverrr instruction, role, and verification patterns into a reusable template for future projects.
+Why it matters: The user explicitly wants learnings that can help ongoing projects, not only this repo.
+Done when: There is a starter operating-system template that future repos can copy and adapt.
+
+84. **Monthly frontier review** (`Later`)
+What to do: Once a month, review new frontier harness learnings, new Claude/Codex workflows, and recent moverrr pain points to see what deserves adoption.
+Why it matters: The frontier moves quickly, but not every new idea belongs in the repo right away.
+Done when: There is a recurring founder-level review that converts outside learning into selective internal adoption.
+
+
 # Airtasker + Airbnb Learning For moverrr
 
 Last revised: 1 April 2026 (Sydney)

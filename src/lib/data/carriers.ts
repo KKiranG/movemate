@@ -207,15 +207,23 @@ export async function getPublicCarrierProfile(carrierId: string) {
       .maybeSingle(),
     createServerSupabaseClient()
       .from("bookings")
-      .select("id, status")
+      .select("id, status, pickup_proof_photo_url, delivery_proof_photo_url")
       .eq("carrier_id", carrierId),
   ]);
+  const proofBackedJobCount =
+    bookingStats.data?.filter(
+      (booking) =>
+        booking.status === "completed" &&
+        Boolean(booking.pickup_proof_photo_url) &&
+        Boolean(booking.delivery_proof_photo_url),
+    ).length ?? 0;
 
   return {
     carrier: toCarrierProfile(carrier),
     activeListingCount: activeListings?.length ?? 0,
     completedJobCount:
       bookingStats.data?.filter((booking) => booking.status === "completed").length ?? 0,
+    proofBackedJobCount,
     vehicle: vehicle.data ? toVehicle(vehicle.data) : null,
   };
 }

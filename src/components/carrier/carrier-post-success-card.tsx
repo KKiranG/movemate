@@ -25,7 +25,9 @@ export function CarrierPostSuccessCard({ trip }: { trip: Trip }) {
       <div className="space-y-4">
         <div>
           <p className="section-label">Trip posted</p>
-          <h2 className="mt-1 text-lg text-text">Your spare-capacity route is live</h2>
+          <h2 className="mt-1 text-lg text-text">
+            Your spare-capacity route is live
+          </h2>
           <p className="mt-2 text-sm text-text-secondary">
             {trip.route.label} · {trip.tripDate} · {trip.timeWindow} ·{" "}
             {formatCurrency(trip.priceCents)}
@@ -42,10 +44,33 @@ export function CarrierPostSuccessCard({ trip }: { trip: Trip }) {
             <Link href={`/trip/${trip.id}`}>View trip</Link>
           </Button>
         </div>
+        <div className="rounded-xl border border-border bg-black/[0.02] p-3 dark:bg-white/[0.04]">
+          <p className="text-sm font-medium text-text">
+            Next actions after publish
+          </p>
+          <div className="mt-2 grid gap-2 text-sm text-text-secondary">
+            <p>
+              1. Check payout readiness before the first completed booking
+              lands.
+            </p>
+            <p>
+              2. Keep proof capture standards clear: pickup, delivery, and any
+              exception notes.
+            </p>
+            <p>
+              3. Reply fast once a booking arrives. Pending requests will not
+              wait around.
+            </p>
+            <p>
+              4. Watch remaining capacity as bookings change so the live listing
+              stays honest.
+            </p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => setIsVisible(false)}
-          className="text-left text-xs uppercase tracking-[0.16em] text-text-secondary active:text-text"
+          className="min-h-[44px] text-left text-xs uppercase tracking-[0.16em] text-text-secondary active:text-text"
         >
           Dismiss
         </button>

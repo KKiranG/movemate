@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { getPublicCarrierProfile } from "@/lib/data/carriers";
 import { listReviewsForCarrier } from "@/lib/data/feedback";
 import { listPublicTripsForCarrier } from "@/lib/data/trips";
+import { getCarrierTrustBadges } from "@/lib/trip-presenters";
 
 export async function generateMetadata({
   params,
@@ -46,6 +47,11 @@ export default async function CarrierProfilePage({
   }
 
   const reviews = await listReviewsForCarrier(params.id);
+  const trustBadges = getCarrierTrustBadges({
+    carrier: profile.carrier,
+    completedJobCount: profile.completedJobCount,
+    proofBackedJobCount: profile.proofBackedJobCount ?? 0,
+  });
 
   return (
     <main id="main-content" className="page-shell">
@@ -58,9 +64,11 @@ export default async function CarrierProfilePage({
       <div className="grid gap-4 lg:grid-cols-[1fr_1.25fr]">
         <Card className="space-y-4 p-4">
           <div className="flex flex-wrap items-center gap-2">
-            {profile.carrier.isVerified ? (
-              <Badge className="border-success/20 bg-success/10 text-success">Verified carrier</Badge>
-            ) : null}
+            {trustBadges.map((badge) => (
+              <Badge key={badge} className="border-success/20 bg-success/10 text-success">
+                {badge}
+              </Badge>
+            ))}
             {profile.vehicle ? <Badge>{profile.vehicle.type}</Badge> : null}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -76,12 +84,23 @@ export default async function CarrierProfilePage({
                   : "New"}
               </p>
             </div>
+            <div className="rounded-xl border border-border p-3">
+              <p className="section-label">Proof-backed jobs</p>
+              <p className="mt-2 text-3xl text-text">{profile.proofBackedJobCount ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-border p-3">
+              <p className="section-label">Live routes</p>
+              <p className="mt-2 text-3xl text-text">{profile.activeListingCount}</p>
+            </div>
           </div>
           <div className="rounded-xl border border-border p-3">
-            <p className="section-label">About this carrier</p>
+            <p className="section-label">Evidence-led profile</p>
             <p className="mt-2 text-sm text-text-secondary">
               {profile.carrier.bio ??
                 "This carrier is active on moverrr and publishes real spare-capacity trips for Sydney jobs."}
+            </p>
+            <p className="mt-3 text-sm text-text-secondary">
+              moverrr shows verification state, proof-backed history, and live supply instead of a brochure-style bio wall.
             </p>
           </div>
           <div className="rounded-xl border border-border p-3">
@@ -91,6 +110,23 @@ export default async function CarrierProfilePage({
                 ? `${profile.vehicle.type} · up to ${profile.vehicle.maxVolumeM3}m3 and ${profile.vehicle.maxWeightKg}kg`
                 : "Vehicle details are available on each trip."}
             </p>
+          </div>
+          <div className="rounded-xl border border-border p-3">
+            <p className="section-label">Trust signals</p>
+            <div className="mt-2 space-y-2">
+              <p className="text-sm text-text-secondary">
+                Contact details stay private until a booking is confirmed.
+              </p>
+              <p className="text-sm text-text-secondary">
+                Public reviews only come from verified completed bookings.
+              </p>
+              <a
+                href={`mailto:hello@moverrr.com.au?subject=${encodeURIComponent(`Concern about carrier ${profile.carrier.businessName}`)}`}
+                className="inline-flex min-h-[44px] items-center text-sm font-medium text-accent"
+              >
+                Report a suspicious listing or profile
+              </a>
+            </div>
           </div>
         </Card>
 

@@ -15,6 +15,22 @@ function numberParam(value: string | null) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function booleanParam(value: string | null) {
+  if (!value) {
+    return undefined;
+  }
+
+  if (["1", "true", "yes"].includes(value.toLowerCase())) {
+    return true;
+  }
+
+  if (["0", "false", "no"].includes(value.toLowerCase())) {
+    return false;
+  }
+
+  return undefined;
+}
+
 export function CarrierPostPrefill({ canPost = true }: { canPost?: boolean }) {
   const searchParams = useSearchParams();
 
@@ -59,6 +75,21 @@ export function CarrierPostPrefill({ canPost = true }: { canPost?: boolean }) {
   const initialSpaceSize = searchParams.get("space");
   const initialPriceDollars = searchParams.get("price");
   const initialDetourRadiusKm = searchParams.get("detour");
+  const initialTripDate = searchParams.get("tripDate");
+  const initialTimeWindow = searchParams.get("timeWindow");
+  const initialVolumeM3 = searchParams.get("volume");
+  const initialWeightKg = searchParams.get("weight");
+  const initialAccepts = searchParams
+    .get("accepts")
+    ?.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const initialSpecialNotes = searchParams.get("notes");
+  const initialIsReturnTrip = booleanParam(searchParams.get("isReturn"));
+  const initialStairsOk = booleanParam(searchParams.get("stairsOk"));
+  const initialStairsExtraDollars = searchParams.get("stairsExtra");
+  const initialHelperAvailable = booleanParam(searchParams.get("helperAvailable"));
+  const initialHelperExtraDollars = searchParams.get("helperExtra");
 
   return (
     <CarrierTripWizard
@@ -74,6 +105,28 @@ export function CarrierPostPrefill({ canPost = true }: { canPost?: boolean }) {
       }
       initialPriceDollars={initialPriceDollars ?? undefined}
       initialDetourRadiusKm={initialDetourRadiusKm ?? undefined}
+      initialTripDate={initialTripDate ?? undefined}
+      initialTimeWindow={
+        initialTimeWindow === "morning" ||
+        initialTimeWindow === "afternoon" ||
+        initialTimeWindow === "evening" ||
+        initialTimeWindow === "flexible"
+          ? initialTimeWindow
+          : undefined
+      }
+      initialAvailableVolumeM3={initialVolumeM3 ?? undefined}
+      initialAvailableWeightKg={initialWeightKg ?? undefined}
+      initialAccepts={
+        initialAccepts?.filter((value) =>
+          ["furniture", "boxes", "appliance", "fragile"].includes(value),
+        ) as Array<"furniture" | "boxes" | "appliance" | "fragile"> | undefined
+      }
+      initialSpecialNotes={initialSpecialNotes ?? undefined}
+      initialIsReturnTrip={initialIsReturnTrip}
+      initialStairsOk={initialStairsOk}
+      initialStairsExtraDollars={initialStairsExtraDollars ?? undefined}
+      initialHelperAvailable={initialHelperAvailable}
+      initialHelperExtraDollars={initialHelperExtraDollars ?? undefined}
       canPost={canPost}
     />
   );

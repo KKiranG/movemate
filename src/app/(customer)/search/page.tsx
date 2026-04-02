@@ -13,8 +13,9 @@ import { Card } from "@/components/ui/card";
 import { getOptionalSessionUser } from "@/lib/auth";
 import { TripCard } from "@/components/trip/trip-card";
 import { searchTrips } from "@/lib/data/trips";
+import { getTripQualityScore } from "@/lib/trip-presenters";
 import { formatDate, formatLongDate, getDateOffsetIso, getTodayIsoDate } from "@/lib/utils";
-import type { ItemCategory } from "@/types/trip";
+import type { ItemCategory, TripSearchResult } from "@/types/trip";
 
 type SearchSort = "date" | "price" | "rating";
 
@@ -76,8 +77,8 @@ function buildTripDetailHref(params: {
   return `/trip/${params.tripId}${query ? `?${query}` : ""}`;
 }
 
-function sortResults<T extends { tripDate: string; priceCents: number; carrier: { averageRating: number; ratingCount: number } }>(
-  results: T[],
+function sortResults(
+  results: TripSearchResult[],
   sort: SearchSort,
 ) {
   return [...results].sort((a, b) => {
@@ -89,7 +90,11 @@ function sortResults<T extends { tripDate: string; priceCents: number; carrier: 
       return b.carrier.averageRating - a.carrier.averageRating || b.carrier.ratingCount - a.carrier.ratingCount;
     }
 
-    return a.tripDate.localeCompare(b.tripDate);
+    return (
+      getTripQualityScore(b) - getTripQualityScore(a) ||
+      a.tripDate.localeCompare(b.tripDate) ||
+      b.matchScore - a.matchScore
+    );
   });
 }
 
@@ -215,18 +220,68 @@ async function SearchResultsSection({
           ))}
         </div>
       ) : (
-        <Card className="p-4">
-          <div className="space-y-3">
-            <div>
-              <p className="section-label">No match yet</p>
-              <h2 className="mt-1 text-lg text-text">Save the corridor and keep searching</h2>
+        <div className="grid gap-4">
+          <Card className="p-4">
+            <div className="space-y-3">
+              <div>
+                <p className="section-label">No match yet</p>
+                <h2 className="mt-1 text-lg text-text">Save the corridor and keep searching</h2>
+              </div>
+              <p className="subtle-text">
+                You can widen the date window, browse the same corridor without a fixed day, or
+                save this route so moverrr can alert you when supply appears.
+              </p>
             </div>
-            <p className="subtle-text">
-              You can widen the date window, tweak suburbs, or save this corridor so moverrr can
-              alert you when supply appears.
-            </p>
-          </div>
-        </Card>
+          </Card>
+          <Card className="p-4">
+            <p className="section-label">Nearby alternatives</p>
+            <div className="mt-3 grid gap-3">
+              {when ? (
+                <Link
+                  href={`/search?${new URLSearchParams({
+                    from,
+                    to,
+                    what,
+                    sort,
+                    ...(backload ? { backload: "1" } : {}),
+                  }).toString()}`}
+                  className="inline-flex min-h-[44px] items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                >
+                  <span>See the same corridor without fixing the date first</span>
+                </Link>
+              ) : null}
+              {nearbyDates.slice(0, 3).map((date) => (
+                <Link
+                  key={date}
+                  href={`/search?${new URLSearchParams({
+                    from,
+                    to,
+                    when: date,
+                    what,
+                    sort,
+                    ...(backload ? { backload: "1" } : {}),
+                  }).toString()}`}
+                  className="inline-flex min-h-[44px] items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                >
+                  <span>Try {formatLongDate(date)} instead</span>
+                </Link>
+              ))}
+              <Link
+                href={`/search?${new URLSearchParams({
+                  from,
+                  to,
+                  when: when ?? "",
+                  what: "furniture",
+                  sort,
+                  ...(backload ? { backload: "1" } : {}),
+                }).toString()}`}
+                className="inline-flex min-h-[44px] items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+              >
+                <span>Broaden to general furniture inventory on this corridor</span>
+              </Link>
+            </div>
+          </Card>
+        </div>
       )}
       <div className="surface-card p-4">
         <div className="space-y-3">
@@ -292,7 +347,7 @@ export default async function SearchPage({
       <PageIntro
         eyebrow="Browse & book"
         title="Search matching trips"
-        description="Browse-first means customers see live listings first, with waitlist capture only when supply is missing."
+        description="Browse-first means customers see real spare-capacity inventory first, with route alerts only when supply is missing."
       />
 
       <SearchBar

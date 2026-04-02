@@ -39,52 +39,194 @@ const optionalPublishAt = z
   .optional()
   .or(z.literal("").transform(() => undefined));
 
-export const tripSchema = z.object({
-  originSuburb: z.string().min(2).max(120),
-  originPostcode: z.string().min(4).max(8),
-  originLatitude: z.number().min(-90).max(90),
-  originLongitude: z.number().min(-180).max(180),
-  destinationSuburb: z.string().min(2).max(120),
-  destinationPostcode: z.string().min(4).max(8),
-  destinationLatitude: z.number().min(-90).max(90),
-  destinationLongitude: z.number().min(-180).max(180),
-  detourRadiusKm: z.number().min(0).max(30),
-  tripDate: futureTripDate,
-  timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
-  spaceSize: z.enum(["S", "M", "L", "XL"]),
-  availableVolumeM3: z.number().min(0.1).max(8),
-  availableWeightKg: z.number().min(20).max(500),
-  priceCents: z.number().min(1000).max(100000),
-  suggestedPriceCents: z.number().min(1000).max(100000).optional(),
-  accepts: z.array(categorySet).min(1),
-  stairsOk: z.boolean().default(false),
-  stairsExtraCents: z.number().min(0).default(0),
-  helperAvailable: z.boolean().default(false),
-  helperExtraCents: z.number().min(0).default(0),
-  isReturnTrip: z.boolean().default(false),
-  status: z.enum(["draft", "active"]).default("active"),
-  publishAt: optionalPublishAt,
-  specialNotes: optionalNotes,
-});
+const ACTIVE_SPACE_VOLUME_MINIMUMS = {
+  S: 0.25,
+  M: 0.8,
+  L: 1.8,
+  XL: 3.2,
+} as const;
 
-export const tripUpdateSchema = z.object({
-  tripDate: futureTripDate,
-  timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
-  spaceSize: z.enum(["S", "M", "L", "XL"]),
-  availableVolumeM3: z.number().min(0.1).max(8),
-  availableWeightKg: z.number().min(20).max(500),
-  detourRadiusKm: z.number().min(0).max(30),
-  priceCents: z.number().min(1000).max(100000),
-  accepts: z.array(categorySet).min(1),
-  stairsOk: z.boolean().default(false),
-  stairsExtraCents: z.number().min(0).default(0),
-  helperAvailable: z.boolean().default(false),
-  helperExtraCents: z.number().min(0).default(0),
-  isReturnTrip: z.boolean().default(false),
-  status: z.enum(["draft", "active", "cancelled"]),
-  publishAt: optionalPublishAt,
-  specialNotes: optionalNotes,
-});
+const ACTIVE_SPACE_WEIGHT_MINIMUMS = {
+  S: 20,
+  M: 60,
+  L: 120,
+  XL: 220,
+} as const;
+
+const APPLIANCE_MINIMUM_VOLUME_M3 = 0.8;
+const APPLIANCE_MINIMUM_WEIGHT_KG = 70;
+
+export type TripPublishReadinessSeverity = "blocking" | "warning";
+
+export interface TripPublishReadinessIssue {
+  code:
+    | "space_volume_too_low"
+    | "space_weight_too_low"
+    | "appliance_volume_too_low"
+    | "appliance_weight_too_low"
+    | "fragile_notes_missing"
+    | "appliance_handling_note_missing";
+  severity: TripPublishReadinessSeverity;
+  message: string;
+  hint: string;
+  path: Array<"spaceSize" | "availableVolumeM3" | "availableWeightKg" | "accepts" | "specialNotes">;
+}
+
+export interface TripPublishReadinessInput {
+  status?: "draft" | "active" | "cancelled";
+  spaceSize: "S" | "M" | "L" | "XL";
+  availableVolumeM3: number;
+  availableWeightKg: number;
+  accepts: Array<"furniture" | "boxes" | "appliance" | "fragile" | "other">;
+  specialNotes?: string | null | undefined;
+  helperAvailable?: boolean;
+  stairsOk?: boolean;
+}
+
+export function getTripPublishReadiness(input: TripPublishReadinessInput) {
+  const issues: TripPublishReadinessIssue[] = [];
+
+  const minimumVolume = ACTIVE_SPACE_VOLUME_MINIMUMS[input.spaceSize];
+  const minimumWeight = ACTIVE_SPACE_WEIGHT_MINIMUMS[input.spaceSize];
+  const trimmedNotes = input.specialNotes?.trim() ?? "";
+
+  if (input.availableVolumeM3 < minimumVolume) {
+    issues.push({
+      code: "space_volume_too_low",
+      severity: "blocking",
+      message: `${input.spaceSize} listings need at least ${minimumVolume}m3 to publish cleanly.`,
+      hint: "Increase the published volume or save the route as draft until the spare room is confirmed.",
+      path: ["availableVolumeM3"],
+    });
+  }
+
+  if (input.availableWeightKg < minimumWeight) {
+    issues.push({
+      code: "space_weight_too_low",
+      severity: "blocking",
+      message: `${input.spaceSize} listings need at least ${minimumWeight}kg to stay believable in browse.`,
+      hint: "Raise the weight limit or move the listing back to draft until capacity is firm.",
+      path: ["availableWeightKg"],
+    });
+  }
+
+  if (input.accepts.includes("appliance") && input.availableVolumeM3 < APPLIANCE_MINIMUM_VOLUME_M3) {
+    issues.push({
+      code: "appliance_volume_too_low",
+      severity: "blocking",
+      message: "Appliance listings need at least 0.8m3 of spare room before they go live.",
+      hint: "Remove appliances from the accepted item types or publish with more space.",
+      path: ["accepts", "availableVolumeM3"],
+    });
+  }
+
+  if (input.accepts.includes("appliance") && input.availableWeightKg < APPLIANCE_MINIMUM_WEIGHT_KG) {
+    issues.push({
+      code: "appliance_weight_too_low",
+      severity: "blocking",
+      message: "Appliance listings need at least 70kg of available weight before they go live.",
+      hint: "Remove appliances from the accepted item types or raise the published weight limit.",
+      path: ["accepts", "availableWeightKg"],
+    });
+  }
+
+  if (input.accepts.includes("fragile") && !trimmedNotes) {
+    issues.push({
+      code: "fragile_notes_missing",
+      severity: "warning",
+      message: "Fragile items are accepted, but the listing does not explain the handling limits yet.",
+      hint: "Add one plain-language note about packing, load restraint, or weather protection.",
+      path: ["specialNotes"],
+    });
+  }
+
+  if (
+    input.accepts.includes("appliance") &&
+    !trimmedNotes &&
+    !input.helperAvailable &&
+    !input.stairsOk
+  ) {
+    issues.push({
+      code: "appliance_handling_note_missing",
+      severity: "warning",
+      message: "Appliances are accepted without any helper, stairs, or handling note.",
+      hint: "Call out limits like curbside-only handoff, no stairs, or helper required for bulky loads.",
+      path: ["specialNotes"],
+    });
+  }
+
+  return issues;
+}
+
+function applyTripPublishIssues(
+  data: TripPublishReadinessInput,
+  ctx: z.RefinementCtx,
+) {
+  if (data.status !== "active") {
+    return;
+  }
+
+  for (const issue of getTripPublishReadiness(data).filter(
+    (entry) => entry.severity === "blocking",
+  )) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: issue.path,
+      message: issue.message,
+    });
+  }
+}
+
+export const tripSchema = z
+  .object({
+    originSuburb: z.string().min(2).max(120),
+    originPostcode: z.string().min(4).max(8),
+    originLatitude: z.number().min(-90).max(90),
+    originLongitude: z.number().min(-180).max(180),
+    destinationSuburb: z.string().min(2).max(120),
+    destinationPostcode: z.string().min(4).max(8),
+    destinationLatitude: z.number().min(-90).max(90),
+    destinationLongitude: z.number().min(-180).max(180),
+    detourRadiusKm: z.number().min(0).max(30),
+    tripDate: futureTripDate,
+    timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
+    spaceSize: z.enum(["S", "M", "L", "XL"]),
+    availableVolumeM3: z.number().min(0.1).max(8),
+    availableWeightKg: z.number().min(20).max(500),
+    priceCents: z.number().min(1000).max(100000),
+    suggestedPriceCents: z.number().min(1000).max(100000).optional(),
+    accepts: z.array(categorySet).min(1),
+    stairsOk: z.boolean().default(false),
+    stairsExtraCents: z.number().min(0).default(0),
+    helperAvailable: z.boolean().default(false),
+    helperExtraCents: z.number().min(0).default(0),
+    isReturnTrip: z.boolean().default(false),
+    status: z.enum(["draft", "active"]).default("active"),
+    publishAt: optionalPublishAt,
+    specialNotes: optionalNotes,
+  })
+  .superRefine((data, ctx) => applyTripPublishIssues(data, ctx));
+
+export const tripUpdateSchema = z
+  .object({
+    tripDate: futureTripDate,
+    timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
+    spaceSize: z.enum(["S", "M", "L", "XL"]),
+    availableVolumeM3: z.number().min(0.1).max(8),
+    availableWeightKg: z.number().min(20).max(500),
+    detourRadiusKm: z.number().min(0).max(30),
+    priceCents: z.number().min(1000).max(100000),
+    accepts: z.array(categorySet).min(1),
+    stairsOk: z.boolean().default(false),
+    stairsExtraCents: z.number().min(0).default(0),
+    helperAvailable: z.boolean().default(false),
+    helperExtraCents: z.number().min(0).default(0),
+    isReturnTrip: z.boolean().default(false),
+    status: z.enum(["draft", "active", "cancelled"]),
+    publishAt: optionalPublishAt,
+    specialNotes: optionalNotes,
+  })
+  .superRefine((data, ctx) => applyTripPublishIssues(data, ctx));
 
 export type TripInput = z.infer<typeof tripSchema>;
 export type TripUpdateInput = z.infer<typeof tripUpdateSchema>;

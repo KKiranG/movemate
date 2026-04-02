@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { TripDetailSummary } from "@/components/trip/trip-detail-summary";
 import { getOptionalSessionUser } from "@/lib/auth";
 import { getTripById } from "@/lib/data/trips";
+import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
 
 function getSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
@@ -73,6 +74,13 @@ export default async function TripDetailPage({
   const searchBackload = getSearchValue(resolvedSearchParams.backload);
   const price = `$${Math.round(trip.priceCents / 100)}`;
   const savingsCents = Math.max(0, trip.dedicatedEstimateCents - trip.priceCents);
+  const startingPricing = calculateBookingBreakdown({
+    basePriceCents: trip.priceCents,
+    needsStairs: false,
+    stairsExtraCents: trip.rules.stairsExtraCents,
+    needsHelper: false,
+    helperExtraCents: trip.rules.helperExtraCents,
+  });
   const isBookable = trip.remainingCapacityPct > 0 && trip.status !== "booked_full";
   const backHref = `/search?${new URLSearchParams({
     from: searchFrom || trip.route.originSuburb,
@@ -103,9 +111,9 @@ export default async function TripDetailPage({
 
       <TripDetailSummary trip={trip} />
       <StickyBookingCta
-        priceCents={trip.priceCents}
+        priceCents={startingPricing.totalPriceCents}
         savingsCents={savingsCents}
-        savingsNote="Add-ons can change the final total."
+        savingsNote="Starting total includes the fixed booking fee. Add-ons can change the final total."
         isBookable={isBookable}
         href={isBookable ? "#booking-form" : similarTripsHref}
       />

@@ -45,6 +45,22 @@ Serious work in this repo follows this sequence:
 
 Stale documentation is a product bug.
 
+## Instruction Precedence
+
+When instructions appear to conflict, use this order:
+
+1. system / developer / explicit user instruction
+2. `CLAUDE.md`
+3. the narrowest matching `.claude/rules/*.md`
+4. the matching `.agent-skills/*.md`
+5. the invoked `.claude/skills/<skill>/SKILL.md`
+6. nearby task or reference docs
+
+Tie-breakers:
+- narrower scope beats broader scope
+- shipped code and verified behavior beat stale prose
+- if two sources still disagree on a trust-critical area, stop and resolve the ambiguity before building
+
 ## Core Invariants
 
 ### iOS-first contract
@@ -149,6 +165,9 @@ Use the smallest layer that fits the job:
 - `.claude/agents/*.md`
   Declarative role briefs for specialized agents.
 
+Keep the always-loaded layer lean.
+If detail is only relevant for one surface, move it into a scoped rule, skill, or agent brief instead of growing `CLAUDE.md`.
+
 ## Start Here
 
 When the task touches a specific area, read the matching memory before coding:
@@ -159,3 +178,22 @@ When the task touches a specific area, read the matching memory before coding:
 - docs, prompts, skills, or project memory -> `.claude/rules/docs-and-memory.md`
 
 Then read the relevant `.agent-skills/` file and, if needed, invoke the matching skill under `.claude/skills/`.
+
+## Rule Standard
+
+Scoped rule files should:
+
+- use lowercase kebab-case names
+- own one coherent subsystem, not a grab bag
+- keep `paths` frontmatter narrow enough that the rule loads only when it should
+- state invariants, workflow expectations, and verification checks, not vague advice
+
+## Bigger Task Gate
+
+For any task with three or more major sub-parts:
+
+- write an explicit plan before implementation
+- include a verification lane in that plan
+- use a specialized verifier or second opinion on payments, booking state, schema, or trust-sensitive work
+
+For bug fixes, reproduce first, then fix, then confirm the reproduction no longer succeeds.

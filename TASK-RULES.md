@@ -125,6 +125,18 @@ When a task is exploratory, optimization-heavy, or strategy-shaped, borrow the `
 4. Keep or discard based on evidence, not vibes.
 5. Record the learning, not just the diff.
 
+Use `EXPERIMENT-LEDGER.md` for the durable record.
+
+### Baseline template
+
+Before experimental work starts, write:
+
+- current baseline
+- single change
+- metric
+- keep threshold
+- discard or reframe threshold
+
 For moverrr, common baseline metrics are:
 - time for a carrier to post a trip
 - search-to-book conversion

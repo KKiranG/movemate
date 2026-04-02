@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BookingForm } from "@/components/booking/booking-form";
 import { PriceBreakdown } from "@/components/booking/price-breakdown";
 import { Card } from "@/components/ui/card";
+import { getConfirmedBookingChecklist } from "@/lib/booking-presenters";
 import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
 import { formatCurrency } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
@@ -27,6 +28,7 @@ export function BookingCheckoutPanel({
     helperExtraCents: trip.rules.helperExtraCents,
   });
   const savingsCents = Math.max(0, trip.dedicatedEstimateCents - pricing.totalPriceCents);
+  const prepChecklist = getConfirmedBookingChecklist();
 
   return (
     <div className="space-y-4">
@@ -59,6 +61,16 @@ export function BookingCheckoutPanel({
       </Card>
 
       <Card className="p-4">
+        <p className="section-label">Payment reassurance</p>
+        <h3 className="mt-1 text-lg text-text">Your money is held until the job is properly completed</h3>
+        <div className="mt-3 space-y-2 text-sm text-text-secondary">
+          <p>The card is authorized during booking so the trip is reserved.</p>
+          <p>Payout is released only after proof, delivery, and completion logic are satisfied.</p>
+          <p>If something goes wrong, the dispute flow and proof record sit inside moverrr instead of in chat screenshots.</p>
+        </div>
+      </Card>
+
+      <Card className="p-4">
         <details className="group">
           <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-left [&::-webkit-details-marker]:hidden">
             <div>
@@ -73,11 +85,32 @@ export function BookingCheckoutPanel({
             </span>
           </summary>
           <div className="mt-3 space-y-2 text-sm text-text-secondary">
-            <p>1. The carrier confirms the booking, usually within 24 hours.</p>
-            <p>2. Pickup happens on the trip date during the listed time window.</p>
-            <p>3. You confirm receipt after delivery so payout can be released.</p>
+            <p>1. The carrier confirms the booking, usually within 24 hours, or the pending hold expires.</p>
+            <p>2. Pickup happens on the trip date during the listed window with route-fit handoff details confirmed in-app.</p>
+            <p>3. Delivery proof is captured, then you confirm receipt so payout can be released.</p>
+            <p>4. Any extra charges must stay inside the listed add-ons or an admin-reviewed exception.</p>
           </div>
         </details>
+      </Card>
+
+      <Card className="p-4">
+        <p className="section-label">Keep It In-Platform</p>
+        <h3 className="mt-1 text-lg text-text">Do not move payment or side-deals outside moverrr</h3>
+        <div className="mt-3 space-y-2 text-sm text-text-secondary">
+          <p>The booking amount, proof record, and dispute path all depend on the transaction staying in moverrr.</p>
+          <p>If a carrier asks for cash, bank transfer, or a day-of-job extra outside the listed add-ons, stop and report it in-platform.</p>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <p className="section-label">Prepare for pickup</p>
+        <h3 className="mt-1 text-lg text-text">Get the handoff ready before the window starts</h3>
+        <ul className="mt-3 space-y-2 text-sm text-text-secondary">
+          {prepChecklist.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+          <li>Measure the item and flag stairs, helpers, or awkward access before paying.</li>
+        </ul>
       </Card>
 
       <PriceBreakdown

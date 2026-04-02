@@ -27,6 +27,17 @@ export default async function CarrierPayoutsPage() {
         }
       />
 
+      {!dashboard.payoutSetupReady ? (
+        <Card className="border-warning/20 bg-warning/10 p-4">
+          <p className="section-label">Payout setup missing</p>
+          <h2 className="mt-1 text-lg text-text">Funds can be held, but release is blocked</h2>
+          <p className="mt-2 text-sm text-text-secondary">
+            Booking money stays protected inside moverrr until proof, customer confirmation, and
+            payout setup all line up. Finish payout setup before your next completed job.
+          </p>
+        </Card>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4">
           <p className="section-label">In progress</p>
@@ -53,6 +64,45 @@ export default async function CarrierPayoutsPage() {
           <p className="mt-2 text-3xl text-text">{formatCurrency(releasedThisMonthCents)}</p>
         </Card>
       </div>
+
+      <Card className="p-4">
+        <div className="space-y-4">
+          <div>
+            <p className="section-label">Payout holds</p>
+            <h2 className="mt-1 text-lg text-text">What is still blocking release</h2>
+            <p className="mt-1 text-sm text-text-secondary">
+              Each held amount shows the missing step, the balance still waiting, and what happens
+              next.
+            </p>
+          </div>
+          {dashboard.payoutHolds.length > 0 ? (
+            <div className="grid gap-3">
+              {dashboard.payoutHolds.map((hold) => (
+                <div key={hold.bookingId} className="rounded-xl border border-border p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-text">{hold.bookingReference}</p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        {hold.stage} · {hold.missingStep}
+                      </p>
+                    </div>
+                    <p className="text-sm font-medium text-text">
+                      Held {formatCurrency(hold.heldCents)}
+                    </p>
+                  </div>
+                  <p className="mt-3 text-sm text-text-secondary">{hold.explanation}</p>
+                  <p className="mt-2 text-sm text-text">{hold.nextAction}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-text-secondary">
+              No active payout holds right now. Once proof, confirmation, and capture clear, release
+              lands in the history below.
+            </p>
+          )}
+        </div>
+      </Card>
 
       <Card className="p-4">
         <p className="section-label">History by month</p>

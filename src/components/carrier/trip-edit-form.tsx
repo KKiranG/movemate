@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, getTodayIsoDate } from "@/lib/utils";
+import { getTripPublishReadiness } from "@/lib/validation/trip";
 import type { Trip } from "@/types/trip";
 
 const acceptOptions = [
@@ -16,6 +17,8 @@ const acceptOptions = [
   { value: "fragile", label: "Fragile" },
 ] as const;
 
+type EditableTripStatus = "draft" | "active" | "cancelled";
+
 export function TripEditForm({ trip }: { trip: Trip }) {
   const router = useRouter();
   const minimumTripDate = useMemo(() => getTodayIsoDate(), []);
@@ -24,7 +27,10 @@ export function TripEditForm({ trip }: { trip: Trip }) {
       tripDate: trip.tripDate,
       timeWindow: trip.timeWindow,
       spaceSize: trip.spaceSize,
-      status: trip.status ?? "active",
+      status:
+        trip.status === "draft" || trip.status === "cancelled"
+          ? trip.status
+          : "active" as EditableTripStatus,
       availableVolumeM3: trip.availableVolumeM3.toString(),
       availableWeightKg: trip.availableWeightKg.toString(),
       detourRadiusKm: trip.detourRadiusKm.toString(),
@@ -103,12 +109,34 @@ export function TripEditForm({ trip }: { trip: Trip }) {
     };
   }, [isDirty, navigationGuardEnabled]);
 
+  const publishIssues = useMemo(
+    () =>
+      getTripPublishReadiness({
+        status: formState.status,
+        spaceSize: formState.spaceSize,
+        availableVolumeM3: Number(formState.availableVolumeM3) || 0,
+        availableWeightKg: Number(formState.availableWeightKg) || 0,
+        accepts: formState.accepts as Array<
+          "furniture" | "boxes" | "appliance" | "fragile" | "other"
+        >,
+        specialNotes: formState.specialNotes,
+        helperAvailable: formState.helperAvailable === "yes",
+        stairsOk: formState.stairsOk === "yes",
+      }),
+    [formState],
+  );
+  const blockingPublishIssues = publishIssues.filter((issue) => issue.severity === "blocking");
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
     try {
+      if (formState.status === "active" && blockingPublishIssues.length > 0) {
+        throw new Error("Resolve the publish blockers below or switch this listing back to draft.");
+      }
+
       const response = await fetch(`/api/trips/${trip.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -190,7 +218,11 @@ export function TripEditForm({ trip }: { trip: Trip }) {
         <select
           name="status"
           value={formState.status}
-          onChange={(event) => setFormState((current) => ({ ...current, status: event.target.value as typeof current.status }))}
+          onChange={(event) =>
+            setFormState((current) => ({
+              ...current,
+              status: event.target.value as EditableTripStatus,
+            }))}
           className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
         >
           <option value="draft">Draft</option>
@@ -240,6 +272,45 @@ export function TripEditForm({ trip }: { trip: Trip }) {
           {formatCurrency(trip.suggestedPriceCents + 1000)}
         </p>
       ) : null}
+
+      <div
+        className={`rounded-xl border p-3 ${
+          blockingPublishIssues.length > 0
+            ? "border-warning/20 bg-warning/10"
+            : "border-border bg-black/[0.02] dark:bg-white/[0.04]"
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="section-label">Publish readiness</p>
+            <p className="mt-1 text-sm text-text">
+              {blockingPublishIssues.length > 0
+                ? "This listing needs capacity fixes before it should stay live."
+                : "Capacity and accepted item types are still aligned for browse."}
+            </p>
+          </div>
+          <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+            {blockingPublishIssues.length} blockers
+          </span>
+        </div>
+        {publishIssues.length > 0 ? (
+          <div className="mt-3 grid gap-2">
+            {publishIssues.map((issue) => (
+              <div
+                key={issue.code}
+                className={`rounded-xl border px-3 py-2 text-sm ${
+                  issue.severity === "blocking"
+                    ? "border-warning/20 bg-white/70 text-text"
+                    : "border-border bg-background text-text-secondary"
+                }`}
+              >
+                <p className="font-medium text-text">{issue.message}</p>
+                <p className="mt-1">{issue.hint}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       <div className="grid gap-3">
         <div className="grid gap-2 sm:grid-cols-2">

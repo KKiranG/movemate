@@ -23,6 +23,26 @@ function getBookingEventTimestamp(booking: { events?: Array<{ eventType: string;
   return booking.events?.find((event) => event.eventType === eventType)?.createdAt ?? null;
 }
 
+function getNextAction(booking: NonNullable<Awaited<ReturnType<typeof getBookingByIdForUser>>>) {
+  if (booking.status === "pending") {
+    return "Carrier confirmation is still needed. moverrr expects an answer within 24 hours and auto-expires stale requests.";
+  }
+
+  if (booking.status === "confirmed") {
+    return "Keep access details ready and use this booking record for operational updates rather than side-channel negotiation.";
+  }
+
+  if (booking.status === "delivered") {
+    return "Review the delivery proof, then confirm receipt so payout can be released.";
+  }
+
+  if (booking.status === "disputed") {
+    return "Add evidence through the dispute flow so support can review the proof trail, timing, and payment state together.";
+  }
+
+  return "Use the booking timeline and proof gallery as the source of truth if anything needs review.";
+}
+
 export default async function BookingDetailPage({
   params,
 }: {
@@ -61,6 +81,10 @@ export default async function BookingDetailPage({
           <div>
             <p className="section-label">Status</p>
             <p className="mt-1 text-sm text-text-secondary">{booking.itemDescription}</p>
+          </div>
+          <div className="rounded-xl border border-accent/20 bg-accent/5 p-3">
+            <p className="text-sm font-medium text-text">Next action</p>
+            <p className="mt-1 text-sm text-text-secondary">{getNextAction(booking)}</p>
           </div>
           <BookingStatusStepper status={booking.status} />
           <div className="rounded-xl border border-border p-3">
@@ -131,6 +155,9 @@ export default async function BookingDetailPage({
                 </div>
               </div>
             ) : null}
+            <p className="text-sm text-text-secondary">
+              Use direct contact only for confirmed day-of-job coordination. Pricing changes and disputes stay on-platform.
+            </p>
           </div>
         </Card>
       ) : null}
@@ -257,6 +284,12 @@ export default async function BookingDetailPage({
               Disputes can only be raised after the booking has been delivered or completed.
             </p>
           )}
+          <a
+            href={`mailto:hello@moverrr.com.au?subject=${encodeURIComponent(`Safety concern for booking ${booking.bookingReference}`)}`}
+            className="inline-flex min-h-[44px] items-center text-sm font-medium text-accent"
+          >
+            Report scam or safety concern
+          </a>
         </div>
       </Card>
 
