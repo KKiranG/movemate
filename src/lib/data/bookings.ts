@@ -1368,66 +1368,66 @@ export async function expirePendingBookings(params?: {
     throw new AppError(error.message, 500, "pending_booking_expiry_lookup_failed");
   }
 
-  const expiredIds: string[] = [];
+  const expiredIds = await Promise.all(
+    (staleBookings ?? []).map(async (row) => {
+      const booking = await updateBookingStatusForActor({
+        userId: "system-expiry-runner",
+        bookingId: row.id,
+        nextStatus: "cancelled",
+        actorRole: "admin",
+        cancellationReason: "Expired after the 2-hour pending response window.",
+        skipStatusEmails: true,
+      });
 
-  for (const row of staleBookings ?? []) {
-    const booking = await updateBookingStatusForActor({
-      userId: "system-expiry-runner",
-      bookingId: row.id,
-      nextStatus: "cancelled",
-      actorRole: "admin",
-      cancellationReason: "Expired after the 2-hour pending response window.",
-      skipStatusEmails: true,
-    });
+      await recordBookingEvent({
+        bookingId: row.id,
+        actorRole: "admin",
+        actorUserId: null,
+        eventType: "pending_booking_expired",
+        metadata: {
+          reason: "Expired after the 2-hour pending response window.",
+          expiredAt: now,
+        },
+      });
 
-    await recordBookingEvent({
-      bookingId: row.id,
-      actorRole: "admin",
-      actorUserId: null,
-      eventType: "pending_booking_expired",
-      metadata: {
-        reason: "Expired after the 2-hour pending response window.",
-        expiredAt: now,
-      },
-    });
+      if (row.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
+        try {
+          const stripe = getStripeServerClient();
+          const intent = await stripe.paymentIntents.retrieve(row.stripe_payment_intent_id);
 
-    if (row.stripe_payment_intent_id && process.env.STRIPE_SECRET_KEY) {
-      try {
-        const stripe = getStripeServerClient();
-        const intent = await stripe.paymentIntents.retrieve(row.stripe_payment_intent_id);
-
-        if (intent.status !== "canceled" && intent.status !== "succeeded") {
-          await stripe.paymentIntents.cancel(row.stripe_payment_intent_id);
+          if (intent.status !== "canceled" && intent.status !== "succeeded") {
+            await stripe.paymentIntents.cancel(row.stripe_payment_intent_id);
+          }
+        } catch {
+          // Best effort: booking has already been cancelled and capacity restored.
         }
-      } catch {
-        // Best effort: booking has already been cancelled and capacity restored.
       }
-    }
 
-    const recipients = await getBookingNotificationRecipients({
-      customerId: booking.customerId,
-      carrierId: booking.carrierId,
-    });
+      const recipients = await getBookingNotificationRecipients({
+        customerId: booking.customerId,
+        carrierId: booking.carrierId,
+      });
 
-    const emailTargets = [recipients.customerEmail, recipients.carrierEmail];
+      const emailTargets = [recipients.customerEmail, recipients.carrierEmail];
 
-    await Promise.all(
-      emailTargets
-        .filter((email): email is string => Boolean(email))
-        .map((email) =>
-          sendBookingTransactionalEmail({
-            bookingId: booking.id,
-            bookingStatus: "cancelled",
-            emailType: "pending_booking_expired",
-            to: email,
-            subject: `Pending booking expired: ${booking.bookingReference}`,
-            html: `<p>Booking <strong>${booking.bookingReference}</strong> expired after the 2-hour carrier response window and has been cancelled. Capacity has been released back to the trip.</p>`,
-          }),
-        ),
-    );
+      await Promise.all(
+        emailTargets
+          .filter((email): email is string => Boolean(email))
+          .map((email) =>
+            sendBookingTransactionalEmail({
+              bookingId: booking.id,
+              bookingStatus: "cancelled",
+              emailType: "pending_booking_expired",
+              to: email,
+              subject: `Pending booking expired: ${booking.bookingReference}`,
+              html: `<p>Booking <strong>${booking.bookingReference}</strong> expired after the 2-hour carrier response window and has been cancelled. Capacity has been released back to the trip.</p>`,
+            }),
+          ),
+      );
 
-    expiredIds.push(row.id);
-  }
+      return row.id;
+    }),
+  );
 
   return expiredIds;
 }
