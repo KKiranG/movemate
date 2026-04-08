@@ -84,8 +84,9 @@ export function CarrierPostSuccessCard({ trip }: { trip: Trip }) {
         </div>
         <button
           type="button"
+          aria-label="Dismiss success message"
           onClick={() => setIsVisible(false)}
-          className="min-h-[44px] text-left text-xs uppercase tracking-[0.16em] text-text-secondary active:text-text"
+          className="min-h-[44px] text-left text-xs uppercase tracking-[0.16em] text-text-secondary active:text-text focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded-sm px-1 -mx-1"
         >
           Dismiss
         </button>

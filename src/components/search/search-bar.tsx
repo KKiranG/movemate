@@ -163,6 +163,7 @@ export function SearchBar({
             value={from}
             onChange={(event) => setFrom(event.target.value)}
             autoComplete="address-level2"
+            aria-label="Moving from suburb"
           />
         </label>
         <label className="flex flex-col gap-2">
@@ -173,6 +174,7 @@ export function SearchBar({
             value={to}
             onChange={(event) => setTo(event.target.value)}
             autoComplete="address-level2"
+            aria-label="Moving to suburb"
           />
         </label>
       </div>
@@ -193,7 +195,7 @@ export function SearchBar({
                 onChange={() => setWhat(option.value)}
                 className="peer sr-only"
               />
-              <span className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-center text-sm text-text transition-colors peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent active:bg-black/[0.04] dark:active:bg-white/[0.08]">
+              <span className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-center text-sm text-text transition-colors peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent active:bg-black/[0.04] dark:active:bg-white/[0.08] peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:outline-none">
                 {option.label}
               </span>
             </label>
@@ -212,14 +214,15 @@ export function SearchBar({
             onChange={(event) => setWhen(event.target.value)}
           />
         </label>
-        <label className="hidden min-h-[44px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 active:bg-black/[0.04] dark:active:bg-white/[0.08] sm:flex">
+        <label className="hidden min-h-[44px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 active:bg-black/[0.04] dark:active:bg-white/[0.08] sm:flex focus-within:ring-2 focus-within:ring-accent focus-within:outline-none">
           <input
             type="checkbox"
             name="backload-desktop"
             value="1"
             checked={backload}
             onChange={(event) => setBackload(event.target.checked)}
-            className="h-4 w-4 accent-accent"
+            className="h-4 w-4 accent-accent focus:outline-none"
+            aria-label="Return trip only"
           />
           <div className="flex-1">
             <span className="block text-sm font-medium text-text">Return trip only</span>
@@ -274,21 +277,22 @@ export function SearchBar({
                     onChange={() => setWhat(option.value)}
                     className="peer sr-only"
                   />
-                  <span className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-center text-sm text-text transition-colors peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent active:bg-black/[0.04] dark:active:bg-white/[0.08]">
+                  <span className="flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-center text-sm text-text transition-colors peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent active:bg-black/[0.04] dark:active:bg-white/[0.08] peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:outline-none">
                     {option.label}
                   </span>
                 </label>
               ))}
             </div>
           </div>
-          <label className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
+          <label className="flex min-h-[44px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 active:bg-black/[0.04] dark:active:bg-white/[0.08] focus-within:ring-2 focus-within:ring-accent focus-within:outline-none">
             <input
               type="checkbox"
               name="backload-mobile"
               value="1"
               checked={backload}
               onChange={(event) => setBackload(event.target.checked)}
-              className="h-4 w-4 accent-accent"
+              className="h-4 w-4 accent-accent focus:outline-none"
+              aria-label="Return trip only"
             />
             <div className="flex-1">
               <span className="block text-sm font-medium text-text">Return trip only</span>

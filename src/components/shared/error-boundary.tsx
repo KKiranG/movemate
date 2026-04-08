@@ -32,7 +32,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </p>
             <button
               onClick={() => this.setState({ hasError: false })}
-              className="mt-4 min-h-[44px] text-accent underline active:opacity-70"
+              className="mt-4 min-h-[44px] text-accent underline active:opacity-70 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded-sm px-1"
             >
               Try again
             </button>

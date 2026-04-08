@@ -14,7 +14,7 @@ export function DocumentPreviewDialog({
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button className="min-h-[44px] text-sm text-accent underline active:opacity-70">
+        <button className="min-h-[44px] text-sm text-accent underline active:opacity-70 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded-sm px-1">
           {triggerLabel}
         </button>
       </Dialog.Trigger>
@@ -26,7 +26,7 @@ export function DocumentPreviewDialog({
             <Dialog.Close asChild>
               <button
                 aria-label="Close document preview"
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center active:opacity-70"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center active:opacity-70 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none rounded-lg"
               >
                 <X className="h-5 w-5" />
               </button>
