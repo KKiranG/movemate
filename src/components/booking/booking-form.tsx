@@ -319,10 +319,7 @@ export function BookingForm({
           "Content-Type": "application/json",
           "Idempotency-Key":
             bookingIdempotencyKeyRef.current ??
-            (bookingIdempotencyKeyRef.current =
-              typeof crypto !== "undefined" && "randomUUID" in crypto
-                ? crypto.randomUUID()
-                : `${Date.now()}-${Math.random()}`),
+            (bookingIdempotencyKeyRef.current = crypto.randomUUID()),
         },
         body: JSON.stringify({
           listingId: trip.id,
