@@ -3,13 +3,14 @@ import { getSmokeBootstrapSecret, hasSupabaseAdminEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { toGeographyPoint } from "@/lib/data/mappers";
+import { secureCompare } from "@/lib/server/utils";
 
 export async function bootstrapSmokeDataset(secret: string) {
   if (!hasSupabaseAdminEnv()) {
     throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
   }
 
-  if (!getSmokeBootstrapSecret() || secret !== getSmokeBootstrapSecret()) {
+  if (!getSmokeBootstrapSecret() || !secureCompare(secret, getSmokeBootstrapSecret())) {
     throw new AppError("Invalid bootstrap secret.", 403, "forbidden");
   }
 
