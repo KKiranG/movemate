@@ -1,10 +1,57 @@
 # moverrr — Completed Work Log
 
-> Last updated: `2026-04-08`
+> Last updated: `2026-04-09`
 >
 > Purpose: keep a durable record of what is already done, where it lives, why it was changed, and when it landed, so completed work can be removed from the active backlog without losing context.
 
 ---
+
+## 2026-04-09 — Agent OS hardening, shared memory, and task-system cleanup
+
+### `COMP-2026-04-09-41` — Core agent operating system hardening, repo-portable workflows, and backlog truth sync
+- Moved from active backlog:
+  - `AG-H3`, `AG-H5`, `AG-A1`, `AG-A2`, `AG-A4`, `AG-NS1`, `AG-NS4`, `AG-NA3`, `AG-C2`, `AG-C3`, `AG-C4`, `AG-M1`, `AG-TS1`, `AG-TS2`, `AG-X2`, and `AG-X4`
+- Removed from active backlog as stale duplicates already shipped in earlier records:
+  - `EO1`, `EO2`, `EO3`, `EO4`, `EO5`, `EO6`, `EO7`, `EO8`, `EO9`, and `EO11`
+- When: `2026-04-09`
+- Where:
+  - `CLAUDE.md`
+  - `TASK-RULES.md`
+  - `.gitignore`
+  - `.claude/settings.json`
+  - `.claude/task-template.md`
+  - `.claude/operating-system.md`
+  - `.claude/capability-index.md`
+  - `.claude/command-catalog.md`
+  - `.claude/agents.md`
+  - `.claude/agents/backlog-groomer.md`
+  - `.claude/agents/verifier.md`
+  - `.claude/agents/docs-keeper.md`
+  - `.claude/agents/repo-explorer.md`
+  - `.claude/agents/product-researcher.md`
+  - `.claude/scripts/README.md`
+  - `.claude/scripts/validate-bash.sh`
+  - `.claude/agent-memory/README.md`
+  - `.claude/agent-memory/verifier/MEMORY.md`
+  - `.claude/agent-memory/docs-keeper/MEMORY.md`
+  - `.claude/agent-memory/repo-explorer/MEMORY.md`
+  - `.claude/agent-memory/backlog-groomer/MEMORY.md`
+  - `.claude/skills/monthly-memory-refactor/SKILL.md`
+  - `.claude/skills/write-task/SKILL.md`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The repo’s agent operating system had grown partly real and partly aspirational. This wave made the durable runtime pieces real, removed already-shipped backlog noise, and tightened the task-writing loop so future agent work stays trustworthy.
+- What changed:
+  - Added a shared `.claude/settings.json` with safe command allowlists plus a committed Bash guard that blocks force-pushes, hard resets, dangerous deletes, and raw `supabase db reset`.
+  - Created committed project agent memory, seeded the memory directories for the verifier, docs-keeper, repo-explorer, and backlog-groomer, and upgraded the existing read-heavy agents so the memory and read-only contract is structural instead of advisory.
+  - Rebuilt `CLAUDE.md` into a leaner always-loaded contract, added the `@TASK-RULES.md` linkage, tightened session-discipline guidance, and aligned `TASK-RULES.md` plus `.claude/task-template.md` around sharper AI-written backlog items.
+  - Added the repo-portable `monthly-memory-refactor` and `write-task` skills plus the new `backlog-groomer` agent, then updated the capability index, operating-system map, command catalog, and agent overview so the new workflows are discoverable.
+  - Synced the backlog itself by moving the landed AG items out of `todolist.md`, removing stale EO duplicates that were already shipped, and narrowing the remaining operating-system follow-ups to work that is still genuinely open.
+- Verification:
+  - `npm run check`
+  - direct `validate-bash.sh` stdin tests for allowed and blocked command patterns
+  - `wc -l CLAUDE.md`
 
 ## 2026-04-08 — Parallel backlog wave: carrier multi-vehicle flows, search pagination, admin recovery, and trust clarity
 

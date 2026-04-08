@@ -32,6 +32,7 @@ Use `.claude/capability-index.md` as the quick inventory of what rules, roles, s
 | `feature-implementer` | bounded build work across code, schema, and UI | relevant rules, domain skill, relevant workflow skill |
 | `verifier` | independent validation after meaningful changes | `CLAUDE.md`, `.agent-skills/VERIFICATION.md`, matching workflow skill |
 | `docs-keeper` | documentation cleanup, memory alignment, stale-instruction fixes | `.claude/rules/docs-and-memory.md`, relevant `.agent-skills/*.md` |
+| `backlog-groomer` | backlog audits, task-quality cleanup, duplicate or stale task review | `TASK-RULES.md`, `.claude/task-template.md`, `todolist.md` |
 
 ## Delegation Rules
 
@@ -40,6 +41,7 @@ Use `.claude/capability-index.md` as the quick inventory of what rules, roles, s
 - Use verifiers after non-trivial work, especially backend, payments, booking, migrations, or multi-file UI changes.
 - Use the founder critic before green-lighting features that may distort the product wedge.
 - Use the docs keeper when flows, invariants, or commands changed and memory needs to stay current.
+- Use the backlog groomer when the backlog itself has become noisy, vague, duplicated, or stale.
 
 ## Delegation Triggers
 
@@ -51,6 +53,7 @@ Use a specialized role by default when:
 - the task changes migrations, RLS, RPCs, or typed DB contracts -> `schema-reviewer`
 - the task changes trust copy, empty states, or reassurance language -> `copy-guardian`
 - the task risks product-shape drift -> `founder-critic`
+- the task is about backlog quality, stale tasks, or task-system hygiene -> `backlog-groomer`
 
 ## Plan Mode Template
 
@@ -91,6 +94,7 @@ The role briefs live here:
 - `.claude/agents/feature-implementer.md`
 - `.claude/agents/verifier.md`
 - `.claude/agents/docs-keeper.md`
+- `.claude/agents/backlog-groomer.md`
 - `.claude/agents/product-researcher.md`
 - `.claude/agents/payments-verifier.md`
 - `.claude/agents/mobile-verifier.md`

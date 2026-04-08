@@ -29,6 +29,7 @@ Use this file as the fast inventory of what currently exists.
 | `feature-implementer` | bounded end-to-end changes once scope is understood |
 | `verifier` | independent evidence-led verification |
 | `docs-keeper` | memory cleanup and instruction alignment |
+| `backlog-groomer` | backlog audits, duplicate cleanup, and task-quality review |
 | `product-researcher` | product-shape synthesis without code mutation |
 | `payments-verifier` | payment, payout, webhook, and ledger verification |
 | `mobile-verifier` | 375px, tap target, safe-area, and capture-path checks |
@@ -56,6 +57,9 @@ Core workflows:
 - `copy-guardian`
 - `postmortem`
 - `experiment-design`
+- `chrome-qa-tester`
+- `monthly-memory-refactor`
+- `write-task`
 
 ## Command Catalog
 

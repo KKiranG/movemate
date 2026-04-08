@@ -43,6 +43,12 @@ Use this file as the discoverable index of repeatable repo workflows.
   Action-oriented incident review.
 - `experiment-design`
   Baseline-first experiment setup.
+- `chrome-qa-tester`
+  Browser-driven QA that turns findings into precise backlog items.
+- `monthly-memory-refactor`
+  Read-only docs and instruction drift audit before cleanup work.
+- `write-task`
+  Draft or sharpen backlog items using the house format before any append.
 
 ## Semantics
 

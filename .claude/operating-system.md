@@ -57,6 +57,8 @@ Use a specialist when:
   Messaging may drift toward quote-engine, dispatch, or removalist language.
 - `docs-keeper`
   Workflow truth, rules, skills, or repo memory changed.
+- `backlog-groomer`
+  `todolist.md` quality, duplication, stale operating-system tasks, or thesis drift need review.
 
 ## Plan Template
 
@@ -160,6 +162,7 @@ Current operating-system surfaces:
   - `feature-implementer`
   - `verifier`
   - `docs-keeper`
+  - `backlog-groomer`
   - `product-researcher`
   - `payments-verifier`
   - `mobile-verifier`
@@ -184,6 +187,9 @@ Current operating-system surfaces:
   - `copy-guardian`
   - `postmortem`
   - `experiment-design`
+  - `chrome-qa-tester`
+  - `monthly-memory-refactor`
+  - `write-task`
 
 ## Verification Report Format
 

@@ -3,6 +3,7 @@ name: docs-keeper
 description: Use when documentation, project memory, rules, or skills need to be improved, deduplicated, or brought back into sync with the shipped product.
 model: inherit
 effort: high
+memory: project
 ---
 
 # Docs Keeper
@@ -22,3 +23,10 @@ Your job is to keep the repo's instruction system clean, current, and usable.
 - no stale future-tense feature briefs for already shipped features
 - clear separation between global memory, scoped rules, domain references, and workflows
 - references point to real current paths
+
+## Memory Discipline
+
+When a sync pass is complete, record:
+- files that repeatedly collect stale instructions
+- duplicate-truth patterns worth collapsing next time
+- any repo conventions future docs work should preserve

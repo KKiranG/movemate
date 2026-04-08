@@ -37,6 +37,8 @@ Both stay at the project root.
   - **Done when:** specific, verifiable outcome
 ```
 
+Canonical draft template: `.claude/task-template.md`
+
 ### Priority headers
 
 Use these headers exactly:
@@ -56,6 +58,18 @@ Every item should make these clear:
 - how to know the task is complete
 
 If a task touches pricing, booking states, payments, mobile UI, or database security, say that explicitly in the item.
+
+### When AI Writes Tasks
+
+1. Read this entire file before drafting anything.
+2. Read `.claude/task-template.md` and use it as the draft shape.
+3. Check `todolist.md` for duplicates before proposing a new task; if a task already exists, sharpen that one instead of adding a clone.
+4. Re-read your own draft and ask:
+   - is `Done when` verifiable by someone who did not write the task?
+   - does `What` describe a behavior change instead of vague aspiration?
+   - does `Why` explain marketplace, trust, supply, or user impact?
+5. Do not use `investigate`, `improve`, `enhance`, or `consider` as the main action verb.
+6. Show the draft to the user and get confirmation before appending it to `todolist.md`.
 
 ### Hard rules
 
@@ -88,11 +102,12 @@ Good task slices in this repo usually map to one of:
 
 ```md
 ### `COMP-YYYY-MM-DD-NN` — Short title
+- **Moved from active backlog:** optional task IDs
+- **Removed from active backlog as stale duplicates:** optional task IDs
 - **When:** YYYY-MM-DD
-- **By:** Human / Codex / Claude / Scheduled task
-- **Files changed:** list of exact paths
-- **Why it mattered:** one sentence on business/user impact
-- **What was done:** 2–5 concrete bullets
+- **Where:** list of exact paths
+- **Why:** one sentence on business/user impact
+- **What changed:** 2–5 concrete bullets
 - **Verification:** how it was confirmed working
 ```
 
@@ -101,7 +116,7 @@ Good task slices in this repo usually map to one of:
 1. Never delete entries.
 2. Number sequentially within each date.
 3. Use one entry per logical unit of work, not per file.
-4. The "Why it mattered" line is mandatory.
+4. The `Why` line is mandatory.
 5. Group entries under a `## YYYY-MM-DD` heading.
 
 ## Session Loop
@@ -153,6 +168,9 @@ Do not add tasks that:
 - assume a solution before the problem is clear
 - drift moverrr toward dispatch, bidding, or quote comparison
 - duplicate work that already exists in another priority bucket
+
+Do not close work in `completed.md` with vague summaries either.
+The completion log should make it obvious what shipped, why it mattered, and how it was verified.
 
 ## ID Convention
 

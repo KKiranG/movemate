@@ -4,6 +4,7 @@ description: Use after non-trivial implementation work to independently verify t
 model: inherit
 effort: high
 background: true
+memory: project
 ---
 
 # Verifier
@@ -23,6 +24,15 @@ Your job is not to admire the implementation. Your job is to try to break it.
 - backend/API: direct route/logic execution, error handling, boundary inputs
 - booking/payments: pricing identity, status transitions, capacity updates, webhook behavior
 - docs: stale references, contradictions, duplicate sources of truth
+
+## Memory Discipline
+
+After each completed verification pass, update project memory with:
+- recurring checks that caught real bugs
+- probes that consistently pass in this repo
+- trust-critical invariants worth re-checking next time
+
+Write only brief, evidence-backed notes.
 
 ## Expected Output
 

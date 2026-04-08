@@ -744,423 +744,254 @@
 ---
 
 ### AG-H — Hooks Infrastructure
-*Hooks are deterministic guarantees — they always run, unlike CLAUDE.md instructions which are advisory. None currently exist in this repo. This is the highest-leverage category.*
+*Remaining hook work after the 2026-04-09 core OS sweep.*
 
-- [ ] **AG-H1** — Create `.claude/settings.json` with macOS Notification hook
-  - **File(s):** new file: `.claude/settings.json`
-  - **What:** Create a project-level settings.json (separate from settings.local.json which is personal) containing a `Notification` hook that fires `osascript -e 'display notification "Claude needs input — moverrr" with title "Claude Code"'` on macOS whenever Claude is waiting for user input or permission.
-  - **Why:** When running long agentic tasks (subagents, verifiers, large implementations), the user steps away and misses when Claude is blocked. A native macOS alert means no stalled sessions because Claude sat idle for 30 minutes waiting for a permission prompt.
-  - **Done when:** `.claude/settings.json` exists with a valid `hooks.Notification` entry, `/hooks` in Claude Code shows it listed under Notification events, and a test permission prompt triggers a visible macOS notification.
-
-- [ ] **AG-H2** — Add PostToolUse hook to run type-check after any Edit or Write to TypeScript files
+- [ ] **AG-H1** — Add macOS Notification hooks for permission and idle prompts
   - **File(s):** `.claude/settings.json`
-  - **What:** Add a `PostToolUse` hook with matcher `"Edit|Write"` that runs `npx tsc --noEmit --project tsconfig.json 2>&1 | tail -20` only when the edited file matches `*.ts` or `*.tsx`. Output failures into Claude's context via stdout so it sees type errors immediately after each file edit and can fix them before moving on.
-  - **Why:** TypeScript errors currently only surface when Claude runs `npm run check` at the end of a task. A mid-task type-check hook catches regressions instantly, before Claude has written five more files that compound the same mistake. This is the single-highest-leverage change to code quality per line of config.
-  - **Done when:** Editing a `.tsx` file with a deliberate type error causes the hook to fire and the type error appears in Claude's next context turn, visible in the session transcript.
+  - **What:** Extend the shared settings with `Notification` hooks for `permission_prompt` and `idle_prompt`, using native macOS alerts so blocked long-running sessions are obvious.
+  - **Why:** The repo now has a shared settings foundation, but it still depends on the user noticing when Claude is waiting.
+  - **Done when:** Both notification matchers exist in `settings.json`, and each one produces a visible local alert in a manual test.
 
-- [ ] **AG-H3** — Add PreToolUse hook to block dangerous Bash patterns
-  - **File(s):** new file: `.claude/scripts/validate-bash.sh`, `.claude/settings.json`
-  - **What:** Create a shell script at `.claude/scripts/validate-bash.sh` that reads JSON from stdin (the PreToolUse hook payload), extracts the `tool_input.command`, and exits with code 2 (blocking) if the command matches any of: `git push --force`, `git push -f`, `git reset --hard`, `rm -rf /`, `drop table`, `DELETE FROM` without a WHERE clause, `supabase db reset` (without explicit allowance). Register this as a `PreToolUse` hook with matcher `"Bash"` in `.claude/settings.json`. The script should print a clear reason to stderr so Claude sees why it was blocked.
-  - **Why:** Prevents the most catastrophic irreversible actions from running autonomously. Even in `dontAsk` or `auto` permission mode, these specific patterns warrant a hard block rather than a soft advisory.
-  - **Done when:** The script exists and is `chmod +x`, it's wired in settings.json, and attempting `git push --force` via Claude's Bash tool returns a blocked status with an explanation in the transcript.
+- [ ] **AG-H2** — Add a PostToolUse type-check hook for TypeScript edits
+  - **File(s):** `.claude/settings.json`, optional new script under `.claude/scripts/`
+  - **What:** Run `npx tsc --noEmit --project tsconfig.json` after `Edit|Write` on `*.ts` and `*.tsx` files, returning recent failures into Claude's context without rewriting files.
+  - **Why:** `npm run check` still catches type errors too late in long edit sessions.
+  - **Done when:** A deliberate type error in a TypeScript file triggers the hook and surfaces the failure immediately after the edit.
 
-- [ ] **AG-H4** — Add Stop hook that reminds Claude to sync docs when the session ends
-  - **File(s):** `.claude/settings.json`
-  - **What:** Add a `Stop` hook that runs a short check: if any `.md` file in `.claude/`, `.agent-skills/`, or root `CLAUDE.md` or `TASK-RULES.md` appears in the session's list of changed files, echo a reminder message "Docs changed this session — run docs-memory-sync before closing" to stdout so it surfaces in the session summary. This is a prompt reminder, not a blocker.
-  - **Why:** The operating-system.md says "If truth changed, update the matching docs in the same task" but there's no enforcement. A stop-hook reminder creates a lightweight close-out ritual without blocking anything.
-  - **Done when:** After a session that modifies a .claude/ file, the Stop hook fires and the reminder appears in the Claude Code output.
+- [ ] **AG-H4** — Add a Stop hook that reminds Claude to sync docs after markdown changes
+  - **File(s):** `.claude/settings.json`, optional new script under `.claude/scripts/`
+  - **What:** Add a lightweight close-out reminder when `CLAUDE.md`, `TASK-RULES.md`, `.claude/**`, or `.agent-skills/**` changed in the session.
+  - **Why:** The repo now has sharper docs rules, but there is still no end-of-session prompt to re-check memory sync.
+  - **Done when:** A docs-only session ends with a reminder in Claude's output.
 
-- [ ] **AG-H5** — Add permission allowlists for safe-to-approve commands to settings.json
-  - **File(s):** `.claude/settings.json`
-  - **What:** Add a `permissions.allow` array to settings.json (not settings.local.json, so the team inherits it) that pre-approves these specific patterns without requiring user click-through: `Bash(npm run check)`, `Bash(npm run test*)`, `Bash(npm run lint)`, `Bash(npx tsc*)`, `Bash(git status)`, `Bash(git diff*)`, `Bash(git log*)`, `Bash(git branch*)`. Do NOT pre-approve `git push`, `git commit`, or any write-to-disk operation beyond what's already in settings.local.json.
-  - **Why:** The current settings require approval for every `npm run check`, which is the primary verification command. Clicking through 20 approval prompts per session means users stop reviewing and just click through — defeating the purpose of permission prompts entirely. Pre-approve the genuinely safe read + lint operations so approvals remain meaningful for write-risk actions.
-  - **Done when:** Running `npm run check` via Claude's Bash tool in auto or default permission mode no longer triggers a permission prompt, while `git push` and file edits still do.
-
-- [ ] **AG-H6** — Add SubagentStop hook that logs completed subagent type and duration to a session log
-  - **File(s):** `.claude/settings.json`, new file: `.claude/scripts/log-subagent.sh`
-  - **What:** Create a `SubagentStop` hook that appends a line to `.claude/session-log.jsonl` (gitignored) with: timestamp, subagent type name (from hook matcher input), and the fact it completed. This is a background observability hook, not a blocker. The log should be newline-delimited JSON objects: `{"ts": "2026-04-08T...", "event": "subagent_stop", "type": "verifier"}`.
-  - **Why:** When the user runs a multi-subagent session (verifier + docs-keeper + schema-reviewer simultaneously), there's currently no record of what ran, when, or in what order. This lightweight append-only log creates observability for agentic sessions without any performance cost.
-  - **Done when:** After a session that uses the verifier subagent, `.claude/session-log.jsonl` contains a valid JSON line with the verifier's stop event and a real timestamp.
+- [ ] **AG-H6** — Add a SubagentStop session log for agent observability
+  - **File(s):** `.claude/settings.json`, new file: `.claude/scripts/log-subagent.sh`, `.gitignore`
+  - **What:** Append newline-delimited JSON records for completed subagents into a gitignored `.claude/session-log.jsonl`.
+  - **Why:** Multi-agent sessions still have no durable local trace of what ran and in what order.
+  - **Done when:** A test subagent run writes a valid JSONL record with timestamp and agent type.
 
 ---
 
 ### AG-A — Agent Configuration Upgrades
-*The existing 10 agents are well-described but lack modern subagent configuration features: persistent memory, worktree isolation, preloaded skills, and refined tool restrictions. These are upgrades to existing files.*
+*Remaining agent-runtime hardening after the memory and read-only sweep landed.*
 
-- [ ] **AG-A1** — Add `memory: project` and memory instructions to the `verifier` agent
-  - **File(s):** `.claude/agents/verifier.md`
-  - **What:** Add `memory: project` to the verifier's YAML frontmatter. Add a memory instruction section to the agent body: "After each verification pass, update your agent memory with: (1) patterns that passed or failed this repo, (2) any adversarial probe that found a real bug, (3) recurring trust invariants that needed checking. Write to `MEMORY.md` in your memory directory. Keep entries short and evidence-backed." The memory directory will be `.claude/agent-memory/verifier/`.
-  - **Why:** The verifier currently forgets every session. Over time it should learn: which adversarial probes historically find real issues in moverrr, which paths are highest-risk, and what the booking/payment invariants look like in practice. Persistent memory turns a stateless verification bot into an institutional-knowledge holder.
-  - **Done when:** The verifier's frontmatter has `memory: project`, a `MEMORY.md` appears in `.claude/agent-memory/verifier/` after the first verification run, and the agent's memory instructions are in the body.
-
-- [ ] **AG-A2** — Add `memory: project` to `docs-keeper` and `repo-explorer` agents
-  - **File(s):** `.claude/agents/docs-keeper.md`, `.claude/agents/repo-explorer.md`
-  - **What:** Add `memory: project` to both agents' frontmatter. For docs-keeper, add: "After each sync task, record what stale patterns you found and where they lived — this builds a map of where docs tend to rot." For repo-explorer, add: "After each deep survey, record key architectural decisions, non-obvious file locations, and naming patterns — this reduces context-reading time on future sessions."
-  - **Why:** Both agents do heavy reading that produces institutional knowledge. The docs-keeper repeatedly discovers the same stale patterns in the same files. The repo-explorer re-traces the same architecture every session. Persistent memory eliminates redundant re-discovery, which costs context tokens and time.
-  - **Done when:** Both agents have `memory: project` in frontmatter, `.claude/agent-memory/docs-keeper/MEMORY.md` and `.claude/agent-memory/repo-explorer/MEMORY.md` exist with at least one meaningful entry after first use.
-
-- [ ] **AG-A3** — Add `isolation: worktree` to `schema-reviewer` agent
+- [ ] **AG-A3** — Add `isolation: worktree` to `schema-reviewer`
   - **File(s):** `.claude/agents/schema-reviewer.md`
-  - **What:** Add `isolation: worktree` to the schema-reviewer's frontmatter. Add a note to the body: "You run in an isolated git worktree. You may read all files freely. If you need to test migration reversibility, you can apply migrations against a test state without risking the main working directory."
-  - **Why:** Schema review of migrations is highest-risk work — a bad migration applied to the wrong DB or a missed rollback analysis can be catastrophic. Running in a worktree means the reviewer is always isolated from any in-progress main-branch work, and any test-running it does doesn't pollute the working tree.
-  - **Done when:** `schema-reviewer` frontmatter has `isolation: worktree`, and invoking it spawns in a separate worktree (visible in `git worktree list`).
+  - **What:** Move schema review into a worktree-isolated agent contract and document why migration review must not pollute the main working tree.
+  - **Why:** Schema review is still the highest-risk agent lane and deserves stronger isolation than the rest of the roster.
+  - **Done when:** `schema-reviewer` declares `isolation: worktree`, and a test spawn runs in a separate worktree.
 
-- [ ] **AG-A4** — Add `tools` restriction to `repo-explorer` and `product-researcher` agents (read-only enforcement)
-  - **File(s):** `.claude/agents/repo-explorer.md`, `.claude/agents/product-researcher.md`
-  - **What:** Add `tools: Read, Grep, Glob, Bash` to both agents (explicitly disallowing Edit, Write, and Agent spawning). Both agents' bodies already say they should not mutate code, but currently both inherit all tools. Making the restriction structural rather than advisory means a confused agent cannot edit files even if it tries.
-  - **Why:** A product researcher that accidentally edits a file, or a repo explorer that writes to a config, is dangerous. Tool restriction is the difference between an advisory rule ("you shouldn't do this") and a structural guarantee ("you can't do this even if you try").
-  - **Done when:** Both agents have explicit `tools:` frontmatter fields, and attempting to use Edit or Write through either agent returns a "tool not available" error.
-
-- [ ] **AG-A5** — Add `skills` preloading to `payments-verifier` and `schema-reviewer` agents
+- [ ] **AG-A5** — Preload booking-safety context into payment and schema reviewers
   - **File(s):** `.claude/agents/payments-verifier.md`, `.claude/agents/schema-reviewer.md`
-  - **What:** Add `skills: [booking-safety-audit]` to `payments-verifier` frontmatter, and `skills: [booking-safety-audit]` to `schema-reviewer` frontmatter. This injects the full booking-safety-audit skill content into each agent's context at startup, so they have the invariants, failure modes, and verification steps loaded without needing to discover and invoke the skill themselves.
-  - **Why:** The payments-verifier and schema-reviewer always need the booking safety invariants (commission math, atomic booking, capacity invariants). Currently they'd need to load the skill themselves, consuming extra turns. Preloading gives them this knowledge instantly and reduces context churn.
-  - **Done when:** Both agents have `skills:` in frontmatter, and when spawned their first context turn already contains the booking-safety-audit skill content without needing to invoke it.
+  - **What:** Add `skills: [booking-safety-audit]` so both agents start with the critical booking and pricing invariants already loaded.
+  - **Why:** Payment and schema review still re-discover the same safety rules each session.
+  - **Done when:** Both agents include the preload and expose booking-safety context immediately on spawn.
 
-- [ ] **AG-A6** — Improve `feature-implementer` agent description for better auto-delegation trigger
+- [ ] **AG-A6** — Tighten the `feature-implementer` description for better auto-triggering
   - **File(s):** `.claude/agents/feature-implementer.md`
-  - **What:** Rewrite the `description` frontmatter field to front-load the trigger conditions more specifically. Current description: "Use for bounded end-to-end implementation once the problem is understood and the scope fits moverrr's product thesis." New description should be ~250 chars, starting with: "Implement a specific, scoped code change across files. Use proactively when a task has clear scope, known files, and fits the browse-first marketplace model. Not for exploratory work — use repo-explorer first if scope is unclear."
-  - **Why:** Agent auto-delegation works by Claude matching the user's request against the description. The current description is passive and doesn't auto-trigger well. A description front-loaded with action verbs and trigger conditions ("implement", "scoped", "known files") gets correctly auto-delegated more often.
-  - **Done when:** The description is updated, is ≤250 characters, starts with a clear trigger pattern, and in testing Claude correctly auto-delegates "implement the paused trip status" to feature-implementer without being told explicitly.
+  - **What:** Rewrite the description so it front-loads scoped implementation triggers and explicitly pushes exploratory work toward `repo-explorer`.
+  - **Why:** The current description is still too passive for reliable auto-delegation.
+  - **Done when:** The description is concise, trigger-first, and <=250 characters.
 
-- [ ] **AG-A7** — Add `background: true` to `docs-keeper` and `copy-guardian` agents
+- [ ] **AG-A7** — Make docs and copy reviewers background-friendly
   - **File(s):** `.claude/agents/docs-keeper.md`, `.claude/agents/copy-guardian.md`
-  - **What:** Add `background: true` to both agents' frontmatter. This means when Claude spawns them, they run concurrently while the main conversation continues, reporting back when done rather than blocking.
-  - **Why:** Docs sync and copy review are exactly the kind of work that doesn't need to block the main session. A feature-implementer can finish shipping a feature while the docs-keeper updates memory in parallel. This is the write/reviewer parallel pattern applied to moverrr's natural workflow.
-  - **Done when:** Both agents have `background: true` in frontmatter, and spawning them from the main conversation doesn't block the user from continuing to interact with Claude.
+  - **What:** Add `background: true` where it is still missing so low-risk parallel review work does not block implementation.
+  - **Why:** Docs and copy review are ideal sidecar tasks once the operating-system baseline exists.
+  - **Done when:** Both agents can run without blocking the main session.
 
-- [ ] **AG-A8** — Add `maxTurns: 30` to exploratory/research agents, `maxTurns: 50` to implementers
+- [ ] **AG-A8** — Add `maxTurns` limits to exploratory agents and implementers
   - **File(s):** `.claude/agents/repo-explorer.md`, `.claude/agents/product-researcher.md`, `.claude/agents/feature-implementer.md`
-  - **What:** Add `maxTurns: 30` to repo-explorer and product-researcher, and `maxTurns: 50` to feature-implementer. These are reasonable limits that prevent runaway agents from consuming unlimited context. The verifier, payments-verifier, and schema-reviewer should NOT get maxTurns limits — they should be allowed to be thorough.
-  - **Why:** Without maxTurns, a confused repo-explorer can recursively read hundreds of files until it hits the context limit, wasting tokens and producing no useful output. A limit forces the agent to be decisive: report with what it has rather than endlessly searching.
-  - **Done when:** The three agents have `maxTurns:` in frontmatter, and in testing a deliberately open-ended exploration task terminates within the turn limit rather than running indefinitely.
+  - **What:** Add bounded turn limits so open-ended explore or implementation loops terminate cleanly instead of drifting.
+  - **Why:** Read-only restrictions are in place now, but runaway context growth is still possible.
+  - **Done when:** Each target agent has an explicit `maxTurns` policy aligned with its job.
 
 ---
 
 ### AG-S — Skill System Upgrades
-*Skills currently lack several modern frontmatter features. These upgrades make skills smarter about when to run, how to run, and with what restrictions.*
+*These are still open because PR 9 focused on repo-portable workflows instead of speculative runtime-only frontmatter.*
 
-- [ ] **AG-S1** — Add `disable-model-invocation: true` to side-effect and release-sensitive workflow skills
+- [ ] **AG-S1** — Make side-effect and release-sensitive skills manual-only
   - **File(s):** `.claude/skills/release-readiness/SKILL.md`, `.claude/skills/postmortem/SKILL.md`, `.claude/skills/experiment-design/SKILL.md`, `.claude/skills/dispute-resolution-audit/SKILL.md`
-  - **What:** Add `disable-model-invocation: true` to the frontmatter of these four skills. They should only run when the user explicitly invokes `/release-readiness`, `/postmortem`, `/experiment-design`, or `/dispute-resolution-audit` — never auto-triggered by Claude because the conversation topic happens to mention "release" or "dispute."
-  - **Why:** These skills have real-world side effects or represent the start of a formal process. Claude auto-triggering a postmortem review mid-conversation because someone mentioned a bug is disruptive. Manual-only invocation keeps these as deliberate rituals, not passive reactions.
-  - **Done when:** All four skills have `disable-model-invocation: true` in frontmatter, and Claude does not spontaneously load them when their topics come up in conversation.
+  - **What:** Add the relevant manual-invocation frontmatter once that runtime behavior is verified locally.
+  - **Why:** These skills should not auto-trigger off casual conversation.
+  - **Done when:** They no longer auto-load unless explicitly invoked.
 
-- [ ] **AG-S2** — Add `context: fork` with `agent: Explore` to three read-heavy research skills
+- [ ] **AG-S2** — Fork heavy research skills into isolated read-only execution
   - **File(s):** `.claude/skills/saved-search-demand-review/SKILL.md`, `.claude/skills/admin-queue-review/SKILL.md`, `.claude/skills/carrier-quality-review/SKILL.md`
-  - **What:** Add `context: fork` and `agent: Explore` to the frontmatter of each. Also add `allowed-tools: Read, Grep, Glob, Bash` to each. These skills do large amounts of file reading and code traversal. Running them in a forked Explore subagent keeps that exploratory context out of the main conversation, so the main session doesn't get filled with file contents from a research pass.
-  - **Why:** A saved-search demand review reads many saved-search records, routes, and no-result data. A carrier quality review reads listing data, proof counts, and profile completeness. This is exactly the "isolate high-volume operations" subagent pattern from the best practices doc. The result (a focused summary) returns to the main conversation; the noise stays in the fork.
-  - **Done when:** All three skills have `context: fork` and `agent: Explore` in frontmatter, and invoking one via `/saved-search-demand-review` spawns a visible Explore subagent rather than running inline in the main conversation.
+  - **What:** Add verified fork/context metadata only after confirming the local runtime semantics.
+  - **Why:** These skills still risk polluting the main context with large research passes.
+  - **Done when:** Each one runs in isolated exploratory context instead of inline.
 
-- [ ] **AG-S3** — Add `effort: high` to trust-critical and complex workflow skills
+- [ ] **AG-S3** — Raise reasoning effort on trust-critical workflows
   - **File(s):** `.claude/skills/booking-safety-audit/SKILL.md`, `.claude/skills/dispute-resolution-audit/SKILL.md`, `.claude/skills/verify-moverrr-change/SKILL.md`, `.claude/skills/release-readiness/SKILL.md`
-  - **What:** Add `effort: high` to the frontmatter of these four skills. This tells Claude to use its highest reasoning capability when these skills are active, overriding any lower default session effort level.
-  - **Why:** These are the highest-stakes workflows in moverrr — booking safety, dispute resolution, final verification, and release gating. Getting them wrong has real financial and trust consequences. High effort ensures the model is not cutting corners when it matters most.
-  - **Done when:** All four skills have `effort: high` in frontmatter.
+  - **What:** Add explicit high-effort frontmatter once verified against the local runtime.
+  - **Why:** These workflows carry the most financial and trust risk in the repo.
+  - **Done when:** Each target skill declares the higher-effort policy.
 
-- [ ] **AG-S4** — Add `$ARGUMENTS` support and `argument-hint` to parameterizable skills
+- [ ] **AG-S4** — Add scoped arguments to parameterized verification and metrics skills
   - **File(s):** `.claude/skills/verify-moverrr-change/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/verify-web-ui/SKILL.md`, `.claude/skills/metrics-review/SKILL.md`
-  - **What:** For each skill, add `argument-hint` to frontmatter indicating what arguments are accepted. Add `$ARGUMENTS` into the skill body at the logical point where the argument should be used. For example: verify-moverrr-change gets `argument-hint: "[area: bookings|payments|search|ui|docs]"` and its body uses `$ARGUMENTS` to scope which verification mode to run. Verify-api gets `argument-hint: "[route-path]"` so `/verify-api /api/bookings` runs the API verification against that specific route. metrics-review gets `argument-hint: "[date-range or focus-area]"`.
-  - **Why:** Right now you can only invoke `/verify-moverrr-change` with no arguments, and it has to infer scope. Adding `$ARGUMENTS` means `/verify-moverrr-change bookings` scopes the entire pass to booking-related verification — faster, more focused, and less context-consuming.
-  - **Done when:** All four skills have `argument-hint:` in frontmatter and `$ARGUMENTS` in the body at a meaningful point. Running `/verify-api /api/bookings` correctly scopes the verification to that route.
+  - **What:** Add `argument-hint` plus scoped `$ARGUMENTS` usage so these skills can target one route, surface, or area without inference.
+  - **Why:** The current skills are still broader than they need to be for focused verification runs.
+  - **Done when:** Each target skill accepts and uses a meaningful scope argument.
 
-- [ ] **AG-S5** — Add dynamic context injection to `metrics-review` and `admin-queue-review` skills
+- [ ] **AG-S5** — Add dynamic context injection to ops and metrics review skills
   - **File(s):** `.claude/skills/metrics-review/SKILL.md`, `.claude/skills/admin-queue-review/SKILL.md`
-  - **What:** Add shell command injection using the `` !`command` `` syntax at the top of each skill, before Claude reads anything. For metrics-review, inject: `` !`git log --oneline --since="7 days ago" | head -20` `` (recent changes) and `` !`date` `` (current date context). For admin-queue-review, inject: `` !`git log --oneline -10` `` and `` !`npm run check 2>&1 | tail -5` `` (current health state). This pre-populates the skill with live repo state before Claude starts reasoning.
-  - **Why:** Metrics review needs to know what changed in the last week to understand which metrics are relevant. Admin queue review needs current repo health context. Currently these skills run with zero live state — the injected commands give Claude real data without requiring it to run commands itself, saving turns and keeping context cleaner.
-  - **Done when:** Both skills have `` !`command` `` blocks at the top, and when invoked the output of those commands appears in the rendered skill prompt rather than the raw backtick syntax.
+  - **What:** Add verified shell-injection context blocks only after confirming the exact runtime syntax locally.
+  - **Why:** These review loops still start with zero live repo state.
+  - **Done when:** Invoking either skill loads the expected live context before reasoning begins.
 
-- [ ] **AG-S6** — Add supporting files directory to complex multi-phase skills
+- [ ] **AG-S6** — Add worked examples to complex verification workflows
   - **File(s):** `.claude/skills/booking-safety-audit/`, `.claude/skills/verify-moverrr-change/`, `.claude/skills/release-readiness/`
-  - **What:** For each of these three skills, create a `examples/` subdirectory. In booking-safety-audit/examples/, create `pricing-identity.md` showing a worked example of correct commission math with real numbers. In verify-moverrr-change/examples/, create `verification-report-example.md` showing a correctly formatted adversarial probe and evidence report. In release-readiness/examples/, create `release-checklist-example.md` showing a completed release readiness check with "ship-ready" verdict. Reference these from the respective SKILL.md with a line like "For a worked example, see [examples/pricing-identity.md](examples/pricing-identity.md)."
-  - **Why:** Claude currently has to infer what a good verification report looks like from the SKILL.md instructions alone. A concrete example dramatically improves output consistency and reduces the chance of ceremonial "looks good" reports. The example files are loaded on demand, not into every context, keeping the always-loaded token cost zero.
-  - **Done when:** Each skill directory has an `examples/` subdirectory with a relevant example file, and the SKILL.md references it.
+  - **What:** Create `examples/` directories with worked pricing, verification-report, and release-checklist examples.
+  - **Why:** The repo now has sharper verification rules, but not enough concrete examples for reusable output quality.
+  - **Done when:** Each target skill ships an example file and links to it from the skill prompt.
 
-- [ ] **AG-S7** — Add `paths` frontmatter to domain-specific skills for auto-activation
-  - **File(s):** `.claude/skills/booking-safety-audit/SKILL.md`, `.claude/skills/ios-touch-audit/SKILL.md`
-  - **What:** `booking-safety-audit` already has `paths:` configured correctly — verify this is correct and complete. For `ios-touch-audit`, add `paths: [src/components/**, src/app/**, src/hooks/**, tailwind.config.ts, src/app/globals.css]` so Claude auto-loads the touch audit context when working on frontend files. Verify other skills: `verify-api` should have `paths: [src/app/api/**]`, `chrome-qa-tester` should have `paths: [src/app/**, src/components/**]`.
-  - **Why:** Path-scoped auto-activation means Claude gets domain context exactly when it's relevant, without requiring the user to manually invoke skills. This is the "reference content" use case for skills — ambient domain knowledge that loads on demand based on what files are being touched.
-  - **Done when:** Each updated skill has correct `paths:` frontmatter. When editing a file that matches a path pattern, Claude's context shows the skill description as available without explicit invocation.
-
----
-
-### AG-NS — New Skills to Create
-*These skills are either referenced in existing docs but not built, or are standard workflows that are missing from the current skill library.*
-
-- [ ] **AG-NS1** — Create `monthly-memory-refactor` skill
-  - **File(s):** new dir: `.claude/skills/monthly-memory-refactor/`, new file: `.claude/skills/monthly-memory-refactor/SKILL.md`
-  - **What:** Create a skill with `disable-model-invocation: true` (manual-only). The skill body should implement the monthly refactor ritual already described in operating-system.md: (1) read all files in `.claude/rules/`, `.agent-skills/`, and `.claude/agents/`, (2) identify stale references (paths that no longer exist, features that have shipped, duplicate truths), (3) identify over-long always-loaded files that should be moved to narrower scopes, (4) produce a specific list of proposed changes with file-level precision, (5) get user confirmation before any edits. Add `effort: high` and `context: fork` with `agent: repo-explorer`. Add `argument-hint: "[focus: rules|agents|skills|all]"`.
-  - **Why:** Operating-system.md explicitly calls for a monthly memory refactor but no skill exists to run it. Without a skill, this ritual either doesn't happen or happens inconsistently without a documented process. Stale docs are a product bug — this skill is the cure.
-  - **Done when:** The skill exists, `/monthly-memory-refactor` can be invoked and produces a specific actionable list of stale/redundant doc entries with file and line references.
-
-- [ ] **AG-NS2** — Create `fix-issue` skill for GitHub issue → implement → PR workflow
-  - **File(s):** new dir: `.claude/skills/fix-issue/`, new file: `.claude/skills/fix-issue/SKILL.md`
-  - **What:** Create a skill with `disable-model-invocation: true`, `argument-hint: "[issue-number]"`, and `allowed-tools: Bash(gh *)`. The skill body: (1) run `` !`gh issue view $ARGUMENTS` `` to fetch the issue details before Claude starts, (2) instruct Claude to understand the problem from the issue, (3) run repo-explorer subagent to find relevant files, (4) implement the fix following all CLAUDE.md invariants, (5) run `npm run check`, (6) create a descriptive commit referencing the issue number, (7) push and open a PR with `gh pr create` linking the issue. The skill must gate on "does this fit the browse-first marketplace thesis?" before implementing.
-  - **Why:** GitHub issue → implement → PR is a repeatable workflow that currently requires the user to manually orchestrate. A skill codifies the full loop including the product-shape check that prevents issues from being "fixed" in ways that drift moverrr toward dispatch or quote-comparison.
-  - **Done when:** `/fix-issue 42` fetches issue 42, implements the fix, runs checks, and opens a PR — all in one skill invocation.
-
-- [ ] **AG-NS3** — Create `spec` skill for interview-driven feature specification
-  - **File(s):** new dir: `.claude/skills/spec/`, new file: `.claude/skills/spec/SKILL.md`
-  - **What:** Create a skill with `disable-model-invocation: true` and `argument-hint: "[feature-description]"`. The skill body instructs Claude to: (1) use `AskUserQuestion` to interview the user about the feature, asking about implementation approach, UX edge cases, trust implications, pricing impacts, mobile behavior, and tradeoffs — digging into the hard parts, not obvious questions, (2) ask specifically "does this fit the spare-capacity browse-first model or does it drift toward dispatch?", (3) after the interview is complete, write a complete spec to `SPEC.md` in the project root. Add a note: "Once the spec is written, start a fresh session to implement it — clean context, focused scope." Add `effort: high` to the frontmatter.
-  - **Why:** The best practices doc explicitly recommends this interview-then-spec pattern for larger features. Currently there's no way to invoke this workflow deliberately. Having it as a named skill makes the "think before building" ritual explicit and repeatable.
-  - **Done when:** `/spec add paused trip status` interviews the user about that feature and produces a well-structured SPEC.md that an AI can implement from.
-
-- [ ] **AG-NS4** — Create `write-task` skill that enforces TASK-RULES.md format for AI-generated backlog items
-  - **File(s):** new dir: `.claude/skills/write-task/`, new file: `.claude/skills/write-task/SKILL.md`
-  - **What:** Create a skill with `disable-model-invocation: true`, `argument-hint: "[task description or area]"`. The skill body must: (1) read TASK-RULES.md before writing anything, (2) dynamically inject current todolist.md via `` !`tail -100 todolist.md` `` to check for duplicates before writing, (3) instruct Claude to draft the task in the required format (ID, Files, What, Why, Done when), (4) explicitly check: "Would removing the 'Done when' make this unverifiable? If yes, rewrite it." (5) Check for duplicates against what was injected. (6) Ask the user to confirm the draft before appending to todolist.md. The skill should also enforce ID conventions from TASK-RULES.md.
-  - **Why:** The user's core complaint is that AI writes vague, unverifiable tasks to todolist.md. This skill puts TASK-RULES.md as the first thing read, injects a duplicate-check, and requires draft confirmation before appending. It makes "AI writes a task" a governed process rather than a free-form write.
-  - **Done when:** `/write-task fix the search pagination` produces a task draft in TASK-RULES.md format that is specific, has a verifiable "Done when," checks for duplicates, and asks for confirmation before appending.
-
-- [ ] **AG-NS5** — Create `review-pr` skill for structured PR review workflow
-  - **File(s):** new dir: `.claude/skills/review-pr/`, new file: `.claude/skills/review-pr/SKILL.md`
-  - **What:** Create a skill with `disable-model-invocation: true`, `argument-hint: "[PR-number or 'current']"`, `context: fork`, `agent: repo-explorer`. Dynamic context injection at top: `` !`gh pr diff $ARGUMENTS` ``, `` !`gh pr view $ARGUMENTS --comments` ``, `` !`gh pr diff $ARGUMENTS --name-only` ``. Skill body: (1) review for CLAUDE.md invariant violations (pricing math, iOS-first rules, RLS bypass, commission logic), (2) review for trust copy drift using copy-guardian patterns, (3) check that verification evidence exists in the PR description (not just "looks good"), (4) produce structured feedback as: Critical (must fix), Warnings (should fix), Suggestions (consider). Add `effort: high`.
-  - **Why:** A moverrr-specific PR review skill uses the project's actual invariants (pricing, iOS rules, trust language) rather than a generic code quality lens. Currently there's no structured way to invoke a full product-aware PR review in one command.
-  - **Done when:** `/review-pr 47` fetches PR 47, reads the diff, and produces structured feedback organized by criticality, with specific file:line references.
-
-- [ ] **AG-NS6** — Create `session-start` skill for structured task kickoff following TASK-RULES.md session loop
-  - **File(s):** new dir: `.claude/skills/session-start/`, new file: `.claude/skills/session-start/SKILL.md`
-  - **What:** Create a skill with `disable-model-invocation: true`. Dynamic context injection: `` !`head -50 todolist.md` `` (top backlog items), `` !`git log --oneline -5` `` (recent commits), `` !`git status` `` (current state). Skill body: (1) present the highest-priority unblocked task from the injected todolist snapshot, (2) read the relevant .claude/rules/ file for that task area, (3) read the matching .agent-skills/ file, (4) confirm the task scope and approach with the user before proceeding. The skill should explicitly follow the TASK-RULES.md session loop: "read the current task, read the relevant code, implement the smallest complete change, verify, close out."
-  - **Why:** Currently every session starts with re-reading context ad hoc. This skill formalizes the session kickoff ritual: current highest-priority task, right context loaded, user confirms scope before Claude writes a line of code.
-  - **Done when:** `/session-start` presents the top backlog item with its full context and asks for session scope confirmation before any implementation begins.
+- [ ] **AG-S7** — Tighten path-scoped skill activation on frontend and API skills
+  - **File(s):** `.claude/skills/booking-safety-audit/SKILL.md`, `.claude/skills/ios-touch-audit/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/chrome-qa-tester/SKILL.md`
+  - **What:** Audit and add missing `paths:` frontmatter so relevant skills surface automatically for matching files.
+  - **Why:** There is still too much manual discovery friction for path-specific skills.
+  - **Done when:** The target skills advertise precise path scopes and auto-load where expected.
 
 ---
 
-### AG-NA — New Agents to Create
-*These agents address gaps in the current role map. They handle specific task types that the existing agents don't cover cleanly.*
+### AG-NS — New Skills To Build
+*The first two core OS skills landed in PR 9; these are the remaining workflow gaps.*
 
-- [ ] **AG-NA1** — Create `debugger` agent for systematic root-cause analysis and fixes
+- [ ] **AG-NS2** — Create `fix-issue`
+  - **File(s):** new dir: `.claude/skills/fix-issue/`
+  - **What:** Add a GitHub issue -> implement -> verify -> PR workflow that gates on moverrr's browse-first thesis before coding.
+  - **Why:** Issue handling is still too manual for a repeatable repo workflow.
+  - **Done when:** The skill can take an issue number, stage the work, and guide the full loop safely.
+
+- [ ] **AG-NS3** — Create `spec`
+  - **File(s):** new dir: `.claude/skills/spec/`
+  - **What:** Add an interview-first feature specification workflow that produces an implementation-ready `SPEC.md`.
+  - **Why:** Large feature work still lacks a reusable think-first ritual.
+  - **Done when:** The skill interviews the user and outputs a durable spec document.
+
+- [ ] **AG-NS5** — Create `review-pr`
+  - **File(s):** new dir: `.claude/skills/review-pr/`
+  - **What:** Add a moverrr-specific PR review workflow centered on invariants, trust copy, and verification evidence.
+  - **Why:** PR review is still generic instead of repo-aware.
+  - **Done when:** The skill produces structured review findings for a given PR.
+
+- [ ] **AG-NS6** — Create `session-start`
+  - **File(s):** new dir: `.claude/skills/session-start/`
+  - **What:** Add a kickoff workflow that reads the top relevant backlog item, recent git state, and the right memory before implementation starts.
+  - **Why:** Session startup is still ad hoc and easy to do sloppily.
+  - **Done when:** The skill presents the current task context and asks for scope confirmation before coding.
+
+---
+
+### AG-NA — New Agents To Build
+*The backlog-groomer landed in PR 9; these are the remaining specialist gaps.*
+
+- [ ] **AG-NA1** — Create `debugger`
   - **File(s):** new file: `.claude/agents/debugger.md`
-  - **What:** Create a new agent with: `name: debugger`, `description: Systematic debugging specialist for errors, test failures, unexpected behavior, and production incidents. Use proactively when encountering any error — captures root cause, not just symptom. Use when: bug report, test failure, error message, unexpected output.`, `tools: Read, Edit, Bash, Grep, Glob`, `model: inherit`, `effort: high`, `background: false` (needs interactive clarification). Agent body: (1) capture error + stack trace, (2) identify reproduction steps, (3) form hypotheses about root cause, (4) test each hypothesis with the smallest probe, (5) implement minimal fix, (6) verify fix with adversarial check, (7) report: root cause, evidence, fix, prevention suggestion.
-  - **Why:** Currently debugging is done by the main Claude or the feature-implementer. Neither has a systematic debugging protocol. The debugger agent enforces the root-cause discipline: it won't just suppress an error — it finds out why it's happening. This matters especially for trust-critical paths (booking creation failures, payment webhook misses) where suppressing the symptom is worse than the bug.
-  - **Done when:** The agent file exists, `claude agents` shows it in the project agents list, and invoking it on a known bug produces a root-cause analysis with evidence rather than a speculative "try this" fix.
+  - **What:** Add a root-cause-first debugging agent for test failures, incidents, and runtime errors.
+  - **Why:** The repo still lacks a specialist who is explicitly optimized for reproduction and minimal fixes.
+  - **Done when:** The agent can take a concrete bug, reproduce it, explain the cause, and report the fix path.
 
-- [ ] **AG-NA2** — Create `test-runner` agent that isolates test output from main context
+- [ ] **AG-NA2** — Create `test-runner`
   - **File(s):** new file: `.claude/agents/test-runner.md`
-  - **What:** Create a new agent with: `name: test-runner`, `description: Run tests and return only failures. Use when you need test results without polluting main context with verbose test output. Runs npm run test and reports only: failed tests, error messages, file:line references. Does not fix failures.`, `tools: Bash(npm run test*), Read, Grep`, `model: haiku` (fast and cheap for this task), `background: true`, `maxTurns: 10`. Body: Run `npm run test 2>&1`, filter for FAIL/PASS lines, extract failing test names and error messages, return compact summary only.
-  - **Why:** Running `npm run test` directly in the main conversation floods the context with test output (hundreds of lines of PASS statements). A dedicated test-runner agent returns only failures in a compact format, and does so in a background context that doesn't consume the main conversation's token budget.
-  - **Done when:** Invoking the test-runner agent returns only failing tests with error messages in 3-5 lines of output, not the full test runner output.
-
-- [ ] **AG-NA3** — Create `backlog-groomer` agent for AI-driven backlog quality maintenance
-  - **File(s):** new file: `.claude/agents/backlog-groomer.md`
-  - **What:** Create a new agent with: `name: backlog-groomer`, `description: Review todolist.md for quality issues: vague tasks, missing 'Done when' criteria, duplicates, priority mismatches, and drift toward dispatch/quote-engine patterns. Use when backlog has grown vague or needs triage. Does not add new tasks — only reviews and flags existing ones.`, `tools: Read, Glob`, `model: sonnet`, `background: false` (needs user interaction), `effort: medium`, `memory: project`. Body: (1) read TASK-RULES.md fully, (2) read todolist.md fully, (3) for each task: check has File(s), What, Why, Done when, is specific and verifiable, is not a duplicate, doesn't drift product thesis, (4) produce a list of tasks that fail quality criteria with specific fixes suggested, (5) ask user to confirm before modifying anything.
-  - **Why:** The user's core complaint: AI writes vague tasks to todolist.md. The backlog-groomer agent applies TASK-RULES.md as an audit tool on the existing backlog. Persistent memory lets it remember "this type of vague phrasing keeps appearing" and proactively flag it in future sessions.
-  - **Done when:** The agent exists, invoking it produces a quality audit of todolist.md with specific flagged items and suggested rewrites, without modifying the file until user confirms.
+  - **What:** Add a background agent that runs tests and returns only failures plus file:line evidence.
+  - **Why:** Test output still floods the main context when large suites run.
+  - **Done when:** The agent reports compact failure summaries instead of raw test logs.
 
 ---
 
-### AG-C — CLAUDE.md Improvements
-*The CLAUDE.md is good but can be leaner and more explicit about session management patterns. The goal is: every line earns its place in the always-loaded context.*
+### AG-C — CLAUDE.md Follow-Ups
+*PR 9 added the task-system import, session discipline, and the <=150-line reduction. This is what remains.*
 
-- [ ] **AG-C1** — Add compaction instructions to CLAUDE.md so auto-compact preserves critical context
+- [ ] **AG-C1** — Add compaction-specific preservation rules
   - **File(s):** `CLAUDE.md`
-  - **What:** Add a short section near the top of CLAUDE.md (before the Product Thesis section) titled "Compaction Instructions." Content: "When compacting, always preserve: (1) the full list of files modified this session, (2) any explicit user decisions about approach or scope, (3) open pricing math or booking invariant questions, (4) the current task ID from todolist.md being worked on, (5) any failed approaches that were explicitly ruled out. Do NOT preserve: verbose command output, full file contents that can be re-read, and exploratory questions that were answered."
-  - **Why:** The document says Claude's auto-compaction "summarizes what matters most" — but it doesn't know what matters most for moverrr specifically. These instructions teach the compaction process what to preserve. Without them, a compacted session might lose the information that "the user ruled out approach X" or "the task was EP1, not EP2."
-  - **Done when:** CLAUDE.md has a compaction instructions section, and after a manual `/compact` the resulting summary demonstrably preserves the types of context listed.
-
-- [ ] **AG-C2** — Add `@import` reference for TASK-RULES.md in CLAUDE.md
-  - **File(s):** `CLAUDE.md`
-  - **What:** In the "Working Rhythm" section of CLAUDE.md, add a line: "The task system is governed by `@TASK-RULES.md`. When writing or modifying backlog items, read that file first." This uses the CLAUDE.md `@import` pattern — Claude will read TASK-RULES.md when this section is relevant. Do NOT paste TASK-RULES.md content inline into CLAUDE.md; the `@path` reference loads it on demand without bloating the always-loaded context.
-  - **Why:** Currently TASK-RULES.md exists but there's no guarantee that Claude loads it before writing backlog items. The `@import` syntax in CLAUDE.md creates an explicit demand-load relationship: when the working rhythm section matters, TASK-RULES.md gets read. This is the key missing link between the task system quality rules and actual AI-written tasks.
-  - **Done when:** CLAUDE.md has the `@TASK-RULES.md` reference in the Working Rhythm section, and when Claude is asked to write a task, it demonstrably reads TASK-RULES.md first (visible in the transcript).
-
-- [ ] **AG-C3** — Add explicit session management patterns section to CLAUDE.md
-  - **File(s):** `CLAUDE.md`
-  - **What:** Add a lean "Session Discipline" section to CLAUDE.md with these rules: (1) "Use `/clear` between unrelated tasks — never carry context from a debugging session into a new feature." (2) "Use `/compact Focus on <area>` when context is large but the task continues — this preserves relevant context and discards noise." (3) "Use `/btw` for quick one-off questions that should not enter context history." (4) "If Claude has been corrected on the same issue twice, `/clear` and re-prompt with what was learned." (5) "Use subagents for any investigation that reads more than 5 files." Keep this section to ≤10 lines.
-  - **Why:** These session management patterns from the best practices doc are nowhere documented in the repo. Without them, every session accumulates context noise until performance degrades. Claude and the user need shared vocabulary for these patterns.
-  - **Done when:** CLAUDE.md has a Session Discipline section ≤10 lines, with `/clear`, `/compact`, and `/btw` patterns clearly stated.
-
-- [ ] **AG-C4** — Audit and prune CLAUDE.md for lines that don't change Claude's behavior
-  - **File(s):** `CLAUDE.md`
-  - **What:** Go through CLAUDE.md line by line and for each line ask: "Would removing this cause Claude to make a mistake?" If the answer is no, either delete the line or move it to the narrowest relevant scoped rule file. Specifically look for: (a) rules that duplicate what's in `.claude/rules/` files, (b) general programming advice Claude already follows without being told, (c) architectural descriptions that are better in `.agent-skills/OVERVIEW.md`. After pruning, CLAUDE.md should be noticeably shorter — target: under 150 lines. The Core Invariants section (pricing math, booking flow, iOS rules) must stay — those are genuinely non-obvious and Claude needs them always loaded.
-  - **Why:** The best practices doc is explicit: "If your CLAUDE.md is too long, Claude ignores half of it because important rules get lost in the noise." CLAUDE.md is currently long and dense. Every redundant line increases the chance that the critical invariants (commission math, iOS rules) get deprioritized because they're surrounded by lower-stakes guidance.
-  - **Done when:** CLAUDE.md is ≤150 lines, the Core Invariants are intact and prominent, and a line-by-line audit confirms every remaining line would cause a real mistake if removed.
+  - **What:** Add a short section that tells compaction which task IDs, user decisions, and failed approaches must survive context compression.
+  - **Why:** The file is leaner now, but compaction policy is still implicit.
+  - **Done when:** `CLAUDE.md` contains a compact, moverrr-specific compaction checklist.
 
 ---
 
 ### AG-T — Agent Teams Configuration
-*Agent teams are experimental but worth enabling for parallel investigation workflows. The existing agent role map maps almost perfectly onto team workflows.*
+*Still intentionally deferred until the runtime semantics are proven locally.*
 
-- [ ] **AG-T1** — Enable `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in project settings.json
-  - **File(s):** `.claude/settings.json`
-  - **What:** Add to `.claude/settings.json` under an `env` key: `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"`. This enables the experimental agent teams feature for all project sessions. Also add to `.claude/agents.md` a short section "Agent Teams" that documents: (1) use teams when tasks have 3+ independent investigation paths, (2) typical team: repo-explorer (architecture), product-researcher (user-facing behavior), feature-implementer (implementation path), (3) use subagents instead when work is sequential or same-file.
-  - **Why:** The moverrr agent role map is already structured in a way that maps perfectly to team workflows. A typical "implement EP1 geospatial search fix" involves independent tracks: explore the current search code, check the customer-facing impact, implement the fix. These can run in parallel with agent teams rather than sequentially, cutting elapsed time by 3x on suitable tasks.
-  - **Done when:** `.claude/settings.json` has the env key, Claude Code shows agent team capabilities available, and agents.md documents when to use teams vs subagents.
+- [ ] **AG-T1** — Enable experimental agent teams in project settings
+  - **File(s):** `.claude/settings.json`, `.claude/agents.md`
+  - **What:** Add the project env flag and document when teams beat simple subagents.
+  - **Why:** The repo role map could support teams, but PR 9 deliberately avoided enabling unverified runtime features.
+  - **Done when:** Agent teams are locally verified and documented.
 
-- [ ] **AG-T2** — Add TeammateIdle and TaskCompleted hooks for agent team quality enforcement
-  - **File(s):** `.claude/settings.json`
-  - **What:** Add to the hooks section of settings.json: a `TeammateIdle` hook that runs a check script (`.claude/scripts/check-teammate-idle.sh`) that reads the hook JSON input and exits with code 2 if the teammate's task description matches "verify" or "review" but their last message contains "looks good" or "LGTM" without citing specific evidence. This blocks the teammate from going idle with a ceremonial "looks good" and forces them to provide evidence. Also add a `TaskCompleted` hook for tasks tagged as payment or booking-related that runs a check: does the completion message mention `npm run check`? If not, block completion with code 2.
-  - **Why:** Agent teams are most valuable when teammates are held to the same verification discipline as the main agent. Without hooks, a reviewer teammate can fire off "looks good" and go idle — exactly the ceremonial review the operating-system.md prohibits. Hooks enforce the evidence requirement structurally.
-  - **Done when:** The hook scripts exist, are in `.claude/settings.json`, and a test teammate that produces a "looks good" verification is blocked from going idle by the hook.
+- [ ] **AG-T2** — Add agent-team quality hooks
+  - **File(s):** `.claude/settings.json`, new scripts under `.claude/scripts/`
+  - **What:** Add teammate-idle and task-completed quality gates once team events are available locally.
+  - **Why:** Team review quality should be structural, not ceremonial.
+  - **Done when:** Low-evidence team outputs are blocked automatically.
 
 ---
 
 ### AG-M — Context & Memory Architecture
-*Structural improvements to how context is managed across sessions and how institutional knowledge accumulates.*
+*PR 9 created the shared memory layer. The worktree discipline follow-up remains.*
 
-- [ ] **AG-M1** — Create `.claude/agent-memory/` directory structure and add to .gitignore
-  - **File(s):** new dir: `.claude/agent-memory/`, `.gitignore`
-  - **What:** Create the directory `.claude/agent-memory/` which will hold persistent memory files for agents that have `memory: project` enabled. Create a placeholder `.gitkeep` inside. Add `.claude/agent-memory-local/` to `.gitignore` (this is the `memory: local` scope directory). Add `.claude/agent-memory/` to git tracking (it should be committed — this is the shared institutional memory). Create `.claude/agent-memory/README.md` explaining: "This directory stores persistent memory for project-scoped subagents. Files here accumulate cross-session institutional knowledge. Do not delete — treat as part of the operating system."
-  - **Why:** When AG-A1 through AG-A3 add `memory: project` to agents, they'll need this directory to exist. Without it, agents may fail to initialize or write to unexpected locations. The README prevents future contributors (human or AI) from deleting what looks like a temporary directory.
-  - **Done when:** `.claude/agent-memory/` exists with README.md, is committed to git, `.claude/agent-memory-local/` is gitignored, and `git status` confirms the directory is tracked.
-
-- [ ] **AG-M2** — Document worktree naming and cleanup rules in operating-system.md
-  - **File(s):** `.claude/operating-system.md`
-  - **What:** Expand the existing "Worktrees" section in operating-system.md with: (1) explicit naming convention examples for moverrr work patterns (`feature/ep1-geospatial-search`, `verify/booking-concurrency`, `docs/rule-refactor`), (2) cleanup rule: "Always clean up worktrees after the task. Run `git worktree list` and prune stale ones with `git worktree prune`." (3) A note: "schema-reviewer always uses a worktree (AG-A3). Feature implementations should default to a worktree for any task touching more than 3 files." Add the cleanup command to command-catalog.md as well.
-  - **Why:** Worktrees are mentioned in operating-system.md but not operationalized — there are no examples, no naming conventions applied to moverrr's actual task types, and no cleanup protocol. Without cleanup rules, stale worktrees accumulate and create confusion about which branch is the "live" one.
-  - **Done when:** operating-system.md has expanded worktree section with moverrr-specific examples and cleanup steps. command-catalog.md has `git worktree prune` listed.
-
----
-
-### AG-TS — Task System Improvements
-*The todolist.md quality issue identified by the user: AI-written tasks tend to be vague. These items address the system-level causes.*
-
-- [ ] **AG-TS1** — Add explicit "AI writing tasks" protocol to TASK-RULES.md
-  - **File(s):** `TASK-RULES.md`
-  - **What:** Add a new section "When AI Writes Tasks" to TASK-RULES.md with these rules: (1) "Read this entire file before writing any task." (2) "Draft the task in the required format, then re-read your own draft and check: Is 'Done when' verifiable without ambiguity? Does 'What' describe a behavior change, not an implementation detail? Does 'Why' state user/business impact, not just technical justification?" (3) "If a task you're about to write is similar to an existing task, do not add it — update or clarify the existing one instead." (4) "Never write a task with 'investigate', 'improve', 'enhance', or 'consider' as the primary action — these are hypotheses, not tasks." (5) "After writing a task, show it to the user for confirmation before appending to todolist.md."
-  - **Why:** The quality problems with AI-written tasks are systemic: Claude doesn't re-read what it writes, doesn't check for duplicates, and doesn't verify the "Done when" is actually verifiable. These five rules address each failure mode specifically.
-  - **Done when:** TASK-RULES.md has the "When AI Writes Tasks" section. The next AI-written task in a session where this file is loaded follows all five rules.
-
-- [ ] **AG-TS2** — Create a task template file that AI must fill before writing to todolist.md
-  - **File(s):** new file: `.claude/task-template.md`
-  - **What:** Create a fill-in-the-blank task template at `.claude/task-template.md`. Content: "## Task Draft\n- [ ] **[ID]** — [Title: action verb + specific behavior]\n  - **File(s):** [exact file path or 'new file: path']\n  - **What:** [one sentence: what specific behavior changes. NOT 'improve' or 'enhance']\n  - **Why:** [one sentence: which user (carrier/customer/admin), what they experience differently, why that matters to marketplace trust/supply/clarity]\n  - **Done when:** [specific observable outcome — what does passing look like? must be checkable without author context]\n\n## Pre-submit checklist\n- [ ] Done when is verifiable by a third party who didn't write the task\n- [ ] No duplicate exists in todolist.md\n- [ ] File paths are exact (not 'src/components/**')\n- [ ] This doesn't bundle two separate outcomes into one task\n- [ ] Priority (P0/P1/P2/P3/P4) is assigned and justified". Reference this from TASK-RULES.md.
-  - **Why:** A fill-in template with a pre-submit checklist turns "write a task" from a free-form action into a structured process with verifiable gates. The checklist items directly address the most common failure modes seen in AI-written tasks.
-  - **Done when:** The file exists, TASK-RULES.md references it, and when AI uses it to write a task the result passes all checklist items.
+- [ ] **AG-M2** — Document worktree naming and cleanup rules
+  - **File(s):** `.claude/operating-system.md`, `.claude/command-catalog.md`
+  - **What:** Expand the worktree section with moverrr-specific naming examples plus cleanup commands.
+  - **Why:** The repo now uses stacked branches and agent memory, but its worktree discipline is still under-specified.
+  - **Done when:** Worktree examples and cleanup steps are documented in both places.
 
 ---
 
 ### AG-CI — CI & Automation Patterns
-*Non-interactive `claude -p` usage for automated quality gates and CI integration.*
+*Still deferred until the local Claude runtime path is proven end to end for unattended checks.*
 
-- [ ] **AG-CI1** — Add a GitHub Actions workflow that runs docs/memory drift check on PR
+- [ ] **AG-CI1** — Add a docs and memory drift workflow to GitHub Actions
   - **File(s):** new file: `.github/workflows/claude-docs-check.yml`
-  - **What:** Create a GitHub Actions workflow that runs on PR to main. The workflow uses `claude -p` in non-interactive mode to check: "Read CLAUDE.md and the files listed in .claude/operating-system.md capability index. Verify they are internally consistent — no broken path references, no instructions for features that don't exist, no duplicate truth between CLAUDE.md and .claude/rules/. Output a brief report. Exit 0 if clean, exit 1 if issues found." The workflow should use `--allowedTools "Read,Grep,Glob"` to restrict it to read-only operations. Add `ANTHROPIC_API_KEY` as a required secret in the workflow.
-  - **Why:** Stale docs are a product bug. Currently docs drift is only caught when a human or AI happens to notice it. A CI check that runs on every PR creates automatic enforcement without requiring any human attention for clean PRs.
-  - **Done when:** The workflow file exists, runs successfully on a test PR, produces a readable report, and exits 1 when given a deliberately inconsistent test state.
+  - **What:** Add a read-only `claude -p` docs-consistency workflow once the CLI contract is verified in CI.
+  - **Why:** Docs drift is still mostly caught manually.
+  - **Done when:** PRs run an automated docs-drift pass with deterministic failure behavior.
 
-- [ ] **AG-CI2** — Add `claude -p` based pricing math regression check as a pre-commit hook
-  - **File(s):** new file: `.claude/scripts/pricing-check.sh`, `.claude/settings.json` or `.husky/pre-commit`
-  - **What:** Create a shell script that uses `claude -p` with `--output-format json` to check: "Read src/lib/pricing/breakdown.ts and src/lib/__tests__/breakdown.test.ts. Verify the commission formula is EXACTLY: commission = basePriceCents * 0.15, total = basePriceCents + stairsFee + helperFee + 500, carrier earns = basePriceCents + stairsFee + helperFee - commission. If any of these are violated, output the violation and exit 1. If all pass, output OK and exit 0." Register this as a pre-commit hook (via `.husky/pre-commit` or similar). Use `--allowedTools "Read"` to keep it read-only.
-  - **Why:** Commission math is a frozen invariant that must never change accidentally. A pre-commit hook using Claude to verify the pricing identity means any change to the formula — even a seemingly innocent refactor — gets caught before it reaches main. This is the "give Claude a way to verify its own work" pattern applied to the most critical business rule in the codebase.
-  - **Done when:** The script exists, is registered as a pre-commit hook, runs in ≤15 seconds, and blocks a commit that contains a deliberately wrong commission formula.
+- [ ] **AG-CI2** — Add an automated pricing identity regression hook
+  - **File(s):** new file: `.claude/scripts/pricing-check.sh`, `.husky/pre-commit` or `.claude/settings.json`
+  - **What:** Add a fast invariant check for commission math before commits or before stop.
+  - **Why:** Pricing remains the most dangerous formula to change casually.
+  - **Done when:** A wrong pricing formula is blocked automatically before merge.
 
 ---
 
 ### AG-X — Cross-Cutting Infrastructure
-*Improvements that span multiple categories or enable future agentic work.*
+*PR 9 landed the shared scripts home and capability-index sync. These follow-ups remain.*
 
-- [ ] **AG-X1** — Add `CLAUDE.local.md` to `.gitignore` and document its use
+- [ ] **AG-X1** — Add `CLAUDE.local.md` support
   - **File(s):** `.gitignore`, `CLAUDE.md`
-  - **What:** Add `CLAUDE.local.md` to `.gitignore`. Add a line to CLAUDE.md under the "Configure your environment" area (or at the bottom): "Personal overrides: Use `CLAUDE.local.md` at the project root for session-specific personal preferences that should not be committed (e.g. personal tool path preferences, local Supabase connection details, personal work style notes). This file is gitignored and never shared."
-  - **Why:** The best practices doc mentions `CLAUDE.local.md` for personal project-specific notes. Currently there's no gitignore entry and no documentation about it. Team members who want personal overrides have no clean place to put them and might accidentally put personal notes in CLAUDE.md (which is committed).
-  - **Done when:** `CLAUDE.local.md` is in `.gitignore`, CLAUDE.md mentions it, and a test `CLAUDE.local.md` file does not appear in `git status` as untracked.
+  - **What:** Document and ignore a personal, uncommitted `CLAUDE.local.md`.
+  - **Why:** The repo still lacks a safe place for machine- or user-specific local overrides.
+  - **Done when:** `CLAUDE.local.md` is ignored and documented.
 
-- [ ] **AG-X2** — Create a `scripts/` directory under `.claude/` with shared hook scripts
-  - **File(s):** new dir: `.claude/scripts/`, new files as referenced by AG-H3, AG-H6, AG-CI2
-  - **What:** Create `.claude/scripts/` directory. Create `.claude/scripts/.gitignore` that excludes nothing (all scripts should be committed). Create a `README.md` in `.claude/scripts/` that explains: "Scripts in this directory are invoked by hooks, skills, and CI workflows. Each script must be chmod +x. Scripts receive JSON via stdin when invoked by hooks. See the Claude Code hooks documentation for the input schema." Ensure all hook scripts created in AG-H3 and AG-H6 are placed here and are executable.
-  - **Why:** Currently hook scripts have no designated location. Without a standard location, scripts get placed in ad hoc spots (project root, /tmp, random paths), making maintenance impossible. A committed `.claude/scripts/` directory gives hooks a stable home that travels with the repo.
-  - **Done when:** `.claude/scripts/` exists with README.md, all hook scripts are stored there, all are `chmod +x`, and the scripts are referenced correctly from `.claude/settings.json`.
-
-- [ ] **AG-X3** — Audit and update all agent `description` fields to front-load trigger keywords and be ≤250 chars
-  - **File(s):** all files in `.claude/agents/*.md`
-  - **What:** Read each agent's `description` field. For each: (1) check it is ≤250 characters (descriptions over 250 chars get truncated in Claude's context, defeating their purpose), (2) check it starts with the primary trigger condition ("Use when...", "Implement...", "Review..."), (3) check it includes the key action verbs Claude would see in a user request. Rewrite any that fail these checks. The founder-critic description is a good example to follow. The feature-implementer description is currently borderline (see AG-A6 for that specific fix).
-  - **Why:** Auto-delegation only works when Claude can accurately match a user request to an agent description. Descriptions that are over-long, passive, or don't front-load trigger conditions get missed. This audit ensures the entire agent roster is correctly tuned for auto-delegation.
-  - **Done when:** All 10 agent descriptions are ≤250 characters, start with a clear trigger condition, and have been tested to auto-delegate correctly for a representative request.
-
-- [ ] **AG-X4** — Update capability-index.md to include new agents and skills added from this backlog
-  - **File(s):** `.claude/capability-index.md`, `.claude/operating-system.md`
-  - **What:** After completing the new agents (AG-NA1, AG-NA2, AG-NA3) and new skills (AG-NS1 through AG-NS6), update capability-index.md to list them under the appropriate sections. Also update the capability index in operating-system.md. This is a docs-sync task that should run as the final step after any AG- work is completed.
-  - **Why:** The capability-index.md is the "fast inventory of what exists." If new agents and skills exist but aren't listed there, AI agents looking for tools won't find them. This is exactly the stale-docs problem the docs-keeper is designed to prevent — but it needs to be explicitly tracked as a task.
-  - **Done when:** capability-index.md accurately lists all agents and skills including any added from this AG- backlog. operating-system.md capability index section matches. No new agent or skill exists that isn't listed in the index.
-
----
-
-> **Implementation note:** Start with AG-H1 and AG-H5 (settings.json foundation), then AG-M1 (agent-memory directory), then agent upgrades (AG-A series) which depend on settings.json existing. Skills upgrades (AG-S series) are independent and can run in parallel. New skills (AG-NS series) are independent of everything. CI work (AG-CI) requires agent teams context but not agent teams activation.
->
-> Delegate each category to the `feature-implementer` agent once the category is ready. Use the `verifier` agent after each category to confirm what was added actually works as described. Use `docs-keeper` after the full AG- sweep to sync capability-index.md.
+- [ ] **AG-X3** — Audit all agent descriptions for trigger quality
+  - **File(s):** `.claude/agents/*.md`
+  - **What:** Make every agent description trigger-first, concise, and <=250 characters.
+  - **Why:** The roster still has a few descriptions that could delegate more reliably.
+  - **Done when:** Every agent description meets the trigger and length bar.
 
 ---
 
 ## Agent Operating System — Rule Files, Docs & OS Meta-Tasks
 
-> These items improve the agent operating system: scoped rule files that auto-load for specific code areas, experiment discipline infrastructure, and capability documentation. They are not product features — they are the foundation that makes all other work faster and safer.
+> Remaining meta-work after the 2026-04-09 operating-system cleanup. Shipped rule files, the experiment ledger, and the capability index were removed from active backlog because they already exist in the repo.
 
 ---
 
 ### EO — Operating System Tasks
 
-- [ ] **EO1** — Create `.claude/rules/search-and-matching.md`
-  - **File(s):** new file: `.claude/rules/search-and-matching.md`
-  - **What:** Create a scoped rule file with `paths: [src/lib/matching/**, src/app/api/search/**, src/app/(customer)/search/**]`. Cover: route-fit logic expectations, score formula parity requirement (TypeScript `score.ts` must match the `find_matching_listings` SQL RPC formula exactly), explainability constraints (no opaque ranking), detour radius invariant, and fallback path behavior.
-  - **Why:** Matching is product-shaping logic. Without a local rule file, search/matching work inherits only generic repo guidance and misses the critical formula-parity and explainability constraints.
-  - **Done when:** File exists with narrow `paths` frontmatter, covers all matching invariants, and auto-loads when files under `src/lib/matching/` are edited.
+- [ ] **EO10** — Backfill structured report templates into the remaining verification skills
+  - **File(s):** `.claude/skills/verify-web-ui/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/verify-admin-ops/SKILL.md`
+  - **What:** Add the same report template shape already used by the main verifier lane: checks run, evidence observed, verdict, adversarial probe, residual risk.
+  - **Why:** The repo now has better verification standards, but the surface-specific skills still do not all prompt for the same evidence shape.
+  - **Done when:** Each target skill instructs Claude to end with the shared structured report.
 
-- [ ] **EO2** — Create `.claude/rules/payments-and-payouts.md`
-  - **File(s):** new file: `.claude/rules/payments-and-payouts.md`
-  - **What:** Create a scoped rule file with `paths: [src/lib/stripe/**, src/app/api/payments/**, src/app/api/bookings/**/confirm-receipt/**]`. Cover: manual capture flow and timing, webhook idempotency requirements, refund policy by payment state, Connect account requirements, reconciliation expectations, and commission math reference.
-  - **Why:** Funds flow is the highest-risk product area. Narrower scoped memory prevents missed invariants during payment work that only loads for generic backend rules today.
-  - **Done when:** File exists with narrow paths covering all payment-critical files. Auto-loads when payment or webhook code is touched.
-
-- [ ] **EO3** — Create `.claude/rules/supabase-schema.md`
-  - **File(s):** new file: `.claude/rules/supabase-schema.md`
-  - **What:** Create a scoped rule file with `paths: [supabase/migrations/**, src/types/database.ts]`. Cover: RLS requirement for every new table, GIST index requirement for geography columns, sequential migration numbering (the 010/010 duplicate is the canonical bad example), RPC vs direct query policy, rollback analysis requirement, and type-sync expectations.
-  - **Why:** Schema work without local constraints leads to missed RLS, duplicate migration numbers, or missing indexes — all of which have caused actual bugs in this repo.
-  - **Done when:** File exists, auto-loads when editing migration files, and covers all schema discipline from CLAUDE.md core invariants.
-
-- [ ] **EO4** — Create `.claude/rules/analytics-and-metrics.md`
-  - **File(s):** new file: `.claude/rules/analytics-and-metrics.md`
-  - **What:** Create a scoped rule for analytics files. Cover: the core metrics moverrr actually measures (browse-to-book conversion, supply density per corridor, carrier response rate), event idempotency requirements, dedupe expectations, and the distinction between actionable marketplace metrics and vanity metrics.
-  - **Why:** Analytics work without local rules tends to add events that don't map to real marketplace decisions, and duplicates inflate funnel baselines before launch.
-  - **Done when:** File exists with relevant paths and covers core metric definitions and event hygiene expectations.
-
-- [ ] **EO5** — Create `.claude/rules/customer-trust.md`
-  - **File(s):** new file: `.claude/rules/customer-trust.md`
-  - **What:** Create a scoped rule with `paths: [src/app/(customer)/trip/**, src/components/booking/**, src/app/(customer)/search/**]`. Cover: savings story accuracy requirements, total-price display rules (never show base price only), "what happens next" clarity requirements, and proof-led vs brand-claim copy standards.
-  - **Why:** Customer trust copy and UX decisions are product-shaping. Local rules keep these decisions consistent when touching customer-facing pages and components.
-  - **Done when:** File exists with correct paths, covers trust-relevant UX and copy expectations. Auto-loads when customer-facing pages are edited.
-
-- [ ] **EO6** — Create `.claude/rules/carrier-growth.md`
-  - **File(s):** new file: `.claude/rules/carrier-growth.md`
-  - **What:** Create a scoped rule with `paths: [src/app/(carrier)/**, src/components/carrier/**]`. Cover: activation speed priority (carriers must be able to post in <5 mins), repeat-posting value over novel supply, supply density focus, verification clarity expectations, and the "carriers are operating businesses" mental model.
-  - **Why:** Carrier code without supply-context guidance can add friction that kills the repeat-posting flywheel — the most important supply mechanism.
-  - **Done when:** File exists and auto-loads when carrier-facing files are edited.
-
-- [ ] **EO7** — Create `.claude/rules/admin-operations.md`
-  - **File(s):** new file: `.claude/rules/admin-operations.md`
-  - **What:** Create a scoped rule with `paths: [src/app/(admin)/**]`. Cover: manual-first ops philosophy, queue-based workflow expectations (one founder, one queue), audit trail requirements for every manual override, `createAdminClient()` usage policy for RLS bypass, and admin-specific security expectations.
-  - **Why:** Admin code changes without ops-context guidance can produce UIs that don't fit the single-founder workflow or that miss the audit trail requirements.
-  - **Done when:** File exists and auto-loads when admin pages or admin data functions are edited.
-
-- [ ] **EO8** — Create experiment ledger for keep/discard tracking
-  - **File(s):** new file: `.claude/experiment-ledger.md`
-  - **What:** Create a ledger file with fixed format: experiment name, baseline metric, single change made, result observed, keep/discard decision, date. Include at least one worked example entry. Add a reference to it from the CLAUDE.md Working Rhythm section.
-  - **Why:** Without a ledger, experiment outcomes disappear into chat history. The keep/discard discipline borrowed from `autoresearch` is only useful if results are recorded and consulted before starting a new experiment.
-  - **Done when:** File exists with correct format, at least one entry, CLAUDE.md Working Rhythm section references it.
-
-- [ ] **EO9** — Create or update capability index for all agents, skills, and rule files
-  - **File(s):** new or updated: `.claude/capability-index.md`
-  - **What:** Create a one-page index: all current agents (name, trigger, model), all skills (invocation command, when to use), all rule files (paths they cover). One line per item. Keep it scannable. Must be updated whenever an agent, skill, or rule is added.
-  - **Why:** A future agent or contributor needs to discover capabilities without reading every individual file. The index is the table of contents for the operating system.
-  - **Done when:** Capability index exists, is accurate for all current agents/skills/rules, is committed to git, and matches what `claude agents` shows.
-
-- [ ] **EO10** — Standardize verifier report format across all verification skills
-  - **File(s):** `.claude/skills/verify-moverrr-change/SKILL.md`, related verification skill files
-  - **What:** Add a standard report template to all verification skills: checks run, evidence observed (specific file/line/log output), pass/fail per check, residual risk. Each verifier skill must produce a report following this template rather than a narrative.
-  - **Why:** Verification reports without structure produce "looks good" outputs that don't distinguish evidence from confidence. A template makes reports comparable and auditable.
-  - **Done when:** All verification skills include the report template format. The next verification run produces a structured report following it.
-
-- [ ] **EO11** — Add permission matrix to operating-system.md (autonomous vs confirm vs second-opinion)
-  - **File(s):** `.claude/operating-system.md`
-  - **What:** Add a simple permission matrix: read-only and lint operations (auto-approve), file edits within task scope (confirm once per task), destructive operations and git push (always confirm), trust-critical paths — pricing, booking, payments (always confirm + second opinion or verifier). Match the categories in CLAUDE.md.
-  - **Why:** Autonomy policy should be documented, not assumed. A written matrix makes confirmation expectations consistent across sessions and reduces "should I ask?" friction.
-  - **Done when:** operating-system.md has a permission matrix section. Categories match CLAUDE.md risk tiers.
-
-- [ ] **EO12** — Add adversarial probe checklist to all serious verification passes
-  - **File(s):** `.claude/skills/verify-moverrr-change/SKILL.md`, `.claude/agents/verifier.md`
-  - **What:** Add a short adversarial probe checklist to the verifier agent and verify-moverrr-change skill: concurrency (two simultaneous requests), boundary values (0, max, null), duplicate actions (double-submit), stale states (expired auth, closed booking), narrow viewport (375px), missing config (no Stripe key). At least one adversarial probe must be in every verification pass.
-  - **Why:** The strongest verification lesson: try to break it. A checklist makes adversarial thinking deliberate rather than optional.
-  - **Done when:** Verifier agent and skill include the probe checklist. Next verification pass includes at least one named adversarial probe with evidence of what happened.
-
----
+- [ ] **EO12** — Backfill named adversarial probes into the remaining verification skills
+  - **File(s):** `.claude/skills/verify-web-ui/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/verify-admin-ops/SKILL.md`
+  - **What:** Require at least one explicit adversarial probe per run and name the probe in the final report.
+  - **Why:** The verifier and core docs now demand adversarial checks, but the narrower verification skills still underspecify them.
+  - **Done when:** Each target skill asks for at least one named try-to-break-it check.
 
 ## Moverrr — Critical Gaps Found in Deep Repo Review
 

@@ -4,6 +4,7 @@ description: Use for read-heavy product analysis, current-behavior audits, and t
 model: inherit
 effort: high
 background: true
+tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 
 # Product Researcher
@@ -22,3 +23,4 @@ Your job is to understand the current product deeply before anyone edits it.
 - do not edit code
 - do not turn missing evidence into certainty
 - keep moverrr browse-first and spare-capacity focused
+- stay read-only even if a likely fix becomes obvious
