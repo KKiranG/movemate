@@ -473,21 +473,23 @@ export function VerificationQueue({ carriers }: { carriers: CarrierProfile[] }) 
     setIsBulkSubmitting(true);
 
     try {
-      for (const carrier of targets) {
-        const response = await fetch(`/api/admin/carriers/${carrier.id}/verify`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            isApproved,
-            notes: notesByCarrierId[carrier.id] ?? carrier.verificationNotes ?? "",
-          }),
-        });
-        const payload = await response.json();
+      await Promise.all(
+        targets.map(async (carrier) => {
+          const response = await fetch(`/api/admin/carriers/${carrier.id}/verify`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              isApproved,
+              notes: notesByCarrierId[carrier.id] ?? carrier.verificationNotes ?? "",
+            }),
+          });
+          const payload = await response.json();
 
-        if (!response.ok) {
-          throw new Error(payload.error ?? `Unable to update ${carrier.businessName}.`);
-        }
-      }
+          if (!response.ok) {
+            throw new Error(payload.error ?? `Unable to update ${carrier.businessName}.`);
+          }
+        }),
+      );
 
       setSelectedCarrierIds([]);
       router.refresh();
