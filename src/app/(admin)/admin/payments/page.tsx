@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
+
 import { PageIntro } from "@/components/layout/page-intro";
 import { Card } from "@/components/ui/card";
 import { requirePageAdminUser } from "@/lib/auth";
 import { listAdminBookings } from "@/lib/data/bookings";
+
+export const metadata: Metadata = {
+  title: "Admin payments",
+};
 
 export default async function AdminPaymentsPage() {
   await requirePageAdminUser();

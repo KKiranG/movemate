@@ -48,12 +48,13 @@ export function QuickPostTemplates({
             accepts: activeTemplate.accepts as Array<
               "furniture" | "boxes" | "appliance" | "fragile" | "other"
             >,
+            timeWindow,
             specialNotes: activeTemplate.notes,
             helperAvailable: activeTemplate.helperAvailable,
             stairsOk: activeTemplate.stairsOk,
           })
         : [],
-    [activeTemplate],
+    [activeTemplate, timeWindow],
   );
   const blockingPublishIssues = publishIssues.filter(
     (issue) => issue.severity === "blocking",

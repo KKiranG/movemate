@@ -23,6 +23,7 @@ type BookingFeedback = Awaited<ReturnType<typeof getBookingFeedbackForUser>>;
 
 function buildRepostHref(trip: NonNullable<Awaited<ReturnType<typeof getTripById>>>) {
   const params = new URLSearchParams({
+    vehicleId: trip.vehicle.id,
     from: trip.route.originSuburb,
     to: trip.route.destinationSuburb,
     space: trip.spaceSize,
@@ -315,6 +316,11 @@ export default async function CarrierTripDetailPage({
             </Link>
           </Button>
         </div>
+        <p className="mt-3 text-sm text-text-secondary">
+          Current vehicle: {trip.vehicle.type.replaceAll("_", " ")}
+          {trip.vehicle.make ? ` · ${trip.vehicle.make}` : ""}
+          {trip.vehicle.model ? ` ${trip.vehicle.model}` : ""}
+        </p>
       </Card>
 
       <Card className="p-4">

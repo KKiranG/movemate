@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { ResolveDisputeActions } from "@/components/admin/resolve-dispute-actions";
 import { requirePageAdminUser } from "@/lib/auth";
@@ -6,6 +7,10 @@ import { listAdminDisputes } from "@/lib/data/admin";
 import { PageIntro } from "@/components/layout/page-intro";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+export const metadata: Metadata = {
+  title: "Admin disputes",
+};
 
 function getSeverity(category: string) {
   if (category === "damage" || category === "wrong_item") {

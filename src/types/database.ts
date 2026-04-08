@@ -151,7 +151,7 @@ export interface Database {
           special_notes: string | null;
           is_return_trip: boolean;
           source_template_id: string | null;
-          status: "draft" | "active" | "booked_partial" | "booked_full" | "expired" | "cancelled";
+          status: "draft" | "active" | "paused" | "booked_partial" | "booked_full" | "expired" | "cancelled";
           remaining_capacity_pct: number;
           created_at: string;
           updated_at: string;
@@ -191,7 +191,7 @@ export interface Database {
           special_notes?: string | null;
           is_return_trip?: boolean;
           source_template_id?: string | null;
-          status?: "draft" | "active" | "booked_partial" | "booked_full" | "expired" | "cancelled";
+          status?: "draft" | "active" | "paused" | "booked_partial" | "booked_full" | "expired" | "cancelled";
           remaining_capacity_pct?: number;
           created_at?: string;
           updated_at?: string;
@@ -568,6 +568,7 @@ export interface Database {
           user_id: string | null;
           session_id: string | null;
           pathname: string | null;
+          dedupe_key: string | null;
           metadata: Json;
           created_at: string;
         };
@@ -577,6 +578,7 @@ export interface Database {
           user_id?: string | null;
           session_id?: string | null;
           pathname?: string | null;
+          dedupe_key?: string | null;
           metadata?: Json;
           created_at?: string;
         };
@@ -744,6 +746,45 @@ export interface Database {
           pickup_distance_km: number;
           dropoff_distance_km: number;
           match_score: number;
+        }>;
+      };
+      find_matching_listings_paged: {
+        Args: {
+          p_pickup_lat: number;
+          p_pickup_lng: number;
+          p_dropoff_lat: number;
+          p_dropoff_lng: number;
+          p_date?: string | null;
+          p_category?: string | null;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: Array<{
+          listing_id: string;
+          pickup_distance_km: number;
+          dropoff_distance_km: number;
+          match_score: number;
+          total_count: number;
+        }>;
+      };
+      find_matching_listings_nearby_dates: {
+        Args: {
+          p_pickup_lat: number;
+          p_pickup_lng: number;
+          p_dropoff_lat: number;
+          p_dropoff_lng: number;
+          p_dates: string[];
+          p_category?: string | null;
+          p_is_return_trip?: boolean;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: Array<{
+          listing_id: string;
+          pickup_distance_km: number;
+          dropoff_distance_km: number;
+          match_score: number;
+          total_count: number;
         }>;
       };
     };

@@ -64,6 +64,7 @@ function buildTripDetailHref(params: {
   what: ItemCategory;
   backload: boolean;
   sort: SearchSort;
+  page?: number;
 }) {
   const query = new URLSearchParams({
     from: params.from,
@@ -72,6 +73,7 @@ function buildTripDetailHref(params: {
     ...(params.what ? { what: params.what } : {}),
     ...(params.backload ? { backload: "1" } : {}),
     ...(params.sort !== "date" ? { sort: params.sort } : {}),
+    ...(params.page && params.page > 1 ? { page: String(params.page) } : {}),
   }).toString();
 
   return `/trip/${params.tripId}${query ? `?${query}` : ""}`;
@@ -83,17 +85,29 @@ function sortResults(
 ) {
   return [...results].sort((a, b) => {
     if (sort === "price") {
-      return a.priceCents - b.priceCents;
+      return (
+        a.priceCents - b.priceCents ||
+        b.matchScore - a.matchScore ||
+        a.tripDate.localeCompare(b.tripDate) ||
+        a.id.localeCompare(b.id)
+      );
     }
 
     if (sort === "rating") {
-      return b.carrier.averageRating - a.carrier.averageRating || b.carrier.ratingCount - a.carrier.ratingCount;
+      return (
+        b.carrier.averageRating - a.carrier.averageRating ||
+        b.carrier.ratingCount - a.carrier.ratingCount ||
+        b.matchScore - a.matchScore ||
+        a.tripDate.localeCompare(b.tripDate) ||
+        a.id.localeCompare(b.id)
+      );
     }
 
     return (
       getTripQualityScore(b) - getTripQualityScore(a) ||
       a.tripDate.localeCompare(b.tripDate) ||
-      b.matchScore - a.matchScore
+      b.matchScore - a.matchScore ||
+      a.id.localeCompare(b.id)
     );
   });
 }
@@ -105,6 +119,7 @@ async function SearchResultsSection({
   what,
   backload,
   sort,
+  page,
   userEmail,
   redirectSearch,
 }: {
@@ -114,6 +129,7 @@ async function SearchResultsSection({
   what: ItemCategory;
   backload: boolean;
   sort: SearchSort;
+  page: number;
   userEmail?: string;
   redirectSearch: string;
 }) {
@@ -151,6 +167,7 @@ async function SearchResultsSection({
     when,
     what,
     isReturnTrip: backload,
+    page,
   });
   const sortedResults = sortResults(searchResponse.results, sort);
   const nearbyDates =
@@ -161,9 +178,18 @@ async function SearchResultsSection({
             .map((offset) => getDateOffsetIso(when, offset))
             .filter((date) => date >= getTodayIsoDate())
         : [];
-  const resultSummary = `${sortedResults.length} trips for ${from} to ${to}${
+  const resultSummary = `${searchResponse.visibleCount} of ${searchResponse.totalCount} trips for ${from} to ${to}${
     when ? ` on ${formatLongDate(when)}` : ""
   }.`;
+  const showMoreHref = `/search?${new URLSearchParams({
+    from,
+    to,
+    ...(when ? { when } : {}),
+    what,
+    ...(backload ? { backload: "1" } : {}),
+    ...(sort !== "date" ? { sort } : {}),
+    page: String(page + 1),
+  }).toString()}`;
 
   return (
     <div id="search-results" className="flex flex-col gap-2">
@@ -215,9 +241,26 @@ async function SearchResultsSection({
                 what,
                 backload,
                 sort,
+                page,
               })}
             />
           ))}
+          {searchResponse.hasMore ? (
+            <Card className="p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="section-label">Keep browsing</p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Showing {searchResponse.visibleCount} of {searchResponse.totalCount} matching
+                    trips so far.
+                  </p>
+                </div>
+                <Button asChild className="min-h-[44px] active:opacity-80">
+                  <Link href={showMoreHref}>Show more trips</Link>
+                </Button>
+              </div>
+            </Card>
+          ) : null}
         </div>
       ) : (
         <div className="grid gap-4">
@@ -332,6 +375,7 @@ export default async function SearchPage({
   const what = (getValue(params.what) || "furniture") as ItemCategory;
   const backload = getValue(params.backload) === "1";
   const sort = (getValue(params.sort) || "date") as SearchSort;
+  const page = Math.max(1, Number(getValue(params.page) || "1") || 1);
   const user = await getOptionalSessionUser();
   const redirectSearch = new URLSearchParams({
     from,
@@ -340,6 +384,7 @@ export default async function SearchPage({
     what,
     ...(backload ? { backload: "1" } : {}),
     ...(sort !== "date" ? { sort } : {}),
+    ...(page > 1 ? { page: String(page) } : {}),
   }).toString();
 
   return (
@@ -370,6 +415,7 @@ export default async function SearchPage({
             what={what}
             backload={backload}
             sort={sort}
+            page={page}
             userEmail={user?.email ?? undefined}
             redirectSearch={redirectSearch}
           />

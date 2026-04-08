@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PrivateProofTile } from "@/components/booking/private-proof-tile";
@@ -6,6 +7,22 @@ import { Card } from "@/components/ui/card";
 import { PRIVATE_BUCKETS } from "@/lib/constants";
 import { requirePageAdminUser } from "@/lib/auth";
 import { getAdminDisputeById } from "@/lib/data/admin";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const dispute = await getAdminDisputeById(params.id);
+
+  if (!dispute) {
+    return { title: "Dispute not found" };
+  }
+
+  return {
+    title: `Dispute ${dispute.booking_id} | Admin`,
+  };
+}
 
 export default async function AdminDisputeDetailPage({
   params,

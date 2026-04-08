@@ -11,6 +11,7 @@ import {
   SPACE_SIZE_DESCRIPTIONS,
   SPACE_SIZE_LABELS,
 } from "@/lib/constants";
+import { getTripCustomerPricePreview } from "@/lib/trip-presenters";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
 
@@ -19,6 +20,7 @@ interface TripDetailSummaryProps {
 }
 
 export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
+  const pricingPreview = getTripCustomerPricePreview(trip.priceCents);
   const includedItems = [
     "Route-fit transport on a trip that is already happening",
     "Pickup and dropoff inside the stated corridor radius",
@@ -68,10 +70,15 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
             </p>
           </div>
           <div className="text-right">
+            <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Customer total</p>
             <p className="text-2xl font-medium text-text">
-              {formatCurrency(trip.priceCents)}
+              {formatCurrency(pricingPreview.totalPriceCents)}
             </p>
-            <p className="text-sm text-savings">{trip.savingsPct}% cheaper before add-ons</p>
+            <p className="mt-1 text-sm text-text-secondary">
+              Base {formatCurrency(pricingPreview.basePriceCents)} + booking fee{" "}
+              {formatCurrency(pricingPreview.bookingFeeCents)}
+            </p>
+            <p className="text-sm text-savings">{trip.savingsPct}% cheaper before optional add-ons</p>
           </div>
         </div>
 
@@ -84,8 +91,9 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               </Link>
             </div>
             <p className="subtle-text">
-              Rated {trip.carrier.averageRating.toFixed(1)} from{" "}
-              {trip.carrier.ratingCount} reviews.
+              {trip.carrier.ratingCount > 0
+                ? `Rated ${trip.carrier.averageRating.toFixed(1)} from ${trip.carrier.ratingCount} reviews.`
+                : "New carrier on moverrr."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-text-secondary">
               {trip.carrier.isVerified ? (
@@ -102,7 +110,7 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
           <div className="rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-text">
               <Truck className="h-4 w-4" />
-              {trip.vehicle.type}
+              {trip.vehicle.type.replaceAll("_", " ")}
             </div>
             <p className="subtle-text">
               Up to {trip.availableVolumeM3}m3 and {trip.availableWeightKg}kg
@@ -152,6 +160,21 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-border p-3 sm:col-span-2">
+            <p className="section-label">What happens next</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                "1. Book into the trip and keep fit or access clarifications inside moverrr.",
+                "2. moverrr places an authorization hold now, then the carrier confirms before the pending hold expires.",
+                "3. Pickup and delivery proof are captured in-app on the live route so support is not chasing chat screenshots.",
+                "4. You confirm receipt, then payout release and reviews can close cleanly.",
+              ].map((step) => (
+                <p key={step} className="text-sm text-text-secondary">
+                  {step}
+                </p>
+              ))}
+            </div>
+          </div>
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Access compatibility</p>
             <p className="mt-2 text-sm text-text-secondary">
@@ -164,10 +187,14 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
             </p>
           </div>
           <div className="rounded-xl border border-border p-3">
-            <p className="section-label">Privacy boundary</p>
+            <p className="section-label">Hold and privacy boundary</p>
             <p className="mt-2 text-sm text-text-secondary">
               Exact street addresses stay hidden until booking is confirmed. You can see suburb and
               corridor fit now so you know whether this route makes sense before you pay.
+            </p>
+            <p className="mt-2 text-sm text-text-secondary">
+              The booking stays on-platform with an authorization hold until proof and completion
+              requirements are satisfied.
             </p>
           </div>
         </div>
@@ -190,6 +217,23 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
             </div>
           </div>
         </div>
+
+        <details className="rounded-xl border border-border p-3">
+          <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-left [&::-webkit-details-marker]:hidden">
+            <div>
+              <p className="section-label">Prepare for pickup</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                A quick checklist before the window starts
+              </p>
+            </div>
+            <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">Open</span>
+          </summary>
+          <div className="mt-3 space-y-2 text-sm text-text-secondary">
+            <p>Keep the item measured, accessible, and ready at ground level or within the agreed access limits.</p>
+            <p>Wrap fragile items, take a quick reference photo, and flag stairs or helper needs before paying.</p>
+            <p>Have access notes ready so the carrier can keep the route moving without ad-hoc phone triage.</p>
+          </div>
+        </details>
 
         {mapsHref ? (
           <a

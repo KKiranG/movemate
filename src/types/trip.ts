@@ -35,6 +35,12 @@ export interface TripRules {
   specialNotes?: string;
 }
 
+export interface TripDraftVehicleOption {
+  id: string;
+  label: string;
+  detail: string;
+}
+
 export interface Trip {
   id: string;
   carrier: CarrierProfile;
@@ -52,7 +58,7 @@ export interface Trip {
   savingsPct: number;
   remainingCapacityPct: number;
   isReturnTrip: boolean;
-  status?: "draft" | "active" | "booked_partial" | "booked_full" | "expired" | "cancelled";
+  status?: "draft" | "active" | "paused" | "booked_partial" | "booked_full" | "expired" | "cancelled";
   publishAt?: string | null;
   rules: TripRules;
 }
@@ -64,6 +70,7 @@ export interface TripSearchInput {
   what?: ItemCategory;
   isReturnTrip?: boolean;
   includeNearbyDates?: boolean;
+  page?: number;
 }
 
 export interface MatchBreakdown {
@@ -89,6 +96,10 @@ export interface RoutePriceGuidance {
 
 export interface TripSearchResponse {
   results: TripSearchResult[];
+  totalCount: number;
+  visibleCount: number;
+  page: number;
+  hasMore: boolean;
   geocodingAvailable: boolean;
   fallbackUsed: boolean;
   fallbackReason?: string | null;

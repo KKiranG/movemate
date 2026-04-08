@@ -17,7 +17,7 @@ const acceptOptions = [
   { value: "fragile", label: "Fragile" },
 ] as const;
 
-type EditableTripStatus = "draft" | "active" | "cancelled";
+type EditableTripStatus = "draft" | "active" | "paused" | "cancelled";
 
 export function TripEditForm({ trip }: { trip: Trip }) {
   const router = useRouter();
@@ -28,7 +28,7 @@ export function TripEditForm({ trip }: { trip: Trip }) {
       timeWindow: trip.timeWindow,
       spaceSize: trip.spaceSize,
       status:
-        trip.status === "draft" || trip.status === "cancelled"
+        trip.status === "draft" || trip.status === "cancelled" || trip.status === "paused"
           ? trip.status
           : "active" as EditableTripStatus,
       availableVolumeM3: trip.availableVolumeM3.toString(),
@@ -119,6 +119,7 @@ export function TripEditForm({ trip }: { trip: Trip }) {
         accepts: formState.accepts as Array<
           "furniture" | "boxes" | "appliance" | "fragile" | "other"
         >,
+        timeWindow: formState.timeWindow,
         specialNotes: formState.specialNotes,
         helperAvailable: formState.helperAvailable === "yes",
         stairsOk: formState.stairsOk === "yes",
@@ -227,8 +228,13 @@ export function TripEditForm({ trip }: { trip: Trip }) {
         >
           <option value="draft">Draft</option>
           <option value="active">Active</option>
+          <option value="paused">Paused</option>
           <option value="cancelled">Cancelled</option>
         </select>
+        <p className="text-sm text-text-secondary">
+          Paused listings stay editable and keep their booking history, but they disappear from
+          public search until you reactivate them.
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -87,6 +87,7 @@ test("resolved disputes allow the disputed booking to complete and recalculate c
       bookingId: "booking-disputed-resolved",
       nextStatus: "completed",
       actorRole: "admin",
+      adminReason: "Dispute resolved after reviewing the uploaded proof trail.",
       skipStatusEmails: true,
     });
 

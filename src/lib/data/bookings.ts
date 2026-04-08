@@ -297,6 +297,38 @@ async function markBookingCaptureFailed(params: {
   );
 }
 
+async function captureBookingPayment(params: {
+  supabase: ReturnType<typeof createServerSupabaseClient> | ReturnType<typeof createAdminClient>;
+  bookingId: string;
+  paymentIntentId: string;
+}) {
+  const stripe = getStripeServerClient();
+  const paymentIntent = await stripe.paymentIntents.retrieve(params.paymentIntentId);
+
+  if (paymentIntent.status === "requires_capture") {
+    await stripe.paymentIntents.capture(params.paymentIntentId);
+  } else if (paymentIntent.status !== "succeeded") {
+    throw new AppError(
+      "Payment is not ready to be captured.",
+      409,
+      "payment_not_capturable",
+    );
+  }
+
+  const { error } = await params.supabase
+    .from("bookings")
+    .update({
+      payment_status: "captured",
+      payment_failure_code: null,
+      payment_failure_reason: null,
+    })
+    .eq("id", params.bookingId);
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_capture_update_failed");
+  }
+}
+
 function createBookingRequestHash(input: BookingInput) {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
@@ -701,6 +733,7 @@ export async function updateBookingStatusForActor(params: {
   deliveryProof?: BookingDeliveryProof;
   cancellationReason?: string;
   cancellationReasonCode?: BookingCancellationReasonCode;
+  adminReason?: string;
   skipStatusEmails?: boolean;
 }) {
   if (!hasSupabaseEnv()) {
@@ -770,6 +803,20 @@ export async function updateBookingStatusForActor(params: {
   const pickupProof = parsePickupProofForStatus(params.nextStatus, params.pickupProof);
   const deliveryProof = parseDeliveryProofForStatus(params.nextStatus, params.deliveryProof);
 
+  if (
+    params.actorRole === "admin" &&
+    params.userId !== "system-expiry-runner" &&
+    !params.adminReason?.trim() &&
+    !pickupProof &&
+    !deliveryProof
+  ) {
+    throw new AppError(
+      "Admin overrides need a reason for the booking audit trail.",
+      400,
+      "admin_reason_required",
+    );
+  }
+
   const patch: Database["public"]["Tables"]["bookings"]["Update"] = {
     status: params.nextStatus,
   };
@@ -806,31 +853,28 @@ export async function updateBookingStatusForActor(params: {
     process.env.STRIPE_SECRET_KEY
   ) {
     if (row.payment_status !== "captured") {
-      const stripe = getStripeServerClient();
-      const paymentIntent = await stripe.paymentIntents.retrieve(row.stripe_payment_intent_id);
-
-      if (paymentIntent.status === "requires_capture") {
-        try {
-          await stripe.paymentIntents.capture(row.stripe_payment_intent_id);
-        } catch (error) {
-          await markBookingCaptureFailed({
-            supabase,
-            bookingId: row.id,
-            paymentIntentId: row.stripe_payment_intent_id,
-            error,
-          });
-
-          throw new AppError(
-            "Stripe capture failed. Booking completion has been held for manual review.",
-            409,
-            "payment_capture_failed",
-          );
+      try {
+        await captureBookingPayment({
+          supabase,
+          bookingId: row.id,
+          paymentIntentId: row.stripe_payment_intent_id,
+        });
+      } catch (error) {
+        if (error instanceof AppError && error.code === "payment_not_capturable") {
+          throw error;
         }
-      } else if (paymentIntent.status !== "succeeded") {
+
+        await markBookingCaptureFailed({
+          supabase,
+          bookingId: row.id,
+          paymentIntentId: row.stripe_payment_intent_id,
+          error,
+        });
+
         throw new AppError(
-          "Payment is not ready to be captured.",
+          "Stripe capture failed. Booking completion has been held for manual review.",
           409,
-          "payment_not_capturable",
+          "payment_capture_failed",
         );
       }
 
@@ -880,6 +924,11 @@ export async function updateBookingStatusForActor(params: {
                   }
                 : {}),
             },
+          }
+        : {}),
+      ...(params.actorRole === "admin" && params.adminReason?.trim()
+        ? {
+            adminReason: params.adminReason.trim(),
           }
         : {}),
     },
@@ -1198,6 +1247,103 @@ export async function listAdminBookings(params?: {
 }) {
   const { bookings } = await listAdminBookingsPageData(params);
   return bookings;
+}
+
+export async function getAdminBookingById(bookingId: string) {
+  if (!hasSupabaseAdminEnv()) {
+    return null;
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*, events:booking_events(*)")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "admin_booking_lookup_failed");
+  }
+
+  return data ? toBooking(data as unknown as BookingJoinedRecord) : null;
+}
+
+export async function captureBookingPaymentForAdmin(params: {
+  bookingId: string;
+  adminUserId: string;
+  reason: string;
+}) {
+  if (!hasSupabaseAdminEnv()) {
+    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
+  }
+
+  const adminReason = params.reason.trim();
+
+  if (adminReason.length < 8) {
+    throw new AppError(
+      "Add a short reason before manually capturing a payment.",
+      400,
+      "admin_reason_required",
+    );
+  }
+
+  const supabase = createAdminClient();
+  const { data: row, error } = await supabase
+    .from("bookings")
+    .select("id, status, payment_status, stripe_payment_intent_id")
+    .eq("id", params.bookingId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "admin_booking_lookup_failed");
+  }
+
+  if (!row) {
+    throw new AppError("Booking not found.", 404, "booking_not_found");
+  }
+
+  if (row.status !== "completed" || row.payment_status !== "authorized") {
+    throw new AppError(
+      "Only completed bookings with an authorized payment can be captured manually.",
+      409,
+      "payment_capture_not_allowed",
+    );
+  }
+
+  if (!row.stripe_payment_intent_id) {
+    throw new AppError("No Stripe payment intent is attached to this booking.", 409, "payment_intent_missing");
+  }
+
+  try {
+    await captureBookingPayment({
+      supabase,
+      bookingId: row.id,
+      paymentIntentId: row.stripe_payment_intent_id,
+    });
+  } catch (error) {
+    if (!(error instanceof AppError && error.code === "payment_not_capturable")) {
+      await markBookingCaptureFailed({
+        supabase,
+        bookingId: row.id,
+        paymentIntentId: row.stripe_payment_intent_id,
+        error,
+      });
+    }
+
+    throw error;
+  }
+
+  await recordBookingEvent({
+    bookingId: row.id,
+    actorRole: "admin",
+    actorUserId: params.adminUserId,
+    eventType: "admin_payment_captured",
+    metadata: {
+      reason: adminReason,
+    },
+  });
+
+  return getAdminBookingById(row.id);
 }
 
 export async function expirePendingBookings(params?: {

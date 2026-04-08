@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
+
 import { VerificationQueue } from "@/components/admin/verification-queue";
 import { requirePageAdminUser } from "@/lib/auth";
 import { listAdminCarriers } from "@/lib/data/carriers";
 import { PageIntro } from "@/components/layout/page-intro";
+
+export const metadata: Metadata = {
+  title: "Admin carriers",
+};
 
 export default async function AdminCarriersPage() {
   await requirePageAdminUser();

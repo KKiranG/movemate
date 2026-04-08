@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import { CarrierTripWizard } from "@/components/carrier/carrier-trip-wizard";
 import type { AddressValue } from "@/components/shared/google-autocomplete-input";
+import type { TripDraftVehicleOption } from "@/types/trip";
 
 function numberParam(value: string | null) {
   if (!value) {
@@ -31,7 +32,13 @@ function booleanParam(value: string | null) {
   return undefined;
 }
 
-export function CarrierPostPrefill({ canPost = true }: { canPost?: boolean }) {
+export function CarrierPostPrefill({
+  canPost = true,
+  vehicles = [],
+}: {
+  canPost?: boolean;
+  vehicles?: TripDraftVehicleOption[];
+}) {
   const searchParams = useSearchParams();
 
   const initialOrigin = useMemo<AddressValue | null>(() => {
@@ -90,6 +97,7 @@ export function CarrierPostPrefill({ canPost = true }: { canPost?: boolean }) {
   const initialStairsExtraDollars = searchParams.get("stairsExtra");
   const initialHelperAvailable = booleanParam(searchParams.get("helperAvailable"));
   const initialHelperExtraDollars = searchParams.get("helperExtra");
+  const initialVehicleId = searchParams.get("vehicleId");
 
   return (
     <CarrierTripWizard
@@ -127,6 +135,8 @@ export function CarrierPostPrefill({ canPost = true }: { canPost?: boolean }) {
       initialStairsExtraDollars={initialStairsExtraDollars ?? undefined}
       initialHelperAvailable={initialHelperAvailable}
       initialHelperExtraDollars={initialHelperExtraDollars ?? undefined}
+      initialVehicleId={initialVehicleId ?? undefined}
+      vehicles={vehicles}
       canPost={canPost}
     />
   );

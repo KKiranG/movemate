@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
+
 import { requirePageAdminUser } from "@/lib/auth";
 import { listAdminCarriers } from "@/lib/data/carriers";
 import { VerificationQueue } from "@/components/admin/verification-queue";
 import { PageIntro } from "@/components/layout/page-intro";
 import { Card } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "Admin verification",
+};
 
 export default async function AdminVerificationPage() {
   await requirePageAdminUser();

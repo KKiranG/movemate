@@ -118,6 +118,7 @@ export async function resolveDispute(params: {
       bookingId: data.booking_id,
       nextStatus: params.bookingStatus,
       actorRole: "admin",
+      adminReason: sanitizedResolutionNotes,
       cancellationReason:
         params.bookingStatus === "cancelled"
           ? "Cancelled during dispute resolution"
@@ -352,7 +353,7 @@ export async function getFounderOpsCockpitData() {
       supabase
         .from("capacity_listings")
         .select(
-          "id, trip_date, origin_suburb, destination_suburb, space_size, available_volume_m3, available_weight_kg, remaining_capacity_pct, special_notes, helper_available, stairs_ok, accepts_furniture, accepts_boxes, accepts_appliances, accepts_fragile, status",
+          "id, trip_date, time_window, origin_suburb, destination_suburb, space_size, available_volume_m3, available_weight_kg, remaining_capacity_pct, special_notes, helper_available, stairs_ok, accepts_furniture, accepts_boxes, accepts_appliances, accepts_fragile, status",
         )
         .in("status", ["active", "booked_partial"]),
       supabase
@@ -384,6 +385,7 @@ export async function getFounderOpsCockpitData() {
         availableVolumeM3: Number(listing.available_volume_m3 ?? 0),
         availableWeightKg: Number(listing.available_weight_kg ?? 0),
         accepts: getListingAccepts(listing),
+        timeWindow: listing.time_window,
         specialNotes: listing.special_notes,
         helperAvailable: listing.helper_available,
         stairsOk: listing.stairs_ok,

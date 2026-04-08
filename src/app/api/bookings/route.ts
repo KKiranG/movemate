@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       eventName: "booking_started",
       userId: user.id,
       pathname: `/trip/${booking.listingId}`,
+      dedupeKey: `booking_started:${booking.id}`,
       metadata: {
         bookingId: booking.id,
         totalPriceCents: booking.pricing.totalPriceCents,

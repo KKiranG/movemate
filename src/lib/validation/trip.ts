@@ -65,22 +65,36 @@ export interface TripPublishReadinessIssue {
     | "appliance_volume_too_low"
     | "appliance_weight_too_low"
     | "fragile_notes_missing"
-    | "appliance_handling_note_missing";
+    | "appliance_handling_note_missing"
+    | "flexible_window_needs_note"
+    | "large_listing_needs_note";
   severity: TripPublishReadinessSeverity;
   message: string;
   hint: string;
-  path: Array<"spaceSize" | "availableVolumeM3" | "availableWeightKg" | "accepts" | "specialNotes">;
+  path: Array<
+    "spaceSize" | "availableVolumeM3" | "availableWeightKg" | "accepts" | "specialNotes" | "timeWindow"
+  >;
 }
 
 export interface TripPublishReadinessInput {
-  status?: "draft" | "active" | "cancelled";
+  status?: "draft" | "active" | "paused" | "cancelled";
   spaceSize: "S" | "M" | "L" | "XL";
   availableVolumeM3: number;
   availableWeightKg: number;
   accepts: Array<"furniture" | "boxes" | "appliance" | "fragile" | "other">;
+  timeWindow: "morning" | "afternoon" | "evening" | "flexible";
   specialNotes?: string | null | undefined;
   helperAvailable?: boolean;
   stairsOk?: boolean;
+}
+
+export interface TripConflictWarning {
+  code:
+    | "xl_ground_floor_conflict"
+    | "large_furniture_no_helper_note"
+    | "fragile_without_handling_note";
+  message: string;
+  hint: string;
 }
 
 export function getTripPublishReadiness(input: TripPublishReadinessInput) {
@@ -155,7 +169,62 @@ export function getTripPublishReadiness(input: TripPublishReadinessInput) {
     });
   }
 
+  if (input.timeWindow === "flexible" && !trimmedNotes) {
+    issues.push({
+      code: "flexible_window_needs_note",
+      severity: "warning",
+      message: "Flexible timing converts better when the listing explains the rough pickup rhythm.",
+      hint: "Add a short note like after 2pm, school-hours only, or customer should expect a call ahead.",
+      path: ["timeWindow", "specialNotes"],
+    });
+  }
+
+  if ((input.spaceSize === "L" || input.spaceSize === "XL") && trimmedNotes.length < 12) {
+    issues.push({
+      code: "large_listing_needs_note",
+      severity: "warning",
+      message: "Bigger listings need one plain-language handling note before they feel trustworthy in browse.",
+      hint: "Call out access limits, curbside-only handoff, or how bulky items should be prepared.",
+      path: ["spaceSize", "specialNotes"],
+    });
+  }
+
   return issues;
+}
+
+export function getTripConflictWarnings(input: Pick<
+  TripPublishReadinessInput,
+  "spaceSize" | "accepts" | "specialNotes" | "helperAvailable" | "stairsOk"
+>) {
+  const warnings: TripConflictWarning[] = [];
+  const trimmedNotes = input.specialNotes?.trim().toLowerCase() ?? "";
+  const acceptsLargeFurniture = input.accepts.includes("furniture") || input.accepts.includes("appliance");
+
+  if (input.spaceSize === "XL" && !input.stairsOk) {
+    warnings.push({
+      code: "xl_ground_floor_conflict",
+      message: "XL spare room with no stairs support can still work, but customers need the ground-floor boundary called out clearly.",
+      hint: "Keep this if it is true, but explain ground-floor or lift-only access in the listing notes.",
+    });
+  }
+
+  if (acceptsLargeFurniture && !input.helperAvailable && !trimmedNotes) {
+    warnings.push({
+      code: "large_furniture_no_helper_note",
+      message: "Large furniture is accepted without helper support or a handling note.",
+      hint: "Add a note like curbside-only, customer helps lift, or no disassembly on this route.",
+    });
+  }
+
+  if (input.accepts.includes("fragile") && !trimmedNotes.includes("fragile") && !trimmedNotes.includes("wrap")) {
+    warnings.push({
+      code: "fragile_without_handling_note",
+      message: "Fragile items are accepted, but the listing does not say how they should be packed or handed over.",
+      hint: "Add a short note about padding, wrapping, or weather protection expectations.",
+    });
+  }
+
+  return warnings;
 }
 
 function applyTripPublishIssues(
@@ -179,6 +248,7 @@ function applyTripPublishIssues(
 
 export const tripSchema = z
   .object({
+    vehicleId: z.string().uuid().optional(),
     originSuburb: z.string().min(2).max(120),
     originPostcode: z.string().min(4).max(8),
     originLatitude: z.number().min(-90).max(90),
@@ -209,6 +279,7 @@ export const tripSchema = z
 
 export const tripUpdateSchema = z
   .object({
+    vehicleId: z.string().uuid().optional(),
     tripDate: futureTripDate,
     timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
     spaceSize: z.enum(["S", "M", "L", "XL"]),
@@ -222,7 +293,7 @@ export const tripUpdateSchema = z
     helperAvailable: z.boolean().default(false),
     helperExtraCents: z.number().min(0).default(0),
     isReturnTrip: z.boolean().default(false),
-    status: z.enum(["draft", "active", "cancelled"]),
+    status: z.enum(["draft", "active", "paused", "cancelled"]),
     publishAt: optionalPublishAt,
     specialNotes: optionalNotes,
   })

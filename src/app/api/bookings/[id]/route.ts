@@ -65,6 +65,7 @@ const bookingStatusPatchSchema = z.object({
       "safety_concern",
     ] satisfies BookingCancellationReasonCode[])
     .optional(),
+  reason: z.string().trim().min(1).optional(),
 });
 
 export async function PATCH(
@@ -81,6 +82,7 @@ export async function PATCH(
         bookingId: params.id,
         nextStatus: payload.nextStatus,
         actorRole: "admin",
+        adminReason: payload.reason,
         pickupProof: payload.pickupProof,
         deliveryProof: payload.deliveryProof,
         cancellationReason: payload.cancellationReason,

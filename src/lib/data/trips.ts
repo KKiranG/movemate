@@ -15,7 +15,41 @@ type SearchRpcRow = {
   match_score: number;
   pickup_distance_km: number;
   dropoff_distance_km: number;
+  total_count?: number;
 };
+
+async function getCarrierAndActiveVehicles(userId: string) {
+  const supabase = createServerSupabaseClient();
+  const { data: carrier, error: carrierError } = await supabase
+    .from("carriers")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (carrierError) {
+    throw new AppError(carrierError.message, 500, "carrier_lookup_failed");
+  }
+
+  if (!carrier) {
+    return { carrier: null, vehicles: [] as Array<{ id: string }> };
+  }
+
+  const { data: vehicles, error: vehicleError } = await supabase
+    .from("vehicles")
+    .select("id")
+    .eq("carrier_id", carrier.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+
+  if (vehicleError) {
+    throw new AppError(vehicleError.message, 500, "vehicle_lookup_failed");
+  }
+
+  return {
+    carrier,
+    vehicles: vehicles ?? [],
+  };
+}
 
 function getJoinedTripsQuery() {
   const supabase = createServerSupabaseClient();
@@ -40,57 +74,66 @@ async function queryTripsByIds(ids: string[]) {
 }
 
 async function queryTripsByDateWindow(params: {
-  from: string;
-  to: string;
+  pickupLat: number;
+  pickupLng: number;
+  dropoffLat: number;
+  dropoffLng: number;
   what?: string;
   isReturnTrip?: boolean;
   dates: string[];
+  page: number;
 }) {
   if (!hasSupabaseEnv() || params.dates.length === 0) {
-    return [] as TripSearchResult[];
+    return {
+      results: [] as TripSearchResult[],
+      totalCount: 0,
+    };
   }
 
-  const query = getJoinedTripsQuery()
-    .in("status", ["active", "booked_partial"])
-    .lte("publish_at", new Date().toISOString())
-    .gte("trip_date", getTodayIsoDate())
-    .in("trip_date", params.dates)
-    .ilike("origin_suburb", `%${params.from}%`)
-    .ilike("destination_suburb", `%${params.to}%`)
-    .order("trip_date", { ascending: true })
-    .limit(SEARCH_PAGE_SIZE);
-
-  if (params.what) {
-    if (params.what === "furniture") {
-      query.eq("accepts_furniture", true);
-    }
-
-    if (params.what === "boxes") {
-      query.eq("accepts_boxes", true);
-    }
-
-    if (params.what === "appliance") {
-      query.eq("accepts_appliances", true);
-    }
-
-    if (params.what === "fragile") {
-      query.eq("accepts_fragile", true);
-    }
-  }
-
-  if (params.isReturnTrip) {
-    query.eq("is_return_trip", true);
-  }
-
-  const { data, error } = await query;
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase.rpc("find_matching_listings_nearby_dates", {
+    p_pickup_lat: params.pickupLat,
+    p_pickup_lng: params.pickupLng,
+    p_dropoff_lat: params.dropoffLat,
+    p_dropoff_lng: params.dropoffLng,
+    p_dates: params.dates,
+    p_category: params.what ?? null,
+    p_is_return_trip: params.isReturnTrip ?? false,
+    p_page: 1,
+    p_page_size: SEARCH_PAGE_SIZE * params.page,
+  });
 
   if (error) {
     throw new AppError(error.message, 500, "trip_search_failed");
   }
 
-  return ((data ?? []) as unknown as ListingJoinedRecord[]).map((record) =>
-    toTripSearchResult(toTrip(record), 0),
-  );
+  const matches = (data ?? []) as unknown as SearchRpcRow[];
+  const trips = await queryTripsByIds(matches.map((match) => match.listing_id));
+  const tripMap = new Map(trips.map((trip) => [trip.id, trip]));
+  return {
+    results: matches
+      .map((match) => {
+        const trip = tripMap.get(match.listing_id);
+
+        if (!trip) {
+          return null;
+        }
+
+        const routeFit = Math.max(0, 35 - match.pickup_distance_km * 2);
+        const destinationFit = Math.max(0, 35 - match.dropoff_distance_km * 2);
+        const reliability = Math.max(0, (trip.carrier.averageRating / 5) * 20);
+        const priceFit = Math.max(0, 10 - trip.priceCents / 4000);
+
+        return toTripSearchResult(trip, match.match_score, {
+          routeFit,
+          destinationFit,
+          reliability,
+          priceFit,
+        });
+      })
+      .filter((trip): trip is TripSearchResult => Boolean(trip)),
+    totalCount: Number(matches[0]?.total_count ?? 0),
+  };
 }
 
 export async function listPublicTrips(limit = SEARCH_PAGE_SIZE) {
@@ -160,21 +203,28 @@ async function cachedTextSearch(
   when?: string,
   what?: string,
   isReturnTrip?: boolean,
+  page = 1,
 ) {
   return unstable_cache(
     async () => {
     if (!hasSupabaseEnv()) {
-      return [] as TripSearchResult[];
+      return {
+        results: [] as TripSearchResult[],
+        totalCount: 0,
+      };
     }
 
-    const query = getJoinedTripsQuery()
+    const supabase = createServerSupabaseClient();
+    const query = supabase
+      .from("capacity_listings")
+      .select("*, carrier:carriers(*), vehicle:vehicles(*)", { count: "exact" })
       .in("status", ["active", "booked_partial"])
       .lte("publish_at", new Date().toISOString())
       .gte("trip_date", getTodayIsoDate())
       .ilike("origin_suburb", `%${from}%`)
       .ilike("destination_suburb", `%${to}%`)
       .order("trip_date", { ascending: true })
-      .limit(SEARCH_PAGE_SIZE);
+      .range(0, page * SEARCH_PAGE_SIZE - 1);
 
     if (when) {
       query.eq("trip_date", when);
@@ -200,14 +250,17 @@ async function cachedTextSearch(
       query.eq("is_return_trip", true);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       throw new AppError(error.message, 500, "trip_search_failed");
     }
 
-    return ((data ?? []) as unknown as ListingJoinedRecord[])
-      .map((record) => toTripSearchResult(toTrip(record), 0));
+    return {
+      results: ((data ?? []) as unknown as ListingJoinedRecord[])
+        .map((record) => toTripSearchResult(toTrip(record), 0)),
+      totalCount: count ?? 0,
+    };
   },
     [
       "trip-text-search",
@@ -216,15 +269,22 @@ async function cachedTextSearch(
       when ?? "any",
       what ?? "any",
       isReturnTrip ? "return" : "standard",
+      String(page),
     ],
     { revalidate: SEARCH_REVALIDATE_SECONDS },
   )();
 }
 
 export async function searchTrips(input: TripSearchInput) {
+  const page = Math.max(1, input.page ?? 1);
+
   if (!hasSupabaseEnv()) {
     return {
       results: [] as TripSearchResult[],
+      totalCount: 0,
+      visibleCount: 0,
+      page,
+      hasMore: false,
       geocodingAvailable: false,
       fallbackUsed: false,
       fallbackReason: "supabase_unavailable",
@@ -240,45 +300,49 @@ export async function searchTrips(input: TripSearchInput) {
     : [];
 
   if (!geocoded) {
-    const results = await cachedTextSearch(
+    const exact = await cachedTextSearch(
       input.from,
       input.to,
       input.when,
       input.what,
       input.isReturnTrip,
+      page,
     );
     const fallbackResults =
-      results.length === 0 && input.when && input.includeNearbyDates !== false
-        ? await queryTripsByDateWindow({
-            from: input.from,
-            to: input.to,
-            what: input.what,
-            isReturnTrip: input.isReturnTrip,
-            dates: nearbyDates,
-          })
-        : [];
+      exact.results.length === 0 && input.when && input.includeNearbyDates !== false
+        ? { results: [] as TripSearchResult[], totalCount: 0 }
+        : { results: [] as TripSearchResult[], totalCount: 0 };
+    const activeResults = exact.results.length > 0 ? exact : fallbackResults;
 
     return {
-      results: results.length > 0 ? results : fallbackResults,
+      results: activeResults.results,
+      totalCount: activeResults.totalCount,
+      visibleCount: activeResults.results.length,
+      page,
+      hasMore: page * SEARCH_PAGE_SIZE < activeResults.totalCount,
       geocodingAvailable: false,
-      fallbackUsed: results.length === 0 && fallbackResults.length > 0,
-      fallbackReason: results.length === 0 && fallbackResults.length > 0 ? "nearby_dates" : "geocoding_unavailable",
+      fallbackUsed: exact.results.length === 0 && fallbackResults.results.length > 0,
+      fallbackReason:
+        exact.results.length === 0 && fallbackResults.results.length > 0
+          ? "nearby_dates"
+          : "geocoding_unavailable",
       nearbyDateOptions:
-        results.length === 0 && fallbackResults.length > 0
-          ? Array.from(new Set(fallbackResults.map((trip) => trip.tripDate)))
+        exact.results.length === 0 && fallbackResults.results.length > 0
+          ? Array.from(new Set(fallbackResults.results.map((trip) => trip.tripDate)))
           : [],
     } satisfies TripSearchResponse;
   }
 
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase.rpc("find_matching_listings", {
+  const { data, error } = await supabase.rpc("find_matching_listings_paged", {
     p_pickup_lat: geocoded.pickupLat,
     p_pickup_lng: geocoded.pickupLng,
     p_dropoff_lat: geocoded.dropoffLat,
     p_dropoff_lng: geocoded.dropoffLng,
     p_date: input.when ?? null,
     p_category: input.what ?? null,
-    p_limit: SEARCH_PAGE_SIZE,
+    p_page: 1,
+    p_page_size: SEARCH_PAGE_SIZE * page,
   });
 
   if (error) {
@@ -313,10 +377,15 @@ export async function searchTrips(input: TripSearchInput) {
   const filteredExactMatches = input.isReturnTrip
     ? exactMatches.filter((trip) => trip.isReturnTrip)
     : exactMatches;
+  const totalCount = Number(matches[0]?.total_count ?? filteredExactMatches.length);
 
   if (filteredExactMatches.length > 0 || !input.when || input.includeNearbyDates === false) {
     return {
       results: filteredExactMatches,
+      totalCount,
+      visibleCount: filteredExactMatches.length,
+      page,
+      hasMore: page * SEARCH_PAGE_SIZE < totalCount,
       geocodingAvailable: true,
       fallbackUsed: false,
       fallbackReason: null,
@@ -325,19 +394,26 @@ export async function searchTrips(input: TripSearchInput) {
   }
 
   const fallbackResults = await queryTripsByDateWindow({
-    from: input.from,
-    to: input.to,
+    pickupLat: geocoded.pickupLat,
+    pickupLng: geocoded.pickupLng,
+    dropoffLat: geocoded.dropoffLat,
+    dropoffLng: geocoded.dropoffLng,
     what: input.what,
     isReturnTrip: input.isReturnTrip,
     dates: nearbyDates,
+    page,
   });
 
   return {
-    results: fallbackResults,
+    results: fallbackResults.results,
+    totalCount: fallbackResults.totalCount,
+    visibleCount: fallbackResults.results.length,
+    page,
+    hasMore: page * SEARCH_PAGE_SIZE < fallbackResults.totalCount,
     geocodingAvailable: true,
-    fallbackUsed: fallbackResults.length > 0,
-    fallbackReason: fallbackResults.length > 0 ? "nearby_dates" : null,
-    nearbyDateOptions: Array.from(new Set(fallbackResults.map((trip) => trip.tripDate))),
+    fallbackUsed: fallbackResults.results.length > 0,
+    fallbackReason: fallbackResults.results.length > 0 ? "nearby_dates" : null,
+    nearbyDateOptions: Array.from(new Set(fallbackResults.results.map((trip) => trip.tripDate))),
   } satisfies TripSearchResponse;
 }
 
@@ -370,7 +446,9 @@ export async function listCarrierTrips(
       .in("status", ["active", "booked_partial", "draft"])
       .gte("trip_date", getDateOffsetIso(getTodayIsoDate(), -1));
   } else {
-    query.gte("trip_date", getDateOffsetIso(getTodayIsoDate(), -2));
+    query
+      .in("status", ["active", "booked_partial", "draft", "paused", "cancelled", "expired"])
+      .gte("trip_date", getDateOffsetIso(getTodayIsoDate(), -2));
   }
 
   const { data, error } = await query;
@@ -413,15 +491,7 @@ export async function createTripForCarrier(userId: string, input: TripInput) {
   }
 
   const supabase = createServerSupabaseClient();
-  const { data: carrier, error: carrierError } = await supabase
-    .from("carriers")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (carrierError) {
-    throw new AppError(carrierError.message, 500, "carrier_lookup_failed");
-  }
+  const { carrier, vehicles } = await getCarrierAndActiveVehicles(userId);
 
   if (!carrier) {
     throw new AppError(
@@ -431,23 +501,23 @@ export async function createTripForCarrier(userId: string, input: TripInput) {
     );
   }
 
-  const { data: vehicle, error: vehicleError } = await supabase
-    .from("vehicles")
-    .select("id")
-    .eq("carrier_id", carrier.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  if (vehicleError) {
-    throw new AppError(vehicleError.message, 500, "vehicle_lookup_failed");
-  }
-
-  if (!vehicle) {
+  if (vehicles.length === 0) {
     throw new AppError(
       "Add an active vehicle before posting a trip.",
       400,
       "vehicle_missing",
+    );
+  }
+
+  const vehicle =
+    vehicles.find((entry) => entry.id === parsed.data.vehicleId) ??
+    (vehicles.length === 1 ? vehicles[0] : null);
+
+  if (!vehicle) {
+    throw new AppError(
+      "Choose which vehicle is running this trip before publishing.",
+      400,
+      "vehicle_selection_required",
     );
   }
 
@@ -564,15 +634,7 @@ export async function updateTripForCarrier(
   }
 
   const supabase = createServerSupabaseClient();
-  const { data: carrier, error: carrierError } = await supabase
-    .from("carriers")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (carrierError) {
-    throw new AppError(carrierError.message, 500, "carrier_lookup_failed");
-  }
+  const { carrier, vehicles } = await getCarrierAndActiveVehicles(userId);
 
   if (!carrier) {
     throw new AppError("Carrier profile not found.", 404, "carrier_not_found");
@@ -593,9 +655,19 @@ export async function updateTripForCarrier(
     throw new AppError("Trip not found.", 404, "trip_not_found");
   }
 
+  const selectedVehicle =
+    parsed.data.vehicleId === undefined
+      ? undefined
+      : vehicles.find((entry) => entry.id === parsed.data.vehicleId);
+
+  if (parsed.data.vehicleId && !selectedVehicle) {
+    throw new AppError("Choose one of your active vehicles for this trip.", 400, "vehicle_invalid");
+  }
+
   const { error: updateError } = await supabase
     .from("capacity_listings")
     .update({
+      vehicle_id: selectedVehicle?.id,
       trip_date: parsed.data.tripDate,
       time_window: parsed.data.timeWindow,
       space_size: parsed.data.spaceSize,

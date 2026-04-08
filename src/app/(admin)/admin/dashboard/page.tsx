@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { BootstrapDatasetForm } from "@/components/admin/bootstrap-dataset-form";
 import { OpsFunnelCard } from "@/components/admin/ops-funnel-card";
@@ -12,6 +13,10 @@ import { PageIntro } from "@/components/layout/page-intro";
 import { ReviewQueue } from "@/components/admin/review-queue";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Admin dashboard",
+};
 
 function formatMetricValue(
   metric: Awaited<ReturnType<typeof getValidationMetrics>>[number],

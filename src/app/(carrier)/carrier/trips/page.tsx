@@ -6,6 +6,45 @@ import { PageIntro } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+function TripSection({
+  title,
+  description,
+  trips,
+}: {
+  title: string;
+  description: string;
+  trips: Awaited<ReturnType<typeof listCarrierTrips>>;
+}) {
+  if (trips.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="grid gap-4">
+      <div>
+        <p className="section-label">{title}</p>
+        <p className="mt-1 text-sm text-text-secondary">{description}</p>
+      </div>
+      <div className="grid gap-4">
+        {trips.map((trip) => (
+          <Link key={trip.id} href={`/carrier/trips/${trip.id}`}>
+            <Card className="p-4">
+              <h2 className="text-lg text-text">{trip.route.label}</h2>
+              <p className="mt-2 subtle-text">
+                {trip.tripDate} · {trip.timeWindow} · Remaining {trip.remainingCapacityPct}%
+              </p>
+              <p className="mt-2 text-sm text-text-secondary">
+                Status {trip.status?.replace("_", " ") ?? "active"} · Vehicle{" "}
+                {trip.vehicle.type.replaceAll("_", " ")}
+              </p>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default async function CarrierTripsPage({
   searchParams,
 }: {
@@ -14,6 +53,12 @@ export default async function CarrierTripsPage({
   const user = await requirePageSessionUser();
   const trips = await listCarrierTrips(user.id);
   const posted = searchParams?.posted === "1";
+  const liveTrips = trips.filter((trip) => ["active", "booked_partial"].includes(trip.status ?? "active"));
+  const draftTrips = trips.filter((trip) => trip.status === "draft");
+  const pausedTrips = trips.filter((trip) => trip.status === "paused");
+  const archivedTrips = trips.filter((trip) =>
+    ["cancelled", "expired", "booked_full"].includes(trip.status ?? ""),
+  );
 
   return (
     <main id="main-content" className="page-shell">
@@ -39,17 +84,27 @@ export default async function CarrierTripsPage({
         </Card>
       ) : null}
 
-      <div className="grid gap-4">
-        {trips.map((trip) => (
-          <Link key={trip.id} href={`/carrier/trips/${trip.id}`}>
-            <Card className="p-4">
-              <h2 className="text-lg text-text">{trip.route.label}</h2>
-              <p className="mt-2 subtle-text">
-                {trip.tripDate} · {trip.timeWindow} · Remaining {trip.remainingCapacityPct}%
-              </p>
-            </Card>
-          </Link>
-        ))}
+      <div className="grid gap-6">
+        <TripSection
+          title="Live inventory"
+          description="Active and partially booked routes customers can still browse right now."
+          trips={liveTrips}
+        />
+        <TripSection
+          title="Drafts"
+          description="Routes you have saved but not published yet."
+          trips={draftTrips}
+        />
+        <TripSection
+          title="Paused"
+          description="Hidden from browse, but still editable when you need to tighten timing or rules."
+          trips={pausedTrips}
+        />
+        <TripSection
+          title="Archive"
+          description="Older cancelled, expired, or filled routes for quick reference."
+          trips={archivedTrips}
+        />
         {trips.length === 0 ? (
           <Card className="p-4">
             <p className="subtle-text">No trips yet. Post your first route to start receiving bookings.</p>

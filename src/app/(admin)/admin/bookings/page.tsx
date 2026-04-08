@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AdminBookingSupportPanel } from "@/components/admin/admin-booking-support-panel";
@@ -11,6 +12,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { BookingPaymentStatus } from "@/types/booking";
+
+export const metadata: Metadata = {
+  title: "Admin bookings",
+};
 
 const PAYMENT_STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
@@ -136,7 +141,8 @@ export default async function AdminBookingsPage({
         </form>
         <AdminBookingSupportPanel bookings={bookings} query={query} />
         {bookings.map((booking) => (
-          <Card key={booking.id} className="p-4">
+          <Link key={booking.id} href={`/admin/bookings/${booking.id}`} className="block active:opacity-95">
+          <Card className="p-4">
             {(() => {
               const paymentSummary = getBookingPaymentStateSummary(booking);
 
@@ -166,6 +172,7 @@ export default async function AdminBookingsPage({
               );
             })()}
           </Card>
+          </Link>
         ))}
         {bookings.length === 0 ? (
           <Card className="p-4">

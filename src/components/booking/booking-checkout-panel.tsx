@@ -68,9 +68,10 @@ export function BookingCheckoutPanel({
         <p className="section-label">Payment reassurance</p>
         <h3 className="mt-1 text-lg text-text">Your money is held until the job is properly completed</h3>
         <div className="mt-3 space-y-2 text-sm text-text-secondary">
-          <p>The card is authorized during booking so the trip is reserved.</p>
-          <p>Payout is released only after proof, delivery, and completion logic are satisfied.</p>
-          <p>If something goes wrong, the dispute flow and proof record sit inside moverrr instead of in chat screenshots.</p>
+          <p>Your card is authorized during booking so the spare-capacity spot is reserved.</p>
+          <p>moverrr only captures the payment after proof, delivery, and completion rules are satisfied.</p>
+          <p>If the carrier never confirms, the pending hold expires instead of turning into a free-form off-platform negotiation.</p>
+          <p>If the route cannot proceed cleanly, ops can review the in-platform proof trail instead of chat screenshots.</p>
         </div>
       </Card>
 
@@ -89,7 +90,7 @@ export function BookingCheckoutPanel({
             </span>
           </summary>
           <div className="mt-3 space-y-2 text-sm text-text-secondary">
-            <p>1. The carrier confirms the booking, usually within 24 hours, or the pending hold expires.</p>
+            <p>1. The carrier confirms the booking before the pending hold expires.</p>
             <p>2. Pickup happens on the trip date during the listed window with route-fit handoff details confirmed in-app.</p>
             <p>3. Delivery proof is captured, then you confirm receipt so payout can be released.</p>
             <p>4. Any extra charges must stay inside the listed add-ons or an admin-reviewed exception.</p>

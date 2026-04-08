@@ -1,10 +1,71 @@
 # moverrr — Completed Work Log
 
-> Last updated: `2026-04-05`
+> Last updated: `2026-04-08`
 >
 > Purpose: keep a durable record of what is already done, where it lives, why it was changed, and when it landed, so completed work can be removed from the active backlog without losing context.
 
 ---
+
+## 2026-04-08 — Parallel backlog wave: carrier multi-vehicle flows, search pagination, admin recovery, and trust clarity
+
+### `COMP-2026-04-08-40` — Multi-vehicle posting, paused listings, paginated browse, admin capture recovery, and backlog cleanup
+- Moved from active backlog:
+  - `ES4`, `ES5`, `EP1`, `EP2`, `EP5`, `EA5`, `EA7`, `EL5`, `EL6`, `ET1`, `ET2`, `ET6`, `ET8`, and `ET9`
+- Removed from active backlog as stale duplicates already shipped in earlier records:
+  - `EL1`, `EL2`, `EA2`, `EA6`, `EQ3`, `EQ4`, and `P4-23`
+- When: `2026-04-08`
+- Where:
+  - `src/app/(admin)/admin/bookings/page.tsx`
+  - `src/app/(admin)/admin/bookings/[id]/page.tsx`
+  - `src/app/(admin)/admin/carriers/page.tsx`
+  - `src/app/(admin)/admin/dashboard/page.tsx`
+  - `src/app/(admin)/admin/disputes/page.tsx`
+  - `src/app/(admin)/admin/disputes/[id]/page.tsx`
+  - `src/app/(admin)/admin/payments/page.tsx`
+  - `src/app/(admin)/admin/verification/page.tsx`
+  - `src/app/(auth)/verify/page.tsx`
+  - `src/app/(carrier)/carrier/post/page.tsx`
+  - `src/app/(carrier)/carrier/trips/page.tsx`
+  - `src/app/(customer)/bookings/page.tsx`
+  - `src/app/(customer)/saved-searches/page.tsx`
+  - `src/app/(customer)/search/page.tsx`
+  - `src/app/api/admin/bookings/[id]/capture/route.ts`
+  - `src/app/api/bookings/[id]/route.ts`
+  - `src/app/api/bookings/route.ts`
+  - `src/app/api/search/route.ts`
+  - `src/components/admin/admin-booking-actions.tsx`
+  - `src/components/booking/booking-checkout-panel.tsx`
+  - `src/components/carrier/carrier-post-prefill.tsx`
+  - `src/components/carrier/carrier-trip-wizard.tsx`
+  - `src/components/carrier/quick-post-templates.tsx`
+  - `src/components/carrier/trip-edit-form.tsx`
+  - `src/components/trip/trip-card.tsx`
+  - `src/components/trip/trip-detail-summary.tsx`
+  - `src/lib/analytics.ts`
+  - `src/lib/data/admin.ts`
+  - `src/lib/data/bookings.ts`
+  - `src/lib/data/carriers.ts`
+  - `src/lib/data/feedback.ts`
+  - `src/lib/data/trips.ts`
+  - `src/lib/validation/trip.ts`
+  - `src/lib/__tests__/trip-validation.test.ts`
+  - `src/lib/__tests__/booking-proof-flow.test.ts`
+  - `src/lib/__tests__/booking-status-regression.test.ts`
+  - `src/types/database.ts`
+  - `src/types/trip.ts`
+  - `supabase/migrations/015_parallel_backlog_wave.sql`
+- Why:
+  - The active backlog had drifted away from the actual product state. This wave closed the highest-leverage remaining deltas in browse, carrier posting, and admin recovery while also cleaning out duplicate tasks that were already shipped in earlier waves.
+- What changed:
+  - Removed remaining single-vehicle assumptions from carrier posting surfaces, threaded explicit `vehicleId` selection through the wizard and repost/template hydration, and added paused-listing support so supply can be hidden without destructive cancel-and-repost flows.
+  - Added publish-quality warnings, item presets, and item-fit contradiction warnings in the carrier wizard, while keeping hard blockers reserved for true inventory contradictions.
+  - Reworked customer search to expose cumulative pagination metadata and a “Show more trips” flow, while keeping the nearby-date geospatial fallback on the RPC path instead of dropping back to suburb `ilike` matching for that date-window search.
+  - Added analytics dedupe keys for search and booking-start funnel events, extended metadata coverage across internal admin/auth/customer pages, and tightened remaining public-facing pricing or trust copy on trip cards, trip detail, and checkout.
+  - Added an admin booking detail surface with required override reasons, manual payment capture recovery, booking-event audit trail persistence, and a dedicated admin capture API guarded to `completed + authorized` bookings.
+  - Refreshed the backlog itself so partially shipped items were narrowed, and stale duplicates already covered by earlier completed work no longer pollute the active list.
+- Verification:
+  - `npm run check`
+  - `npm test -- src/lib/__tests__/trip-validation.test.ts src/lib/__tests__/booking-status-regression.test.ts src/lib/__tests__/booking-proof-flow.test.ts`
 
 ## 2026-04-05 — Frontier Block 2: Proof Packs, Safety Policy, Carrier Ops, and Automated Nudges
 

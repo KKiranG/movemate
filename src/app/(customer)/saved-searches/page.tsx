@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
+
 import { requirePageSessionUser } from "@/lib/auth";
 import { listUserSavedSearchesWithOptions } from "@/lib/data/saved-searches";
 import { PageIntro } from "@/components/layout/page-intro";
 import { SavedSearchesManager } from "@/components/search/saved-searches-manager";
+
+export const metadata: Metadata = {
+  title: "Saved searches",
+};
 
 export default async function SavedSearchesPage() {
   const user = await requirePageSessionUser();

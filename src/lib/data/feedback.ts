@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { disputeSchema, type DisputeInput } from "@/lib/validation/dispute";
 import { reviewSchema, type ReviewInput } from "@/lib/validation/review";
+import { sanitizeText } from "@/lib/utils";
 import type { Database } from "@/types/database";
 import type { Dispute } from "@/types/dispute";
 import type { Review } from "@/types/review";
@@ -468,7 +469,7 @@ export async function respondToReviewAsCarrier(
     throw new AppError("A response has already been posted for this review.", 409, "review_response_exists");
   }
 
-  const sanitizedResponse = response.trim();
+  const sanitizedResponse = sanitizeText(response);
 
   if (!sanitizedResponse) {
     throw new AppError("Response is required.", 400, "review_response_required");

@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
+
 import { Card } from "@/components/ui/card";
 import { PageIntro } from "@/components/layout/page-intro";
+
+export const metadata: Metadata = {
+  title: "Verify your email",
+};
 
 export default function VerifyPage() {
   return (

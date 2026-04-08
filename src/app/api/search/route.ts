@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -11,6 +12,30 @@ import type { ItemCategory } from "@/types/trip";
 import { sanitizeText } from "@/lib/utils";
 
 export const revalidate = 30;
+
+function buildSearchAnalyticsDedupeKey(
+  request: NextRequest,
+  params: {
+    from: string;
+    to: string;
+    when?: string;
+    what?: ItemCategory;
+    isReturnTrip: boolean;
+  },
+) {
+  const bucket = new Date().toISOString().slice(0, 16);
+  const fingerprint = JSON.stringify({
+    ip: request.ip ?? "anonymous",
+    from: params.from.trim().toLowerCase(),
+    to: params.to.trim().toLowerCase(),
+    when: params.when ?? null,
+    what: params.what ?? null,
+    isReturnTrip: params.isReturnTrip,
+    bucket,
+  });
+
+  return createHash("sha256").update(fingerprint).digest("hex");
+}
 
 const waitlistSchema = z.object({
   email: z.string().email(),
@@ -28,6 +53,7 @@ export async function GET(request: NextRequest) {
     const to = searchParams.get("to") ?? "";
     const when = searchParams.get("when") ?? undefined;
     const isReturnTrip = searchParams.get("backload") === "1";
+    const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
     const what = (searchParams.get("what") ?? undefined) as
       | ItemCategory
       | undefined;
@@ -51,16 +77,25 @@ export async function GET(request: NextRequest) {
       when,
       what,
       isReturnTrip,
+      page,
     });
 
     await trackAnalyticsEvent({
       eventName: "search_submitted",
       pathname: "/search",
+      dedupeKey: buildSearchAnalyticsDedupeKey(request, {
+        from,
+        to,
+        when,
+        what,
+        isReturnTrip,
+      }),
       metadata: {
         from,
         to,
         what: what ?? null,
         isReturnTrip,
+        page,
         resultCount: searchResponse.results.length,
       },
     });

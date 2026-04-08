@@ -11,9 +11,11 @@ import {
 } from "@/lib/constants";
 import {
   getBaseCustomerPriceCents,
+  getTripCustomerPricePreview,
   getHumanCapacityLabel,
   getTripFitSummary,
-  getTripTrustSignals,
+  getTripTimingBadges,
+  getTripTrustStack,
 } from "@/lib/trip-presenters";
 import { formatCurrency, formatDate, formatSavings } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
@@ -38,32 +40,16 @@ const SPACE_SIZE_EXAMPLES: Record<Trip["spaceSize"], string> = {
   XL: "Usually suits large furniture or most of a spare bay",
 };
 
-function getTimingBadge(trip: Trip) {
-  if (trip.timeWindow === "flexible") {
-    return "Flexible across the day";
-  }
-
-  const tripDay = new Date(`${trip.tripDate}T12:00:00`);
-  const dayLabel = Number.isNaN(tripDay.getTime())
-    ? null
-    : [0, 6].includes(tripDay.getDay())
-      ? "Weekend run"
-      : null;
-
-  const windowLabel =
-    trip.timeWindow === "morning"
-      ? "Fixed morning window"
-      : trip.timeWindow === "afternoon"
-        ? "Fixed afternoon window"
-        : "Fixed evening window";
-
-  return dayLabel ? `${dayLabel} · ${windowLabel}` : windowLabel;
-}
-
 export function TripCard({ trip, href }: TripCardProps) {
   const capacityIndicator = getCapacityIndicator(trip.remainingCapacityPct);
   const isFullyBooked = trip.remainingCapacityPct <= 0 || trip.status === "booked_full";
-  const trustSignals = getTripTrustSignals(trip);
+  const pricingPreview = getTripCustomerPricePreview(trip.priceCents);
+  const timingBadges = getTripTimingBadges(trip);
+  const trustRow = getTripTrustStack(trip).map((label) =>
+    label.includes("reviews")
+      ? label.replace(" from ", " · ")
+      : label,
+  );
   const searchHref = `/search?${new URLSearchParams({
     from: trip.route.originSuburb,
     to: trip.route.destinationSuburb,
@@ -87,7 +73,9 @@ export function TripCard({ trip, href }: TripCardProps) {
                 </span>
               ) : null}
               <Badge>{VEHICLE_TYPE_LABELS[trip.vehicle.type]}</Badge>
-              <Badge>{getTimingBadge(trip)}</Badge>
+              {timingBadges.slice(0, 2).map((badge) => (
+                <Badge key={badge}>{badge}</Badge>
+              ))}
               {trip.isReturnTrip ? (
                 <Badge className="border-success/20 bg-success/10 text-success">
                   Return trip
@@ -97,11 +85,9 @@ export function TripCard({ trip, href }: TripCardProps) {
                 <Badge>{capacityIndicator.label}</Badge>
               ) : null}
             </div>
-            <p className="text-sm text-text-secondary">
-              {trip.carrier.ratingCount > 0
-                ? `★ ${trip.carrier.averageRating.toFixed(1)} (${trip.carrier.ratingCount} reviews)`
-                : "New carrier"}
-            </p>
+            {trustRow.length > 0 ? (
+              <p className="text-sm text-text-secondary">{trustRow.join(" · ")}</p>
+            ) : null}
             <p className="text-sm text-text-secondary">
               {trip.route.via.length > 0
                 ? `${trip.route.label} via ${trip.route.via.join(", ")}`
@@ -117,22 +103,15 @@ export function TripCard({ trip, href }: TripCardProps) {
               <span>Picks up within {trip.detourRadiusKm}km of the route</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-              {trustSignals.map((signal) => (
-                <span
-                  key={signal}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 ${
-                    signal === "ID checked"
-                      ? "border-success/20 bg-success/10 text-success"
-                      : "border-border"
-                  }`}
-                >
-                  {signal === "ID checked" ? <ShieldCheck className="h-3.5 w-3.5" /> : null}
-                  {signal}
-                </span>
-              ))}
               <span className="inline-flex rounded-full border border-border px-2 py-1">
                 {SPACE_SIZE_EXAMPLES[trip.spaceSize]}
               </span>
+              {trip.carrier.isVerified ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2 py-1 text-success">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Proof-backed flow
+                </span>
+              ) : null}
             </div>
             <div className="hidden space-y-2 sm:block">
               <p className="text-sm text-text-secondary">{SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}</p>
@@ -159,10 +138,17 @@ export function TripCard({ trip, href }: TripCardProps) {
           </div>
         </div>
         <div className="text-right">
+          <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Customer total</p>
           <p className="text-2xl font-medium text-text">
             {formatCurrency(getBaseCustomerPriceCents(trip))}
           </p>
-          <p className="text-sm text-text-secondary">Starting total incl. booking fee</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            {formatCurrency(pricingPreview.basePriceCents)} route price +{" "}
+            {formatCurrency(pricingPreview.bookingFeeCents)} booking fee
+          </p>
+          <p className="mt-1 text-xs text-text-secondary">
+            Optional stairs or helper add-ons only if you select them.
+          </p>
           {trip.savingsPct > 5 ? (
             <>
               <p className="text-sm text-text-secondary line-through">
@@ -178,9 +164,6 @@ export function TripCard({ trip, href }: TripCardProps) {
           {capacityIndicator ? (
             <p className="mt-2 text-xs text-text-secondary">{capacityIndicator.description}</p>
           ) : null}
-          <p className="mt-2 text-xs text-text-secondary">
-            Optional add-ons shown before checkout: stairs and helper only if you need them.
-          </p>
         </div>
       </div>
       <div className="mt-4 flex items-center justify-end">

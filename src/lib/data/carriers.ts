@@ -46,8 +46,13 @@ export async function getCarrierById(carrierId: string) {
 }
 
 export async function getCarrierVehicle(userId: string) {
+  const vehicles = await listCarrierVehicles(userId);
+  return vehicles[0] ?? null;
+}
+
+export async function listCarrierVehicles(userId: string) {
   if (!hasSupabaseEnv()) {
-    return null;
+    return [];
   }
 
   const supabase = createServerSupabaseClient();
@@ -58,7 +63,7 @@ export async function getCarrierVehicle(userId: string) {
     .maybeSingle();
 
   if (!carrier) {
-    return null;
+    return [];
   }
 
   const { data, error } = await supabase
@@ -66,14 +71,13 @@ export async function getCarrierVehicle(userId: string) {
     .select("*")
     .eq("carrier_id", carrier.id)
     .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
 
   if (error) {
     throw new AppError(error.message, 500, "vehicle_lookup_failed");
   }
 
-  return data ? toVehicle(data) : null;
+  return (data ?? []).map(toVehicle);
 }
 
 export async function upsertCarrierOnboarding(

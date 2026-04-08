@@ -18,8 +18,8 @@ import {
 } from "@/lib/constants";
 import { suggestPrice } from "@/lib/pricing/suggest";
 import { formatCurrency, getTodayIsoDate } from "@/lib/utils";
-import type { RoutePriceGuidance } from "@/types/trip";
-import { getTripPublishReadiness } from "@/lib/validation/trip";
+import type { RoutePriceGuidance, TripDraftVehicleOption } from "@/types/trip";
+import { getTripConflictWarnings, getTripPublishReadiness } from "@/lib/validation/trip";
 
 const steps = ["Route", "When & space", "Price & rules"] as const;
 const acceptOptions = [
@@ -28,6 +28,21 @@ const acceptOptions = [
   { value: "appliance", label: "Appliance" },
   { value: "fragile", label: "Fragile" },
 ] as const;
+
+const itemPresets = [
+  { id: "mattress", label: "Mattress", accepts: ["furniture"], suggestedSpaceSize: "M" },
+  { id: "fridge", label: "Fridge", accepts: ["appliance"], suggestedSpaceSize: "L" },
+  { id: "sofa", label: "Sofa", accepts: ["furniture"], suggestedSpaceSize: "L" },
+  { id: "washing-machine", label: "Washing machine", accepts: ["appliance"], suggestedSpaceSize: "M" },
+  { id: "marketplace-pickup", label: "Marketplace pickup", accepts: ["furniture", "boxes"], suggestedSpaceSize: "S" },
+  { id: "boxes", label: "Boxes", accepts: ["boxes"], suggestedSpaceSize: "S" },
+  { id: "office-overflow", label: "Office overflow", accepts: ["boxes", "fragile"], suggestedSpaceSize: "M" },
+] as const satisfies ReadonlyArray<{
+  id: string;
+  label: string;
+  accepts: Array<(typeof acceptOptions)[number]["value"]>;
+  suggestedSpaceSize: "S" | "M" | "L" | "XL";
+}>;
 
 function getDistanceKm(origin: AddressValue | null, destination: AddressValue | null) {
   if (!origin || !destination) {
@@ -64,6 +79,8 @@ export function CarrierTripWizard({
   initialStairsExtraDollars = "0",
   initialHelperAvailable = false,
   initialHelperExtraDollars = "0",
+  initialVehicleId,
+  vehicles = [],
   canPost = true,
   onboardingHref = "/carrier/onboarding",
 }: {
@@ -83,6 +100,8 @@ export function CarrierTripWizard({
   initialStairsExtraDollars?: string;
   initialHelperAvailable?: boolean;
   initialHelperExtraDollars?: string;
+  initialVehicleId?: string;
+  vehicles?: TripDraftVehicleOption[];
   canPost?: boolean;
   onboardingHref?: string;
 }) {
@@ -108,6 +127,9 @@ export function CarrierTripWizard({
   const [helperAvailable, setHelperAvailable] = useState(initialHelperAvailable);
   const [helperExtraDollars, setHelperExtraDollars] = useState(initialHelperExtraDollars);
   const [publishState, setPublishState] = useState<"draft" | "active">("active");
+  const [selectedVehicleId, setSelectedVehicleId] = useState(
+    initialVehicleId ?? vehicles[0]?.id ?? "",
+  );
   const [priceGuidance, setPriceGuidance] = useState<RoutePriceGuidance | null>(null);
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
   const [hasEditedPrice, setHasEditedPrice] = useState(Boolean(initialPriceDollars));
@@ -140,6 +162,7 @@ export function CarrierTripWizard({
         availableVolumeM3: Number(availableVolumeM3) || 0,
         availableWeightKg: Number(availableWeightKg) || 0,
         accepts: accepts as Array<"furniture" | "boxes" | "appliance" | "fragile" | "other">,
+        timeWindow,
         specialNotes,
         helperAvailable,
         stairsOk,
@@ -153,10 +176,28 @@ export function CarrierTripWizard({
       spaceSize,
       specialNotes,
       stairsOk,
+      timeWindow,
     ],
   );
   const blockingPublishIssues = publishIssues.filter((issue) => issue.severity === "blocking");
   const warningPublishIssues = publishIssues.filter((issue) => issue.severity === "warning");
+  const conflictWarnings = useMemo(
+    () =>
+      getTripConflictWarnings({
+        spaceSize,
+        accepts: accepts as Array<"furniture" | "boxes" | "appliance" | "fragile" | "other">,
+        specialNotes,
+        helperAvailable,
+        stairsOk,
+      }),
+    [accepts, helperAvailable, spaceSize, specialNotes, stairsOk],
+  );
+
+  useEffect(() => {
+    if (!selectedVehicleId && vehicles[0]?.id) {
+      setSelectedVehicleId(vehicles[0].id);
+    }
+  }, [selectedVehicleId, vehicles]);
 
   useEffect(() => {
     if (hasEditedPrice || initialPriceDollars) {
@@ -172,6 +213,11 @@ export function CarrierTripWizard({
     if (index === 0) {
       if (!canPost) {
         setError("Add an active vehicle in onboarding before posting a trip.");
+        return false;
+      }
+
+      if (vehicles.length > 1 && !selectedVehicleId) {
+        setError("Choose which active vehicle should carry this trip before continuing.");
         return false;
       }
 
@@ -323,6 +369,7 @@ export function CarrierTripWizard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          vehicleId: selectedVehicleId || undefined,
           originSuburb: origin.suburb,
           originPostcode: origin.postcode,
           originLatitude: origin.latitude,
@@ -372,6 +419,16 @@ export function CarrierTripWizard({
     );
   }
 
+  function applyItemPreset(preset: (typeof itemPresets)[number]) {
+    setAccepts(Array.from(new Set(preset.accepts)));
+    setSpaceSize((current) => {
+      const order = ["S", "M", "L", "XL"] as const;
+      const currentIndex = order.indexOf(current);
+      const presetIndex = order.indexOf(preset.suggestedSpaceSize);
+      return presetIndex > currentIndex ? preset.suggestedSpaceSize : current;
+    });
+  }
+
   return (
     <form
       className="grid gap-4 pb-28"
@@ -418,6 +475,38 @@ export function CarrierTripWizard({
 
       {stepIndex === 0 ? (
         <div className="grid gap-4">
+          {vehicles.length > 0 ? (
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-text">Vehicle</span>
+                <span className="text-xs text-text-secondary">
+                  {vehicles.length === 1
+                    ? "Posting will use your current active vehicle"
+                    : "Choose which active vehicle is taking this corridor"}
+                </span>
+              </div>
+              {vehicles.length === 1 ? (
+                <div className="rounded-xl border border-border p-3">
+                  <p className="text-sm font-medium text-text">{vehicles[0]?.label}</p>
+                  <p className="mt-1 text-sm text-text-secondary">{vehicles[0]?.detail}</p>
+                </div>
+              ) : (
+                <select
+                  name="vehicleId"
+                  value={selectedVehicleId}
+                  onChange={(event) => setSelectedVehicleId(event.target.value)}
+                  className="min-h-[44px] rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                >
+                  <option value="">Choose a vehicle</option>
+                  {vehicles.map((vehicle) => (
+                    <option key={vehicle.id} value={vehicle.id}>
+                      {vehicle.label} · {vehicle.detail}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          ) : null}
           <GoogleAutocompleteInput
             name="originAddress"
             placeholder="Origin suburb or address"
@@ -513,6 +602,15 @@ export function CarrierTripWizard({
               <option value="flexible">Flexible</option>
             </select>
           </label>
+          {timeWindow === "flexible" ? (
+            <div className="rounded-xl border border-warning/20 bg-warning/10 p-3">
+              <p className="text-sm font-medium text-warning">Flexible windows need one extra note</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                Customers browse timing certainty first. A short note like after 2pm or call ahead
+                keeps flexible runs trustworthy without turning them into quote requests.
+              </p>
+            </div>
+          ) : null}
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Space size</span>
             <select
@@ -643,6 +741,21 @@ export function CarrierTripWizard({
             />
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
+            {itemPresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyItemPreset(preset)}
+                className="min-h-[44px] rounded-xl border border-border px-3 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+              >
+                <span className="block font-medium">{preset.label}</span>
+                <span className="block text-xs text-text-secondary">
+                  Suggests space {preset.suggestedSpaceSize} and accepted item types
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
             {acceptOptions.map((option) => {
               const isSelected = accepts.includes(option.value);
 
@@ -671,6 +784,31 @@ export function CarrierTripWizard({
           {accepts.map((value) => (
             <input key={value} type="hidden" name="accepts" value={value} />
           ))}
+          {conflictWarnings.length > 0 ? (
+            <div className="rounded-xl border border-warning/20 bg-warning/10 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="section-label">Item-fit warnings</p>
+                  <h3 className="mt-1 text-lg text-text">Review these before publishing</h3>
+                </div>
+                <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                  Soft warning only
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2">
+                {conflictWarnings.map((warning) => (
+                  <div key={warning.code} className="rounded-xl border border-white/60 bg-white/70 px-3 py-3 text-sm text-text">
+                    <p className="font-medium text-text">{warning.message}</p>
+                    <p className="mt-1">{warning.hint}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-sm text-text-secondary">
+                You can still publish anyway. These warnings are here to keep route fit and access
+                boundaries legible before customers book.
+              </p>
+            </div>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-text">Stairs support</span>
@@ -730,6 +868,10 @@ export function CarrierTripWizard({
               <option value="active">Publish now</option>
               <option value="draft">Save as draft</option>
             </select>
+            <p className="text-sm text-text-secondary">
+              Quality warnings do not block publishing. Only hard inventory contradictions force a
+              draft-first save.
+            </p>
           </label>
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3">
