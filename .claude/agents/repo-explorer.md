@@ -5,6 +5,7 @@ model: inherit
 effort: high
 background: true
 memory: project
+maxTurns: 20
 tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 

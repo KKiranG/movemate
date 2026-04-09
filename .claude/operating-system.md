@@ -108,14 +108,45 @@ Use worktrees by default for:
 - independent verification passes
 - risky refactors with broad file touch
 
-Naming convention:
+### Naming Convention
 
-- `docs/<slug>`
-- `research/<slug>`
-- `feature/<slug>`
-- `verify/<slug>`
+| Prefix | Use | Example |
+|--------|-----|---------|
+| `docs/` | doc and memory cleanup sweeps | `docs/agent-os-cleanup` |
+| `research/` | read-only product or codebase analysis | `research/search-matching-audit` |
+| `feature/` | new feature implementation | `feature/carrier-stripe-connect` |
+| `verify/` | independent verification pass | `verify/booking-payment-flow` |
+| `fix/` | bug fix from a GitHub issue | `fix/issue-42-capacity-pct` |
 
-Only propagate ignored local files into worktrees when they are explicitly required for verification and safe to duplicate.
+### Create a Worktree
+
+```bash
+git worktree add .claude/worktrees/<name> -b <branch-name>
+```
+
+Example:
+```bash
+git worktree add .claude/worktrees/feature-carrier-signup -b feature/carrier-signup
+```
+
+### List All Worktrees
+
+```bash
+git worktree list
+```
+
+### Remove a Worktree
+
+```bash
+git worktree remove .claude/worktrees/<name>
+git worktree prune   # clean up stale refs
+```
+
+### Rules
+
+- Only propagate ignored local files into worktrees when they are explicitly required for verification and safe to duplicate.
+- `schema-reviewer` agent always runs in a worktree-isolated context — never in the main working tree.
+- Do not leave stale worktrees after a task is complete.
 
 ## Trust Boundary
 
@@ -168,6 +199,8 @@ Current operating-system surfaces:
   - `mobile-verifier`
   - `schema-reviewer`
   - `copy-guardian`
+  - `debugger`
+  - `test-runner`
 - workflow skills
   - `booking-safety-audit`
   - `docs-memory-sync`
@@ -190,6 +223,10 @@ Current operating-system surfaces:
   - `chrome-qa-tester`
   - `monthly-memory-refactor`
   - `write-task`
+  - `fix-issue`
+  - `spec`
+  - `review-pr`
+  - `session-start`
 
 ## Verification Report Format
 

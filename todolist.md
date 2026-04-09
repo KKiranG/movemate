@@ -712,7 +712,7 @@
 - [ ] **AG-T1** — Enable experimental agent teams in project settings
   - **File(s):** `.claude/settings.json`, `.claude/agents.md`
   - **What:** Add the project env flag and document when teams beat simple subagents.
-  - **Why:** The repo role map could support teams, but PR 9 deliberately avoided enabling unverified runtime features.
+  - **Why:** The repo role map could support teams, but earlier PRs deliberately avoided enabling unverified runtime features.
   - **Done when:** Agent teams are locally verified and documented.
 
 - [ ] **AG-T2** — Add agent-team quality hooks
@@ -720,8 +720,6 @@
   - **What:** Add teammate-idle and task-completed quality gates once team events are available locally.
   - **Why:** Team review quality should be structural, not ceremonial.
   - **Done when:** Low-evidence team outputs are blocked automatically.
-
----
 
 ## Agent Operating System — Rule Files, Docs & OS Meta-Tasks
 

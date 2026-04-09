@@ -2,9 +2,13 @@
 name: verify-moverrr-change
 description: Run a real moverrr verification pass after non-trivial changes, with explicit evidence instead of ceremonial "looks good" validation.
 when_to_use: Use when the user asks to verify, audit, sanity-check, or review a change, or when you are about to finish a meaningful implementation. Examples: "verify this works", "do a final pass", "review the booking flow", "sanity check this PR", or "make sure the mobile UI is correct".
+argument-hint: [area: frontend|backend|booking|database|docs]
+effort: high
 ---
 
 # Verify moverrr Change
+
+Use `$ARGUMENTS` to scope the verification pass (e.g. `booking`, `frontend`, `database`).
 
 Use this skill after non-trivial work. The point is to prove behavior, not to narrate confidence.
 
@@ -39,7 +43,7 @@ Match the verification to the change type:
 
 ## Adversarial Probe
 
-Always run at least one "try to break it" check:
+Always run at least one named "try to break it" check and name it in the report:
 
 - boundary value
 - duplicate submission
@@ -50,12 +54,16 @@ Always run at least one "try to break it" check:
 
 If you did not try to break anything, the verification pass is incomplete.
 
-## Reporting Format
+## Report
 
-End with a compact verdict:
+End with:
 
-- what you checked
-- what evidence you saw
-- what still remains unverified, if anything
+```
+Checks run: [list]
+Evidence observed: [exact behavior, file:line, response shapes]
+Pass / fail / partial: [verdict]
+Adversarial probe: [name of probe + what you tried + result]
+Residual risk: [anything not verified or still open]
+```
 
 Be literal. If you could not verify something, say so plainly.

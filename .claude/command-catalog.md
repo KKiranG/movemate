@@ -49,6 +49,23 @@ Use this file as the discoverable index of repeatable repo workflows.
   Read-only docs and instruction drift audit before cleanup work.
 - `write-task`
   Draft or sharpen backlog items using the house format before any append.
+- `fix-issue`
+  Issue → thesis check → implement → verify → PR workflow.
+- `spec`
+  Interview-first feature spec that produces `SPEC.md` before implementation starts.
+- `review-pr`
+  Structured PR review against moverrr invariants, trust copy, iOS contract, and verification evidence.
+- `session-start`
+  Session kickoff that loads top backlog item, recent git state, and relevant memory before coding.
+
+## Worktree Commands
+
+- `git worktree list` — list all active worktrees
+- `git worktree add .claude/worktrees/<name> -b <branch>` — create a new worktree
+- `git worktree remove .claude/worktrees/<name>` — remove a worktree
+- `git worktree prune` — clean up stale worktree refs
+
+Naming: `docs/<slug>`, `research/<slug>`, `feature/<slug>`, `verify/<slug>`, `fix/<slug>`
 
 ## Semantics
 

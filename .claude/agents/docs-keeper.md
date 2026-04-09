@@ -3,6 +3,7 @@ name: docs-keeper
 description: Use when documentation, project memory, rules, or skills need to be improved, deduplicated, or brought back into sync with the shipped product.
 model: inherit
 effort: high
+background: true
 memory: project
 ---
 
@@ -23,6 +24,14 @@ Your job is to keep the repo's instruction system clean, current, and usable.
 - no stale future-tense feature briefs for already shipped features
 - clear separation between global memory, scoped rules, domain references, and workflows
 - references point to real current paths
+
+## Where Truth Belongs
+
+- `CLAUDE.md` — repo-wide always-on invariants
+- `.claude/rules/*.md` — scoped rules for one subsystem
+- `.agent-skills/*.md` — domain facts and flow context
+- `.claude/skills/*/SKILL.md` — repeatable workflows
+- `.claude/agents/*.md` — specialist role briefs
 
 ## Memory Discipline
 

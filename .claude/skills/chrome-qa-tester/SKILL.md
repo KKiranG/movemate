@@ -18,6 +18,11 @@ description: |
   Different from live-app-triage (which fixes blank-screen / totally broken apps).
   This skill audits a *working* app for UX debt, policy violations, and real-user
   friction. Use it proactively whenever testing is implied.
+paths:
+  - src/app/**
+  - src/components/**
+  - src/app/globals.css
+  - tailwind.config.ts
 ---
 
 # Chrome QA Tester
