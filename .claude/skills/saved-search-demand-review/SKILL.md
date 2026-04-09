@@ -2,6 +2,7 @@
 name: saved-search-demand-review
 description: Review saved-search demand and turn it into concrete supply, copy, and ops recommendations for moverrr.
 when_to_use: Use when saved searches, no-result routes, supply gaps, or corridor demand patterns need interpretation.
+background: true
 ---
 
 # Saved Search Demand Review

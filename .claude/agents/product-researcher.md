@@ -4,6 +4,7 @@ description: Use for read-heavy product analysis, current-behavior audits, and t
 model: inherit
 effort: high
 background: true
+maxTurns: 15
 tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 

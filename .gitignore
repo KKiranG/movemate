@@ -38,3 +38,9 @@ next-env.d.ts
 
 # Claude project memory
 .claude/agent-memory-local/
+
+# Local Claude overrides (machine-specific, never commit)
+CLAUDE.local.md
+
+# Agent session observability log (local only)
+.claude/session-log.jsonl

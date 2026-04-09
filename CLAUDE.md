@@ -146,3 +146,19 @@ Use the smallest layer that fits the job:
 - `.claude/agents.md` and `.claude/agents/*.md` for specialist role guidance
 
 Keep the always-loaded layer lean.
+
+## Local Overrides
+
+`CLAUDE.local.md` — gitignored personal overrides for machine-specific paths, local API keys, or developer-specific session preferences. Never commit this file. It extends but never overrides product invariants in this file.
+
+## Compaction Preservation
+
+When context is compacted, these must survive:
+
+- **Active task ID and title** — what is being worked on right now
+- **User decisions made this session** — any founder-grade go/no-go that was reached
+- **Failed approaches** — approaches tried and rejected (do not retry them)
+- **Invariants confirmed** — pricing identity, booking-state transitions, capacity math if verified
+- **Scope boundaries** — what was explicitly out of scope for the current task
+
+If any of these would be lost in compaction, write them to a scratchpad note or restate them at the top of the next message.

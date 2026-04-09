@@ -1,0 +1,114 @@
+name: Claude Docs Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'CLAUDE.md'
+      - 'TASK-RULES.md'
+      - '.claude/**'
+      - '.agent-skills/**'
+
+jobs:
+  docs-consistency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required doc files exist
+        run: |
+          required_files=(
+            "CLAUDE.md"
+            "TASK-RULES.md"
+            "todolist.md"
+            ".claude/settings.json"
+            ".claude/operating-system.md"
+            ".claude/command-catalog.md"
+          )
+          failed=0
+          for f in "${required_files[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "MISSING: $f"
+              failed=1
+            fi
+          done
+          if [[ "$failed" == "1" ]]; then
+            echo "Required doc files are missing. Restore them before merging."
+            exit 1
+          fi
+          echo "All required doc files present."
+
+      - name: Check agent files have required frontmatter
+        run: |
+          failed=0
+          for agent in .claude/agents/*.md; do
+            if ! grep -q "^name:" "$agent"; then
+              echo "MISSING name: in $agent"
+              failed=1
+            fi
+            if ! grep -q "^description:" "$agent"; then
+              echo "MISSING description: in $agent"
+              failed=1
+            fi
+          done
+          if [[ "$failed" == "1" ]]; then
+            echo "Agent files are missing required frontmatter fields."
+            exit 1
+          fi
+          echo "All agent files have required frontmatter."
+
+      - name: Check skill files have required frontmatter
+        run: |
+          failed=0
+          for skill in .claude/skills/*/SKILL.md; do
+            if ! grep -q "^name:" "$skill"; then
+              echo "MISSING name: in $skill"
+              failed=1
+            fi
+            if ! grep -q "^description:" "$skill"; then
+              echo "MISSING description: in $skill"
+              failed=1
+            fi
+            if ! grep -q "^when_to_use:" "$skill"; then
+              echo "MISSING when_to_use: in $skill"
+              failed=1
+            fi
+          done
+          if [[ "$failed" == "1" ]]; then
+            echo "Skill files are missing required frontmatter fields."
+            exit 1
+          fi
+          echo "All skill files have required frontmatter."
+
+      - name: Check CLAUDE.md has core invariant sections
+        run: |
+          failed=0
+          required_sections=(
+            "## Product Thesis"
+            "## Core Invariants"
+            "### Pricing"
+            "### Booking and dispute flow"
+          )
+          for section in "${required_sections[@]}"; do
+            if ! grep -qF "$section" CLAUDE.md; then
+              echo "MISSING section in CLAUDE.md: $section"
+              failed=1
+            fi
+          done
+          if [[ "$failed" == "1" ]]; then
+            echo "CLAUDE.md is missing required invariant sections."
+            exit 1
+          fi
+          echo "CLAUDE.md core invariants are intact."
+
+      - name: Check todolist.md format
+        run: |
+          if ! grep -q "## 🔴 P0" todolist.md; then
+            echo "todolist.md is missing priority headers. Check TASK-RULES.md format."
+            exit 1
+          fi
+          echo "todolist.md format looks correct."

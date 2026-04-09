@@ -11,11 +11,14 @@ paths:
   - src/lib/stripe/**
   - supabase/migrations/**
   - src/types/database.ts
+effort: high
 ---
 
 # Booking Safety Audit
 
 This is a high-risk workflow. Small mistakes here can break trust, funds flow, or inventory truth.
+
+See `examples/pricing-check.md` for a worked example of the commission identity check.
 
 ## Read Before Editing
 
