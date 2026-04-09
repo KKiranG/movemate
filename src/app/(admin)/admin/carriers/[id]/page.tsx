@@ -263,6 +263,27 @@ export default async function AdminCarrierDetailPage({
             </Card>
 
             <Card className="p-4">
+              <p className="section-label">Off-platform payment flags</p>
+              <div className="mt-4 grid gap-3">
+                {detail.offPlatformPaymentSignals.map((signal) => (
+                  <div key={signal.id} className="rounded-xl border border-border p-3">
+                    <p className="text-sm font-medium text-text">
+                      Attempt logged {formatDateTime(signal.createdAt)}
+                    </p>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {signal.specialInstructions ?? "No captured note text available."}
+                    </p>
+                  </div>
+                ))}
+                {detail.offPlatformPaymentSignals.length === 0 ? (
+                  <p className="text-sm text-text-secondary">
+                    No off-platform payment attempts logged for this carrier yet.
+                  </p>
+                ) : null}
+              </div>
+            </Card>
+
+            <Card className="p-4">
               <p className="section-label">Recent reviews</p>
               <div className="mt-4 grid gap-3">
                 {detail.reviews.map((review) => (

@@ -1,3 +1,4 @@
+import { applyTripBasePriceFloor } from "@/lib/pricing/guardrails";
 import type { SpaceSize } from "@/types/trip";
 
 export function suggestPrice(params: {
@@ -20,6 +21,8 @@ export function suggestPrice(params: {
   if (params.isReturn) {
     baseCents *= 0.6;
   }
+
+  baseCents = applyTripBasePriceFloor(Math.round(baseCents), params.distanceKm);
 
   const stairsSurcharge = params.needsStairs ? 2000 : 0;
   const helperSurcharge = params.needsHelper ? 3000 : 0;

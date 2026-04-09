@@ -107,71 +107,46 @@ export async function upsertCarrierOnboarding(
   const supabase = createServerSupabaseClient();
   const { data: authUser } = await supabase.auth.getUser();
   const email = authUser.user?.email ?? payload.email;
+  const { data: carrierId, error: onboardingError } = await supabase.rpc(
+    "upsert_carrier_onboarding_atomic",
+    {
+      p_user_id: userId,
+      p_business_name: payload.businessName,
+      p_contact_name: payload.contactName,
+      p_phone: payload.phone,
+      p_email: email,
+      p_abn: payload.abn ?? null,
+      p_bio: payload.bio ?? null,
+      p_licence_photo_url: payload.licencePhotoUrl ?? null,
+      p_insurance_photo_url: payload.insurancePhotoUrl ?? null,
+      p_vehicle_photo_url: payload.vehiclePhotoUrl ?? null,
+      p_service_suburbs: payload.serviceSuburbs,
+      p_licence_expiry_date: payload.licenceExpiryDate ?? null,
+      p_insurance_expiry_date: payload.insuranceExpiryDate ?? null,
+      p_vehicle_type: payload.vehicleType,
+      p_vehicle_make: payload.vehicleMake ?? null,
+      p_vehicle_model: payload.vehicleModel ?? null,
+      p_vehicle_volume_m3: payload.vehicleVolumeM3,
+      p_vehicle_weight_kg: payload.vehicleWeightKg,
+      p_rego_plate: payload.regoPlate ?? null,
+    },
+  );
 
-  const carrierValues: Database["public"]["Tables"]["carriers"]["Insert"] = {
-    user_id: userId,
-    business_name: payload.businessName,
-    contact_name: payload.contactName,
-    phone: payload.phone,
-    email,
-    abn: payload.abn ?? null,
-    bio: payload.bio ?? null,
-    licence_photo_url: payload.licencePhotoUrl ?? null,
-    insurance_photo_url: payload.insurancePhotoUrl ?? null,
-    vehicle_photo_url: payload.vehiclePhotoUrl ?? null,
-    service_suburbs: payload.serviceSuburbs,
-    verification_status: "submitted",
-    verification_submitted_at: new Date().toISOString(),
-    licence_expiry_date: payload.licenceExpiryDate ?? null,
-    insurance_expiry_date: payload.insuranceExpiryDate ?? null,
-  };
-
-  const { data: carrier, error: carrierError } = await supabase
-    .from("carriers")
-    .upsert(carrierValues, { onConflict: "user_id" })
-    .select("*")
-    .single();
-
-  if (carrierError) {
-    throw new AppError(carrierError.message, 500, "carrier_upsert_failed");
+  if (onboardingError || !carrierId) {
+    throw new AppError(
+      onboardingError?.message ?? "Carrier onboarding could not be saved atomically.",
+      500,
+      "carrier_onboarding_atomic_failed",
+    );
   }
 
-  const vehicleValues = {
-    type: payload.vehicleType,
-    make: payload.vehicleMake ?? null,
-    model: payload.vehicleModel ?? null,
-    rego_plate: payload.regoPlate ?? null,
-    max_volume_m3: payload.vehicleVolumeM3,
-    max_weight_kg: payload.vehicleWeightKg,
-    photo_urls: payload.vehiclePhotoUrl ? [payload.vehiclePhotoUrl] : [],
-    is_active: true,
-  };
+  const carrier = await getCarrierById(carrierId);
 
-  const { data: existingVehicle } = await supabase
-    .from("vehicles")
-    .select("id")
-    .eq("carrier_id", carrier.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  const vehicleMutation = existingVehicle
-    ? supabase
-        .from("vehicles")
-        .update(vehicleValues)
-        .eq("id", existingVehicle.id)
-    : supabase.from("vehicles").insert({
-        carrier_id: carrier.id,
-        ...vehicleValues,
-      });
-
-  const { error: vehicleError } = await vehicleMutation;
-
-  if (vehicleError) {
-    throw new AppError(vehicleError.message, 500, "vehicle_upsert_failed");
+  if (!carrier) {
+    throw new AppError("Carrier profile could not be reloaded.", 500, "carrier_reload_failed");
   }
 
-  return toCarrierProfile(carrier);
+  return carrier;
 }
 
 export async function getPublicCarrierProfile(carrierId: string) {
@@ -267,7 +242,7 @@ export async function getAdminCarrierDetail(carrierId: string) {
   }
 
   const supabase = createAdminClient();
-  const [{ data: carrier, error: carrierError }, { data: vehicle }, { data: bookings }, { data: reviews }] =
+  const [{ data: carrier, error: carrierError }, { data: vehicle }, { data: bookings }, { data: reviews }, { data: riskSignals }] =
     await Promise.all([
       supabase.from("carriers").select("*").eq("id", carrierId).maybeSingle(),
       supabase
@@ -292,6 +267,13 @@ export async function getAdminCarrierDetail(carrierId: string) {
         .eq("reviewee_id", carrierId)
         .order("created_at", { ascending: false })
         .limit(20),
+      supabase
+        .from("analytics_events")
+        .select("id, created_at, metadata")
+        .eq("event_name", "off_platform_payment_detected")
+        .contains("metadata", { carrierId })
+        .order("created_at", { ascending: false })
+        .limit(10),
     ]);
 
   if (carrierError) {
@@ -355,6 +337,18 @@ export async function getAdminCarrierDetail(carrierId: string) {
         rating: review.rating,
         comment: review.comment,
         createdAt: review.created_at,
+      })) ?? [],
+    offPlatformPaymentSignals:
+      riskSignals?.map((signal) => ({
+        id: signal.id,
+        createdAt: signal.created_at,
+        specialInstructions:
+          typeof signal.metadata === "object" &&
+          signal.metadata !== null &&
+          "specialInstructions" in signal.metadata &&
+          typeof (signal.metadata as Record<string, unknown>).specialInstructions === "string"
+            ? ((signal.metadata as Record<string, unknown>).specialInstructions as string)
+            : null,
       })) ?? [],
   };
 }

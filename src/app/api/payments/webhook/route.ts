@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { hasSupabaseAdminEnv } from "@/lib/env";
+import { AppError } from "@/lib/errors";
 import { verifyStripeWebhookSignature } from "@/lib/stripe/webhooks";
 import { captureAppError } from "@/lib/sentry";
 import {
@@ -7,6 +9,7 @@ import {
   createSupabaseBookingPaymentRepository,
 } from "@/lib/stripe/payment-intent-events";
 import { syncCarrierStripeOnboardingStatusByAccount } from "@/lib/stripe/connect";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function logWebhookContext(
   level: "info" | "warn" | "error",
@@ -14,6 +17,32 @@ function logWebhookContext(
   context: Record<string, unknown>,
 ) {
   console[level](`[stripe-webhook] ${message}`, context);
+}
+
+async function claimStripeWebhookEvent(eventId: string, eventType: string) {
+  if (!hasSupabaseAdminEnv()) {
+    logWebhookContext("warn", "Skipping webhook replay claim because Supabase admin is unavailable.", {
+      eventId,
+      eventType,
+    });
+    return true;
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("stripe_webhook_events").insert({
+    stripe_event_id: eventId,
+    event_type: eventType,
+  });
+
+  if (!error) {
+    return true;
+  }
+
+  if (error.code === "23505") {
+    return false;
+  }
+
+  throw new AppError(error.message, 500, "stripe_webhook_claim_failed");
 }
 
 export async function POST(request: Request) {
@@ -29,6 +58,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.text();
     const event = verifyStripeWebhookSignature(body, signature);
+    const claimed = await claimStripeWebhookEvent(event.id, event.type);
+
+    if (!claimed) {
+      return NextResponse.json({ received: true, duplicate: true, type: event.type });
+    }
 
     if (event.type.startsWith("payment_intent.")) {
       await applyPaymentIntentEvent(event, {

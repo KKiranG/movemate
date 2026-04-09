@@ -17,6 +17,21 @@ export const metadata: Metadata = {
   title: "Admin bookings",
 };
 
+function AdminBookingsLoadFailure() {
+  return (
+    <Card className="border-warning/30 bg-warning/5 p-4">
+      <div className="space-y-2">
+        <p className="section-label">Retry needed</p>
+        <h2 className="text-lg text-text">Bookings queue could not load</h2>
+        <p className="text-sm text-text-secondary">
+          The admin bookings query failed, so the page is showing a safe retry
+          state instead of a full crash. Refresh to retry the bookings queue.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
 const PAYMENT_STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
   { value: "authorized", label: "Authorized" },
@@ -66,12 +81,33 @@ export default async function AdminBookingsPage({
   )
     ? (searchParams?.paymentStatus as BookingPaymentStatus)
     : undefined;
-  const { bookings, totalCount, paymentCounts } = await listAdminBookingsPageData({
-    query,
-    page,
-    pageSize: ADMIN_PAGE_SIZE,
-    paymentStatus,
-  });
+  let bookingsData: Awaited<ReturnType<typeof listAdminBookingsPageData>> | null = null;
+
+  try {
+    bookingsData = await listAdminBookingsPageData({
+      query,
+      page,
+      pageSize: ADMIN_PAGE_SIZE,
+      paymentStatus,
+    });
+  } catch (error) {
+    console.error("Failed to load admin bookings page data", error);
+  }
+
+  if (!bookingsData) {
+    return (
+      <main id="main-content" className="page-shell">
+        <PageIntro
+          eyebrow="Admin bookings"
+          title="Monitor booking state changes"
+          description="Operations can inspect all bookings, spot stuck states, and intervene when required."
+        />
+        <AdminBookingsLoadFailure />
+      </main>
+    );
+  }
+
+  const { bookings, totalCount, paymentCounts } = bookingsData;
   const hasNext = page * ADMIN_PAGE_SIZE < totalCount;
   const paymentFilterCards = [
     {

@@ -1,5 +1,12 @@
 import type { ItemCategory } from "@/types/trip";
 
+export type BookingItemSizeClass = "S" | "M" | "L" | "XL";
+export type BookingItemWeightBand =
+  | "under_20kg"
+  | "20_to_50kg"
+  | "50_to_100kg"
+  | "over_100kg";
+
 export type BookingStatus =
   | "pending"
   | "confirmed"
@@ -90,6 +97,8 @@ export interface Booking {
   carrierPhone?: string;
   itemDescription: string;
   itemCategory: ItemCategory;
+  itemSizeClass?: BookingItemSizeClass | null;
+  itemWeightBand?: BookingItemWeightBand | null;
   itemDimensions?: string | null;
   itemWeightKg?: number | null;
   itemPhotoUrls: string[];

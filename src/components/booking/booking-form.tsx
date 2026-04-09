@@ -54,6 +54,10 @@ export function BookingForm({
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [itemDescription, setItemDescription] = useState("");
   const [itemCategory, setItemCategory] = useState("furniture");
+  const [itemSizeClass, setItemSizeClass] = useState<"" | "S" | "M" | "L" | "XL">("");
+  const [itemWeightBand, setItemWeightBand] = useState<
+    "" | "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg"
+  >("");
   const [itemDimensions, setItemDimensions] = useState("");
   const [itemWeightKg, setItemWeightKg] = useState("");
   const [pickupAccessNotes, setPickupAccessNotes] = useState("");
@@ -89,7 +93,9 @@ export function BookingForm({
       getBookingTrustIssues({
         itemDescription,
         specialInstructions,
+        itemSizeClass: itemSizeClass || undefined,
         itemWeightKg: itemWeightKg.trim() ? Number(itemWeightKg) : undefined,
+        itemWeightBand: itemWeightBand || undefined,
         needsHelper,
         pickupAccessNotes,
         dropoffAccessNotes,
@@ -97,7 +103,9 @@ export function BookingForm({
     [
       dropoffAccessNotes,
       itemDescription,
+      itemSizeClass,
       itemWeightKg,
+      itemWeightBand,
       needsHelper,
       pickupAccessNotes,
       specialInstructions,
@@ -127,6 +135,8 @@ export function BookingForm({
       const parsed = JSON.parse(draft) as Partial<{
         itemDescription: string;
         itemCategory: string;
+        itemSizeClass: "" | "S" | "M" | "L" | "XL";
+        itemWeightBand: "" | "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg";
         itemDimensions: string;
         itemWeightKg: string;
         pickupAccessNotes: string;
@@ -144,6 +154,8 @@ export function BookingForm({
 
       if (parsed.itemDescription !== undefined) setItemDescription(parsed.itemDescription);
       if (parsed.itemCategory !== undefined) setItemCategory(parsed.itemCategory);
+      if (parsed.itemSizeClass !== undefined) setItemSizeClass(parsed.itemSizeClass);
+      if (parsed.itemWeightBand !== undefined) setItemWeightBand(parsed.itemWeightBand);
       if (parsed.itemDimensions !== undefined) setItemDimensions(parsed.itemDimensions);
       if (parsed.itemWeightKg !== undefined) setItemWeightKg(parsed.itemWeightKg);
       if (parsed.pickupAccessNotes !== undefined) setPickupAccessNotes(parsed.pickupAccessNotes);
@@ -174,6 +186,8 @@ export function BookingForm({
     const payload = {
       itemDescription,
       itemCategory,
+      itemSizeClass,
+      itemWeightBand,
       itemDimensions,
       itemWeightKg,
       pickupAccessNotes,
@@ -198,6 +212,8 @@ export function BookingForm({
     dropoffContactPhone,
     itemCategory,
     itemDescription,
+    itemSizeClass,
+    itemWeightBand,
     itemDimensions,
     itemWeightKg,
     needsHelper,
@@ -345,6 +361,8 @@ export function BookingForm({
           carrierId: trip.carrier.id,
           itemDescription,
           itemCategory,
+          itemSizeClass: itemSizeClass || undefined,
+          itemWeightBand: itemWeightBand || undefined,
           itemDimensions: itemDimensions.trim() || undefined,
           itemWeightKg: itemWeightKg.trim() ? Number(itemWeightKg) : undefined,
           itemPhotoUrls,
@@ -465,6 +483,51 @@ export function BookingForm({
           </select>
         </label>
         <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-text">Size class</span>
+          <select
+            name="itemSizeClass"
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+            value={itemSizeClass}
+            onChange={(event) => setItemSizeClass(event.target.value as "" | "S" | "M" | "L" | "XL")}
+            required
+          >
+            <option value="">Choose a size</option>
+            {Object.entries(ITEM_SIZE_DESCRIPTIONS).map(([value, config]) => (
+              <option key={value} value={value}>
+                {config.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-text">Weight band</span>
+          <select
+            name="itemWeightBand"
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+            value={itemWeightBand}
+            onChange={(event) =>
+              setItemWeightBand(
+                event.target.value as
+                  | ""
+                  | "under_20kg"
+                  | "20_to_50kg"
+                  | "50_to_100kg"
+                  | "over_100kg",
+              )
+            }
+            required
+          >
+            <option value="">Choose a weight band</option>
+            <option value="under_20kg">Under 20kg</option>
+            <option value="20_to_50kg">20 to 50kg</option>
+            <option value="50_to_100kg">50 to 100kg</option>
+            <option value="over_100kg">Over 100kg</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-2">
           <span className="text-sm font-medium text-text">Dimensions</span>
           <Input
             name="itemDimensions"
@@ -496,13 +559,22 @@ export function BookingForm({
             Match your item to the closest size before you continue.
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-4">
           {Object.entries(ITEM_SIZE_DESCRIPTIONS).map(([value, config]) => (
-            <div key={value} className="rounded-xl border border-border p-3">
+            <button
+              key={value}
+              type="button"
+              onClick={() => setItemSizeClass(value as "S" | "M" | "L" | "XL")}
+              className={`rounded-xl border p-3 text-left ${
+                itemSizeClass === value
+                  ? "border-accent bg-accent/10"
+                  : "border-border"
+              }`}
+            >
               <p className="text-sm font-medium text-text">{config.label}</p>
               <p className="mt-1 text-sm text-text-secondary">{config.description}</p>
               <p className="mt-2 text-xs text-text-secondary">{config.dimensionsHint}</p>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -810,6 +882,8 @@ export function BookingForm({
             Boolean(retryBookingId) ||
             stairsUnsupported ||
             !isAddressResolved ||
+            !itemSizeClass ||
+            !itemWeightBand ||
             blockingTrustIssues.length > 0
           }
         >
@@ -818,6 +892,11 @@ export function BookingForm({
         {!isAddressResolved ? (
           <p className="text-sm text-text-secondary">
             Confirm both addresses from the suggestions before continuing.
+          </p>
+        ) : null}
+        {!itemSizeClass || !itemWeightBand ? (
+          <p className="text-sm text-text-secondary">
+            Choose the item size class and weight band before continuing.
           </p>
         ) : null}
       </div>

@@ -225,6 +225,8 @@ export function toBooking(record: BookingJoinedRecord): Booking {
     customerId: record.customer_id,
     itemDescription: record.item_description,
     itemCategory: record.item_category,
+    itemSizeClass: record.item_size_class,
+    itemWeightBand: record.item_weight_band,
     itemDimensions: record.item_dimensions,
     itemWeightKg: record.item_weight_kg,
     itemPhotoUrls: record.item_photo_urls ?? [],

@@ -54,6 +54,8 @@ test("warns on manual handling risk without helper or access notes", () => {
   const issues = getBookingTrustIssues({
     ...baseInput,
     itemDescription: "Single-door fridge",
+    itemSizeClass: "L",
+    itemWeightBand: "50_to_100kg",
     itemWeightKg: 92,
     needsHelper: false,
     pickupAccessNotes: "",

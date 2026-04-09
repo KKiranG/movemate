@@ -108,20 +108,25 @@ export const ITEM_SIZE_DESCRIPTIONS: Record<
   ItemSizeCategory,
   { label: string; description: string; dimensionsHint: string }
 > = {
-  small: {
+  S: {
     label: "Small",
     description: "Fits in a hatchback or small car boot.",
     dimensionsHint: "Good for boxes, lamps, chairs, and side tables.",
   },
-  medium: {
+  M: {
     label: "Medium",
     description: "Single-item furniture or one bulky appliance.",
     dimensionsHint: "Think desks, washing machines, mattresses, or two-seaters.",
   },
-  large: {
+  L: {
     label: "Large",
     description: "Multiple bulky items, heavy pieces, or awkward loads.",
     dimensionsHint: "Best for wardrobes, large sofas, or stacked furniture pieces.",
+  },
+  XL: {
+    label: "Extra large",
+    description: "Oversized or multi-piece loads that can dominate the spare bay.",
+    dimensionsHint: "Best for very large sofas, wardrobes, wide appliances, or bundled bulky pieces.",
   },
 };
 

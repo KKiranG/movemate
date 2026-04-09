@@ -18,6 +18,13 @@ The product shape is simple:
 
 Carrier and customer are distinct operational roles even if they begin from the same auth system.
 
+## Current product decision
+
+- keep one Supabase Auth user identity
+- store customer and carrier data in separate profile tables inside the same database
+- allow one auth user to eventually hold both profiles when the product flow needs it
+- do not split customer and carrier into separate databases for MVP
+
 ## Trust requirements
 
 - verified email for real usage

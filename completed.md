@@ -1,8 +1,79 @@
 # moverrr — Completed Work Log
 
-> Last updated: `2026-04-09` (PR 10)
+> Last updated: `2026-04-09` (PR 21)
 >
 > Purpose: keep a durable record of what is already done, where it lives, why it was changed, and when it landed, so completed work can be removed from the active backlog without losing context.
+
+---
+
+## 2026-04-09 — Maps-first matching, booking integrity, trust hardening, and backlog truth sync
+
+### `COMP-2026-04-09-44` — PR 21 hardened maps-backed search, payment reversals, booking shape, and admin trust visibility
+- Moved from active backlog:
+  - `EP4`, `EQ6`, `EQ8`, and `ET12`
+- Closed or materially resolved from the MVP critical blockers section:
+  - carrier onboarding atomicity
+  - structured booking size and weight capture for capacity estimation
+  - Stripe webhook replay idempotency storage and duplicate short-circuiting
+  - cancellation void/refund handling through one shared payment-reversal path
+  - off-platform payment detection with admin visibility
+  - Google Maps-first production search resolution plus distance-backed guidance guardrails
+  - trust-center page and evidence-led trust copy on touched surfaces
+- When: `2026-04-09`
+- Where:
+  - `supabase/migrations/016_pr21_maps_payments_and_booking_shape.sql`
+  - `src/lib/maps/google.ts`
+  - `src/lib/maps/haversine.ts`
+  - `src/lib/pricing/guardrails.ts`
+  - `src/lib/stripe/payment-actions.ts`
+  - `src/lib/data/trips.ts`
+  - `src/lib/data/listings.ts`
+  - `src/lib/data/carriers.ts`
+  - `src/lib/data/bookings.ts`
+  - `src/lib/data/admin.ts`
+  - `src/app/api/payments/webhook/route.ts`
+  - `src/app/api/bookings/route.ts`
+  - `src/app/api/admin/route.ts`
+  - `src/app/api/admin/rate-limit/route.ts`
+  - `src/app/api/reviews/[id]/response/route.ts`
+  - `src/app/api/trips/route.ts`
+  - `src/app/api/trips/price-guidance/route.ts`
+  - `src/components/booking/booking-form.tsx`
+  - `src/components/carrier/carrier-trip-wizard.tsx`
+  - `src/app/(customer)/search/page.tsx`
+  - `src/app/(marketing)/trust/page.tsx`
+  - `src/components/layout/site-footer.tsx`
+  - `src/app/(admin)/admin/dashboard/page.tsx`
+  - `src/app/(admin)/admin/bookings/page.tsx`
+  - `src/app/(admin)/admin/disputes/page.tsx`
+  - `src/app/(admin)/admin/payments/page.tsx`
+  - `src/app/(admin)/admin/carriers/[id]/page.tsx`
+  - `src/lib/validation/booking.ts`
+  - `src/lib/validation/trip.ts`
+  - `src/types/booking.ts`
+  - `src/types/trip.ts`
+  - `src/types/database.ts`
+  - `.agent-skills/AUTH.md`
+  - `.agent-skills/MATCHING-ENGINE.md`
+  - `.agent-skills/PRICING.md`
+  - `.agent-skills/PAYMENTS.md`
+  - `src/lib/__tests__/pricing-guardrails.test.ts`
+  - `src/lib/__tests__/payment-reversal.test.ts`
+  - `src/app/api/payments/webhook/__tests__/idempotency.test.ts`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The remaining hard gaps had shifted from missing basic screens to truth-of-system issues: production search still needed a commercial maps source of truth, booking capacity still leaned too hard on free text, cancellation money flow was split and under-specified, webhook replays still lacked durable guards, and the backlog still described several already-shipped gaps as if they were open.
+- What changed:
+  - Promoted Google Maps to the production route-resolution path, kept the curated Sydney suburb map only as degraded fallback, and replaced the old corridor-pricing heuristics with distance-backed guidance plus a hard `$50` floor for long-distance spare-capacity trips.
+  - Moved carrier onboarding onto a single atomic RPC so the carrier row and first vehicle cannot split on partial failure, then carried the same “hard fail when privileged access is missing” rule into admin-only booking mutations.
+  - Centralized booking cancellation money flow through a shared reversal helper so uncaptured bookings void authorizations, captured bookings refund cleanly, and dispute/admin cancellation paths no longer drift.
+  - Added structured booking size and weight capture, updated the booking validation/trust model, and taught the capacity-estimation SQL path to prefer those stronger signals over free text.
+  - Added off-platform payment attempt visibility for admins, durable Stripe webhook replay claims, retry-state admin fallbacks on the major admin pages, and a customer-facing `/trust` page that states payment and dispute protection in evidence-led language.
+  - Synced the repo memory and the backlog so shipped PR 21 work is no longer listed as open and the remaining items now reflect the narrower follow-ups that are still genuinely real.
+- Verification:
+  - `npm run check`
+  - `npm test -- src/lib/__tests__/booking-validation.test.ts src/lib/__tests__/pricing-guardrails.test.ts src/lib/__tests__/payment-reversal.test.ts src/lib/__tests__/webhook-events.test.ts src/lib/__tests__/booking-payment-capture.test.ts src/app/api/payments/webhook/__tests__/replay.test.ts src/app/api/payments/webhook/__tests__/idempotency.test.ts`
 
 ---
 

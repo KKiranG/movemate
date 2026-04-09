@@ -12,6 +12,21 @@ export const metadata: Metadata = {
   title: "Admin disputes",
 };
 
+function AdminDisputesLoadFailure() {
+  return (
+    <Card className="border-warning/30 bg-warning/5 p-4">
+      <div className="space-y-2">
+        <p className="section-label">Retry needed</p>
+        <h2 className="text-lg text-text">Disputes queue could not load</h2>
+        <p className="text-sm text-text-secondary">
+          The dispute queue failed to load, but the admin route stayed up. Refresh
+          to retry the disputes data.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
 function getSeverity(category: string) {
   if (category === "damage" || category === "wrong_item") {
     return {
@@ -38,7 +53,27 @@ function getSeverity(category: string) {
 
 export default async function AdminDisputesPage() {
   await requirePageAdminUser();
-  const disputes = await listAdminDisputes();
+  let disputes: Awaited<ReturnType<typeof listAdminDisputes>> | null = null;
+
+  try {
+    disputes = await listAdminDisputes();
+  } catch (error) {
+    console.error("Failed to load admin disputes", error);
+  }
+
+  if (!disputes) {
+    return (
+      <main id="main-content" className="page-shell">
+        <PageIntro
+          eyebrow="Admin disputes"
+          title="Keep disputes lightweight and evidence-based"
+          description="The MVP dispute flow is intentionally simple: intake form, proof photos, admin notes, resolution."
+        />
+        <AdminDisputesLoadFailure />
+      </main>
+    );
+  }
+
   const now = Date.now();
   const triagedDisputes = [...disputes].sort((left, right) => {
     const leftSeverity = getSeverity(left.category).rank;

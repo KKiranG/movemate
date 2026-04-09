@@ -3,8 +3,10 @@ import { unstable_cache } from "next/cache";
 import { SEARCH_PAGE_SIZE, SEARCH_REVALIDATE_SECONDS } from "@/lib/constants";
 import { hasMapsEnv, hasSupabaseEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
+import { getDistanceKmBetweenPoints } from "@/lib/maps/haversine";
 import { getSydneySuburbCoords } from "@/lib/maps/sydney-suburb-coords";
 import { geocodeAddress } from "@/lib/maps/geocode";
+import { getMinimumTripBasePriceCents, getRouteDistanceKm } from "@/lib/pricing/guardrails";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { toGeographyPoint, toTrip, toTripSearchResult, type ListingJoinedRecord } from "@/lib/data/mappers";
 import { tripSchema, tripUpdateSchema, type TripInput, type TripUpdateInput } from "@/lib/validation/trip";
@@ -18,26 +20,6 @@ type SearchRpcRow = {
   dropoff_distance_km: number;
   total_count?: number;
 };
-
-function toRadians(value: number) {
-  return (value * Math.PI) / 180;
-}
-
-function getDistanceKm(
-  from: { lat: number; lng: number },
-  to: { lat: number; lng: number },
-) {
-  const earthRadiusKm = 6371;
-  const latDelta = toRadians(to.lat - from.lat);
-  const lngDelta = toRadians(to.lng - from.lng);
-  const a =
-    Math.sin(latDelta / 2) ** 2 +
-    Math.cos(toRadians(from.lat)) *
-      Math.cos(toRadians(to.lat)) *
-      Math.sin(lngDelta / 2) ** 2;
-
-  return earthRadiusKm * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-}
 
 function buildSearchBreakdown(params: {
   trip: Trip;
@@ -234,8 +216,8 @@ async function geocodeSearchInput(input: TripSearchInput) {
   }
 
   const [from, to] = await Promise.all([
-    geocodeAddress(`${input.from}, Sydney NSW, Australia`),
-    geocodeAddress(`${input.to}, Sydney NSW, Australia`),
+    geocodeAddress(`${input.from}, Australia`),
+    geocodeAddress(`${input.to}, Australia`),
   ]);
 
   if (!from[0] || !to[0]) {
@@ -328,11 +310,11 @@ async function cachedSuburbCoordinateSearch(
             return null;
           }
 
-          const pickupDistanceKm = getDistanceKm(pickupCoords, {
+          const pickupDistanceKm = getDistanceKmBetweenPoints(pickupCoords, {
             lat: trip.route.originLatitude,
             lng: trip.route.originLongitude,
           });
-          const dropoffDistanceKm = getDistanceKm(dropoffCoords, {
+          const dropoffDistanceKm = getDistanceKmBetweenPoints(dropoffCoords, {
             lat: trip.route.destinationLatitude,
             lng: trip.route.destinationLongitude,
           });
@@ -402,6 +384,7 @@ async function cachedSuburbCoordinateSearch(
 export async function searchTrips(input: TripSearchInput) {
   const page = Math.max(1, input.page ?? 1);
   const activeDates = getDateWindow(input);
+  const mapsConfigured = hasMapsEnv();
 
   if (!hasSupabaseEnv()) {
     return {
@@ -427,6 +410,20 @@ export async function searchTrips(input: TripSearchInput) {
   const isFlexibleSearch = activeDates.length > 1;
 
   if (!geocoded) {
+    if (mapsConfigured) {
+      return {
+        results: [] as TripSearchResult[],
+        totalCount: 0,
+        visibleCount: 0,
+        page,
+        hasMore: false,
+        geocodingAvailable: true,
+        fallbackUsed: false,
+        fallbackReason: "geocoding_failed",
+        nearbyDateOptions: [],
+      } satisfies TripSearchResponse;
+    }
+
     const exact = await cachedSuburbCoordinateSearch(
       input.from,
       input.to,
@@ -807,6 +804,31 @@ export async function updateTripForCarrier(
 
   if (!existingTrip) {
     throw new AppError("Trip not found.", 404, "trip_not_found");
+  }
+
+  const currentTrip = await getTripById(tripId);
+
+  if (
+    currentTrip?.route.originLatitude !== undefined &&
+    currentTrip.route.originLongitude !== undefined &&
+    currentTrip.route.destinationLatitude !== undefined &&
+    currentTrip.route.destinationLongitude !== undefined
+  ) {
+    const distanceKm = getRouteDistanceKm({
+      originLatitude: currentTrip.route.originLatitude,
+      originLongitude: currentTrip.route.originLongitude,
+      destinationLatitude: currentTrip.route.destinationLatitude,
+      destinationLongitude: currentTrip.route.destinationLongitude,
+    });
+    const minimumPriceCents = getMinimumTripBasePriceCents(distanceKm);
+
+    if (parsed.data.priceCents < minimumPriceCents) {
+      throw new AppError(
+        `Trips on this corridor need to be at least $${(minimumPriceCents / 100).toFixed(0)}.`,
+        400,
+        "trip_price_below_floor",
+      );
+    }
   }
 
   const selectedVehicle =

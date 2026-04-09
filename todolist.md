@@ -1,6 +1,6 @@
 # moverrr — Active Backlog
 
-> Last refreshed: `2026-04-09` — backlog reconciled against the current local codebase and PR 10 verification pass
+> Last refreshed: `2026-04-09` — backlog reconciled against the current local codebase and PR 21 verification pass
 > Format governed by `TASK-RULES.md`. Work top-to-bottom within each priority level.
 > Move completed items to `completed.md` — never mark done in this file.
 
@@ -47,12 +47,6 @@
 
 ### EP — Platform and Infrastructure Enhancements
 
-- [ ] **EP4** — `getPrivilegedSupabaseClient` in bookings still allows unsafe fallback paths
-  - **File(s):** `src/lib/data/bookings.ts`
-  - **What:** Remove silent privileged-client fallbacks for admin-only booking operations so background or cross-user mutations fail loudly instead of no-oping under RLS.
-  - **Why:** Silent no-ops leave stale capacity, incomplete audit events, and false confidence in staging or automation flows.
-  - **Done when:** Admin-only booking operations hard-fail without service-role access and `npm run check` passes.
-
 - [ ] **EP9** — Input sanitization audit is still incomplete on non-trip/booking write paths
   - **File(s):** `src/lib/utils.ts`, `src/app/api/**`, `src/lib/data/carriers.ts`
   - **What:** Review the remaining carrier/admin freetext write paths that were not covered by the latest audit pass. Feedback-response sanitization is now in place, but the broader carrier/admin profile and notes sweep still needs a source-of-truth checklist.
@@ -75,23 +69,11 @@
   - **Why:** Accessibility gaps are user-experience gaps on iPhone too, and they compound quickly once more UI ships.
   - **Done when:** Automated audit reports zero AA violations on the search, booking, and carrier-posting flows.
 
-- [ ] **EQ6** — API route input validation coverage audit
-  - **File(s):** `src/app/api/**`
-  - **What:** The high-risk mutating routes for payment-intent creation, saved searches, booking review/confirm-receipt, and trip-template mutations now use named boundary schemas. Finish the remaining mutating routes still accepting unchecked JSON, especially admin bootstrap/rate-limit, review responses, and any leftover trip/admin patch routes.
-  - **Why:** Inconsistent validation is a security and data-quality risk, even after the highest-risk routes have been hardened.
-  - **Done when:** All mutating API routes use named Zod schemas at the boundary and `npm run check` passes.
-
 - [ ] **EQ7** — `booking-form.tsx` and `carrier-trip-wizard.tsx` form state tests
   - **File(s):** `new file: src/components/booking/__tests__/booking-form.test.tsx`, `new file: src/components/carrier/__tests__/carrier-trip-wizard.test.tsx`
   - **What:** Add unit tests covering: draft persistence/restoration, payment retry state, file upload with WebP/HEIC, form disable during submission, step validation blocking, and options-adjusted price updates.
   - **Why:** Both forms are the highest-traffic, highest-impact components and have zero test coverage today.
   - **Done when:** Tests pass and cover all states enumerated above, with `npm run check` clean.
-
-- [ ] **EQ8** — Admin route error-boundary coverage
-  - **File(s):** `src/app/(admin)/admin/**`, `src/components/shared/error-boundary.tsx`
-  - **What:** Admin carrier detail now degrades section-by-section with retryable cards. Extend the same partial-failure treatment across the remaining admin dashboard, disputes, bookings, and payments sections that still render as full-page failures.
-  - **Why:** Ops needs partial visibility during incidents more than it needs a perfect all-or-nothing dashboard render.
-  - **Done when:** Admin sections fail independently with retryable UI and the full admin page no longer hard-crashes on one loader error.
 
 ### EV — Visual / Design System
 
@@ -210,15 +192,9 @@
   - **Why:** Inconsistent pricing across views creates confusion and support tickets. One canonical source eliminates drift.
   - **Done when:** All surfaces produce identical breakdowns for the same booking. No surface has inline pricing math. `npm run check` passes.
 
-- [ ] **ET12** — Trust center page (`/trust`)
-  - **File(s):** new page: `src/app/(marketing)/trust/page.tsx`, `src/components/layout/site-footer.tsx`
-  - **What:** Create a `/trust` page covering: payment protection, identity verification, proof capture process, dispute process, prohibited behavior, and privacy basics. Short sections, plain language. Link from footer.
-  - **Why:** Support needs one canonical trust reference to link. Customers who are uncertain need one place to check without contacting support.
-  - **Done when:** `/trust` page exists, is in the site footer, content is accurate for the current product, renders cleanly at 375px.
-
 - [ ] **ET13** — Audit and rewrite vague trust copy to evidence-led language sitewide
   - **File(s):** marketing pages, `src/app/(customer)/trip/[id]/page.tsx`, checkout copy, site header copy
-  - **What:** Find and replace all instances of "safe and secure," "trusted," "vetted" used without specifics. Replace with proof-led copy: "Payment held until you confirm delivery" instead of "Secure payments." Document each replacement.
+  - **What:** `/trust` now exists and the touched booking/search surfaces use more concrete payment and dispute language. The remaining work is a full sweep across untouched marketing and customer pages to replace generic trust claims with specific evidence-led copy.
   - **Why:** Vague corporate trust claims read as marketing noise. Specific, factual statements build real confidence — especially for first-time users.
   - **Done when:** No customer-facing page uses generic trust claims without concrete backing. Copy changes are documented.
 
@@ -234,7 +210,7 @@
 - [ ] **P4-04** — In-app messaging between carrier and customer
 - [ ] **P4-05** — Interactive map view of active listings (pins on a map)
 - [ ] **P4-06** — Live GPS tracking of carrier on trip day
-- [ ] **P4-07** — Bidding / counter-offer flow for price negotiation
+- [ ] **P4-07** — Bounded counter-offer flow for spare-capacity bookings
 - [ ] **P4-08** — Surge pricing on high-demand routes or dates
 - [ ] **P4-09** — Native iOS app (Swift / React Native) — web is for testing only at MVP
 - [ ] **P4-10** — Native Android app
@@ -323,20 +299,6 @@
 - **Dependencies / open questions:** Vercel Pro plan required for cron jobs (or use free tier with longer intervals). Must ensure the function is idempotent — multiple concurrent calls must not double-cancel. The existing `cancelExpiredPendingBookings` should be checked for idempotency.
 - **Edge cases / failure modes:** Cron fires during a high-load moment and times out partway through — partially expired batch. A booking has `pending_expires_at` in the past but the stripe cancellation fails — booking cancelled in DB but Stripe hold still active. Cron fires twice simultaneously and both pick up the same expired booking.
 - **Acceptance criteria:** A booking created with `pending_expires_at` in the past is automatically cancelled within 30 minutes. The Stripe payment intent authorization is cancelled. The listing capacity is recalculated. The customer and carrier receive the expired-booking email. No manual intervention required.
-
----
-
-### Carrier signup path now exists, but dual-profile creation still needs founder policy
-
-- **Priority:** P0
-- **Stage:** Now
-- **Type:** Product / Supply
-- **Why this matters:** `/carrier/signup`, carrier-specific copy, redirect to onboarding, and supply-intent CTAs now exist. The remaining product question is whether moverrr wants one user to seamlessly hold both customer and carrier profiles, or whether signup/onboarding should proactively create both sides.
-- **What exactly needs to be done:** Decide and document the dual-profile policy, then update the signup/onboarding data flow only if the current “carrier row created on first onboarding submit” model is no longer the desired MVP behavior.
-- **Likely areas affected:** New page `src/app/(auth)/carrier/signup/page.tsx` or modified `src/components/auth/signup-form.tsx`, `src/components/layout/site-header.tsx`, `supabase/migrations/` (optional trigger update), `src/app/(carrier)/carrier/onboarding/actions.ts`
-- **Dependencies / open questions:** Founder decision: should carrier and customer be the same Supabase user (just different profiles)? Or truly separate accounts? Currently a user CAN have both a carrier and customer record. Is this intentional for MVP or a gap?
-- **Edge cases / failure modes:** A carrier tries to also book a trip — do they have a customer profile? They don't after carrier signup. The redirect after signup may lose context if not handled carefully.
-- **Acceptance criteria:** Founder signs off on the current shared-user / onboarding-upsert model or a replacement migration-backed profile strategy is implemented.
 
 ---
 
@@ -452,17 +414,16 @@
 
 ---
 
-### Price guidance endpoint exists but the implementation and UX is unknown
+### Price guidance is maps-backed now, but live-corridor quality still needs QA
 
 - **Priority:** P2
 - **Stage:** Pre-MVP
 - **Type:** Product / Carrier experience
-- **Why this matters:** `GET /api/trips/price-guidance` exists. `suggested_price_cents` exists as a column on `capacity_listings`. Carriers post at a price they choose but have no anchor. Without price guidance, carriers either underprice (reducing earnings) or overprice (making the listing non-competitive). The price guidance feature — if implemented correctly — is one of the most impactful supply-quality improvements. But if it's a placeholder returning nothing useful, carriers get no help.
-- **What exactly needs to be done:** (1) Inspect what `GET /api/trips/price-guidance` actually returns (read the route file). (2) If it returns useful market-rate data based on route + date + space size, verify it's connected to the carrier trip posting wizard UI. (3) If it's a placeholder or returns static data, implement real logic: query recent completed bookings on similar routes (origin/destination within a radius) to compute median/P25/P75 base price. Return `{ suggestedCents, rangeMinCents, rangeMaxCents, sampleSize }`. (4) In the carrier trip wizard pricing step, show the guidance as: "Similar trips on this route have earned $80–$140. Your price: [input]." (5) Update the `suggested_price_cents` field on the listing when the carrier uses the guidance as a reference (for analytics).
-- **Likely areas affected:** `src/app/api/trips/price-guidance/route.ts` (inspect first), `src/components/carrier/carrier-trip-wizard.tsx` (add guidance display), `src/lib/data/trips.ts` (market rate query)
-- **Dependencies / open questions:** First inspect what the route currently returns — this may already be partially implemented.
-- **Edge cases / failure modes:** New routes with no historical data — return a `sampleSize: 0` and show no guidance rather than a misleading number. Route from a suburb with no carriers yet — same. Don't show guidance if `sampleSize < 3` (too noisy).
-- **Acceptance criteria:** When a carrier enters a route in the posting wizard, the pricing step shows the market rate range for that route (or gracefully shows nothing if no data). The `suggested_price_cents` field is populated on submitted listings.
+- **Why this matters:** The guidance path now uses maps-backed corridor proximity and an intercity price floor instead of suburb-name heuristics, but the remaining risk is market-truth quality: thin samples, weak launch corridors, or missing maps env can still produce less-helpful guidance than the strongest routes.
+- **What exactly needs to be done:** Run route-level QA on the launch corridors, confirm the carrier posting wizard keeps showing sensible ranges when maps env is present, and tighten fallback messaging when sample size is too weak to anchor pricing confidently.
+- **Likely areas affected:** `src/app/api/trips/price-guidance/route.ts`, `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/data/listings.ts`
+- **Dependencies / open questions:** Launch-corridor density and real production sample size still determine how useful the guidance feels in practice.
+- **Acceptance criteria:** The pricing step shows believable guidance on the launch corridors, weak-sample routes degrade cleanly, and no misleading pseudo-precision is shown when maps-backed evidence is thin.
 
 ---
 
@@ -490,11 +451,11 @@
 - **Priority:** P0
 - **Stage:** Now
 - **Type:** Founder Decision
-- **Why this matters:** The status machine allows `confirmed → cancelled` by any actor. But there is no cancellation policy. If a carrier cancels a confirmed booking: does the customer get a full refund? If a customer cancels a confirmed booking: does the carrier receive any compensation? The `cancellation_reason_code` field exists. The payment is authorized but not captured. Cancellation policy affects carrier trust and customer trust equally.
-- **What exactly needs to be done:** Decide: (A) customer cancellation before pickup → full refund, no carrier compensation; (B) carrier cancellation → full refund + apology email; (C) late cancellation (within 24 hours of trip date) → partial refund logic. For MVP simplicity: all cancellations result in full authorization void (no capture), no cancellation fees. Document this explicitly. If any more nuanced policy is chosen, it must be reflected in the booking form copy ("Cancellations are free before pickup") and in the relevant email templates.
+- **Why this matters:** The MVP code path now assumes a simple policy: cancellations void uncaptured authorizations or refund captured payments in full. The remaining founder question is whether moverrr wants anything stricter than that once the launch trust loop is proven.
+- **What exactly needs to be done:** Confirm the current MVP policy in writing: full void or full refund, no cancellation fees, no carrier compensation before a more mature policy exists. If the founder wants late-cancellation fees or partial refunds later, define the exact matrix and move that work into a separate post-MVP implementation item instead of leaving the MVP policy ambiguous.
 - **Likely areas affected:** `src/lib/data/bookings.ts` (cancellation path), `src/lib/email/` (cancellation copy), `src/components/booking/booking-checkout-panel.tsx` (cancellation policy copy)
 - **Dependencies / open questions:** None — founder decision.
-- **Acceptance criteria:** A written cancellation policy is defined and recorded in `.agent-skills/PAYMENTS.md`. The booking form checkout panel displays the policy clearly. The cancellation path in `bookings.ts` correctly voids the authorization per the policy.
+- **Acceptance criteria:** The written MVP policy is recorded in `.agent-skills/PAYMENTS.md`, and any future late-cancellation penalties are explicitly deferred instead of implied.
 
 ---
 
@@ -596,19 +557,6 @@
 
 ---
 
-### Item dimension capture is free-text only — no structure to aid capacity estimation
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Matching
-- **Why this matters:** The booking form captures `item_dimensions` as a free-text string (`text` in schema). The `estimate_booking_capacity_pct` DB function tries to use this, but customers write things like "medium-sized fridge" or "big sofa" — not "W70cm D80cm H160cm." The capacity estimation is therefore guesswork. This means: (1) carriers can get surprised by larger items than expected; (2) `remaining_capacity_pct` recalculation is unreliable; (3) mismatches between booked space and actual item are a leading cause of trip-day disputes.
-- **What exactly needs to be done:** In the booking form, replace or supplement the free-text `item_dimensions` field with: (1) a structured size picker using the existing `ITEM_SIZE_DESCRIPTIONS` constants (S, M, L, XL) that maps to approximate dimensions shown to the customer; (2) optional precise dimensions as an expandable field for carriers who need accuracy; (3) an estimated weight range selector (under 20kg, 20-50kg, 50-100kg, over 100kg). Store the structured size in a new `item_size_class` field (S/M/L/XL) in addition to or instead of free-text dimensions. This structured field feeds `estimate_booking_capacity_pct` more reliably.
-- **Likely areas affected:** `src/components/booking/booking-form.tsx`, `src/lib/validation/booking.ts`, `supabase/migrations/` (add `item_size_class` column), `src/lib/constants.ts` (ITEM_SIZE_DESCRIPTIONS already exists), DB function `estimate_booking_capacity_pct` (update to use size class)
-- **Dependencies / open questions:** Migration needed. Does adding a structured field break existing bookings that only have text dimensions? Handle backward compatibility.
-- **Acceptance criteria:** The booking form shows size class options with human descriptions. The chosen size class is stored and used for capacity estimation. Carrier trip day experience is improved because item size expectations are set clearly at booking time.
-
----
-
 ### No-result search recovery is stronger, but adjacent-route suggestions still need work
 
 - **Priority:** P2
@@ -640,58 +588,21 @@
 
 ---
 
-### Off-platform payment detection exists but has no admin visibility
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Trust / Ops
-- **Why this matters:** `src/lib/validation/booking.ts` validates special instructions against `OFF_PLATFORM_PAYMENT_RULES` patterns like "payid", "bank transfer", "cash only." This is excellent trust enforcement. But: (1) does the rejection surface a clear message to the customer explaining why? (2) Are attempted off-platform payment messages logged for admin visibility? A carrier who repeatedly prompts customers to "just pay cash" is gaming the marketplace and destroying trust. Admin needs visibility when patterns are detected.
-- **What exactly needs to be done:** (1) Verify the current error message shown to customers when an off-platform payment pattern is detected — it should clearly explain: "Payments must go through moverrr for your protection. Please remove bank transfer or cash payment references." (2) When an off-platform pattern is detected in the booking special instructions, log a `booking_event` with `event_type: 'off_platform_payment_detected'` and the attempted pattern. (3) On the admin carrier detail page, flag carriers who appear in these events. (4) Consider: if the same carrier has triggered this 3+ times, add a `flagged` internal tag automatically.
-- **Likely areas affected:** `src/lib/validation/booking.ts`, `src/app/api/bookings/route.ts`, `src/lib/data/bookings.ts` (add event logging), admin carrier detail page
-- **Acceptance criteria:** When a customer enters "cash only" in special instructions, a clear error message explains why it's rejected. The attempted pattern is logged as a booking event. Admin can see a carrier's off-platform pattern history.
-
----
-
-### Payment webhook handling lacks an idempotency guard for replayed events
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Payments / Trust
-- **Why this matters:** The `applyPaymentIntentEvent` function processes `payment_intent.succeeded`, `payment_intent.payment_failed`, etc. The function already checks for `skipped_already_captured` outcomes, but the `PaymentIntentEventResult` type only handles state transitions — there's no explicit webhook idempotency table or log. Stripe can and does replay events. A replayed `payment_intent.succeeded` event that causes a second capture attempt is catastrophic.
-- **What exactly needs to be done:** (1) Inspect the webhook handler in detail to confirm whether the existing `skipped_already_captured` check in `applyPaymentIntentEvent` is sufficient for all event types. (2) If not: add a `stripe_webhook_events` table with columns `(stripe_event_id text primary key, event_type text, processed_at timestamptz)`. Before processing any webhook event, INSERT the event ID — if it already exists (duplicate), return `{ received: true }` immediately without processing. (3) Add an index on `stripe_event_id`. (4) Add RLS (admin-only access, or no RLS needed if this table is only written from the webhook server route using service role).
-- **Likely areas affected:** `src/app/api/payments/webhook/route.ts`, `src/lib/stripe/payment-intent-events.ts`, new migration for `stripe_webhook_events` table
-- **Dependencies / open questions:** EQ4 in existing backlog covers webhook contract tests — implement the idempotency table as part of that work or as a standalone migration.
-- **Acceptance criteria:** Replaying a webhook event (via `npm run webhook:replay`) for an already-processed booking produces `{ received: true }` without changing any booking state. The `stripe_webhook_events` table contains one row per event ID.
-
----
-
-### Admin has no quick-scan operations view for all open issues
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Ops
-- **Why this matters:** The admin dashboard, bookings page, carriers page, disputes page, and payments page are all separate pages. A founder doing daily ops must visit 4-5 pages to understand: what pending disputes exist, what payment captures are stuck, what carriers need verification, what bookings are stalled. There is no single "ops status" view that shows all open issues in one place.
-- **What exactly needs to be done:** Create or upgrade the admin dashboard page (`/admin/dashboard`) to show a single-screen daily ops snapshot: (1) count of carriers pending verification with a link; (2) count of open disputes with a link; (3) count of bookings in `completed` status with `payment_status != captured` (stuck payment) with a link; (4) count of `pending` bookings near expiry (expiring in < 30 minutes) with a link; (5) count of document expiry warnings (carriers with documents expiring in 30 days). This is a queue-status overview, not analytics. Each count is a link to the relevant queue. Cards with count > 0 should have a visual emphasis (colored border or icon).
-- **Likely areas affected:** `src/app/(admin)/admin/dashboard/page.tsx`, `src/lib/data/admin.ts` (add dashboard summary query), `src/components/admin/` (ops summary cards)
-- **Acceptance criteria:** The admin dashboard shows all 5 queue counts with links. Items requiring action have visual emphasis. A founder can do a daily ops scan in under 60 seconds from this page.
-
----
-
 ## Moverrr — Marketplace Logic and Search
 
 > Items that improve the core matching and browse experience.
 
 ---
 
-### Coordinate-backed suburb fallback now exists, but Sydney coverage still needs expansion
+### Maps-first search is live, but degraded fallback coverage still needs expansion
 
 - **Priority:** P2
 - **Stage:** Pre-MVP
 - **Type:** Product / Search
-- **Why this matters:** The raw suburb `ilike` fallback is gone for the main search path, which closes the worst “Bondi” vs “Bondi Junction” mismatch. The remaining risk is lookup coverage: suburbs outside the curated Sydney set still fall back less gracefully than the core corridors.
-- **What exactly needs to be done:** Expand the curated suburb coordinate map, add regression cases for near-name suburbs and adjacent corridors, and document which search fallback paths are fully coordinate-backed versus still heuristic.
+- **Why this matters:** Google Maps is now the production source of truth for suburb resolution and route relevance, which closes the worst `ilike` mismatch class. The remaining risk sits in degraded mode: missing-env/local fallback still depends on the curated Sydney suburb map, so suburbs outside the launch corridors can degrade less gracefully than the strongest routes.
+- **What exactly needs to be done:** Expand the curated suburb coordinate map, add regression cases for near-name suburbs and adjacent corridors, and document exactly which degraded fallback paths are still coordinate-backed versus heuristic.
 - **Likely areas affected:** `src/lib/data/trips.ts`, `src/lib/maps/sydney-suburb-coords.ts`, search-ranking tests
-- **Acceptance criteria:** The suburb fallback covers the launch corridors plus common adjacent Sydney suburbs, and regression tests catch false-equivalence cases such as similarly named suburbs.
+- **Acceptance criteria:** The degraded fallback covers the launch corridors plus common adjacent Sydney suburbs, and regression tests catch false-equivalence cases such as similarly named suburbs.
 
 ---
 
@@ -737,44 +648,16 @@ No active EO items remain after the 2026-04-09 docs, hooks, and verification-tem
 
 ---
 
-### No code calls `stripe.paymentIntents.capture()` — every authorization will expire uncaptured
-
-- **Priority:** P0
-- **Stage:** Now
-- **Type:** Product / Payments
-- **Why this matters:** The booking intent is created with `capture_method: "manual"` in `src/app/api/payments/create-intent/route.ts`. Stripe hold-and-capture requires that the application explicitly call `stripe.paymentIntents.capture(intentId)` before the authorization expires (Stripe default: 7 days). The `applyPaymentIntentEvent()` function in `src/lib/stripe/payment-intent-events.ts` handles `payment_intent.succeeded` (which fires AFTER a capture), but no code anywhere in the visible codebase calls `stripe.paymentIntents.capture()`. The trigger for capture — when a booking transitions to `completed` — is absent. This means: (1) every booking that reaches `completed` status silently lets the authorized payment expire after 7 days, (2) no money is ever collected, (3) the platform earns zero, (4) the existing `EA7` item assumes "payment capture happens automatically when a booking moves to completed" — this is factually wrong. Capture never happens.
-- **What exactly needs to be done:** Find the exact location where `updateBookingStatusForActor` handles the `delivered → completed` transition (in `src/lib/data/bookings.ts`). In that code path, after the status update, add: (1) retrieve the booking's `stripe_payment_intent_id`; (2) call `stripe.paymentIntents.capture(paymentIntentId)`; (3) on success, update `payment_status = 'captured'` and `completed_at = now()`; (4) on failure (Stripe error), set `payment_status = 'capture_failed'`, log a Sentry error with the booking ID and intent ID, and trigger an admin alert. Separately, verify that the `customer_confirmed_at` path (confirm-receipt button) is what drives the `completed` transition — if so, the capture call goes in that route handler (`src/app/api/bookings/[id]/confirm-receipt/route.ts`). Also check: when admin forces a booking to `completed`, the same capture path must fire. The `EA7` admin manual override item should be scoped to capture retry when automatic capture fails, not as the primary capture path.
-- **Likely areas affected:** `src/app/api/bookings/[id]/confirm-receipt/route.ts`, `src/lib/data/bookings.ts` (updateBookingStatusForActor for completed transition), `src/lib/stripe/` (add a `capturePaymentIntent` helper), `src/app/api/payments/webhook/route.ts` (verify succeeded handler is correct after capture is wired)
-- **Dependencies / open questions:** Confirm: is `completed` set by customer confirm-receipt, by admin, or by automatic trigger? The confirm-receipt route is the likely primary path. The admin path is a secondary recovery path (EA7). The automatic trigger (when carrier marks `delivered`) does NOT complete the booking — the customer must confirm receipt, which is correct per the status machine. Verify this is the actual flow in the codebase before wiring capture.
-- **Edge cases / failure modes:** Stripe capture called on an already-expired authorization — returns a 402 error. Need to handle this and notify admin. Capture called twice (race condition between customer confirm + admin override) — Stripe returns `payment_intent already captured` error, which is safe to swallow. Customer confirms receipt but the Stripe API is down — booking moves to `completed` but payment stays `authorized`. Need a reconciliation job or admin alert. Capture succeeds but the DB update fails — payment is taken but booking shows wrong status. Wrap in a try-catch that retries the status update.
-- **Acceptance criteria:** When a customer clicks "I received my item" on the confirm-receipt page, `stripe.paymentIntents.capture()` is called. The booking's `payment_status` changes to `captured`. The `payment_intent.succeeded` webhook fires from Stripe (async) and the handler correctly identifies it as already captured (idempotent). A test booking flow can be completed end-to-end with real Stripe test keys showing a captured charge. The admin payments page shows `payment_status = captured` for completed bookings.
-
----
-
-### Carrier onboarding is not atomic — a carrier can exist without a vehicle
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Product / Trust
-- **Why this matters:** `upsertCarrierOnboarding()` in `src/lib/data/carriers.ts` does two sequential operations: (1) upsert the carrier row (sets `verification_status = 'submitted'`), (2) upsert the vehicle row. These are separate Supabase calls with no transaction wrapper. If the carrier upsert succeeds but the vehicle upsert fails (network error, validation failure, any Supabase error), the resulting state is: a carrier row exists with `verification_status = 'submitted'`, but no active vehicle. Downstream: (a) `createTripForCarrier` requires an active vehicle — the carrier cannot post trips, (b) the admin verification queue shows this carrier as submitted with documents but no vehicle, leading to confused verification, (c) the carrier's dashboard may show a broken state. This failure can happen silently — the user sees a success page after onboarding but their account is in a broken partial state.
-- **What exactly needs to be done:** Wrap the carrier and vehicle upserts in a single Supabase RPC call that runs atomically in a database transaction. Create a new migration with a stored procedure `upsert_carrier_onboarding(carrier_data jsonb, vehicle_data jsonb)` that does both operations in one transaction. If either fails, both roll back. Alternatively, use `supabase.rpc('upsert_carrier_with_vehicle', {...})`. Update `upsertCarrierOnboarding()` to call this RPC instead of two separate calls. This follows the same pattern as `create_booking_atomic` (migration 011). Also add: a recovery path in the carrier onboarding page that detects the broken state (carrier row exists but no vehicle) and allows re-submission of just the vehicle data.
-- **Likely areas affected:** New migration `supabase/migrations/015_atomic_carrier_onboarding.sql`, `src/lib/data/carriers.ts` (`upsertCarrierOnboarding` function), `src/app/(carrier)/carrier/onboarding/page.tsx` (add recovery state detection)
-- **Dependencies / open questions:** Check if there are any existing carriers in the broken state (carrier row without vehicle). A one-time migration fix may be needed. Also check: the `carrier-onboarding-form.tsx` currently makes a single form submission — does it call `upsertCarrierOnboarding` directly or via an API route? Locate the actual call site before adding the RPC.
-- **Edge cases / failure modes:** The onboarding form is submitted twice quickly (double-tap on mobile). The RPC must be idempotent — second call updates rather than fails. Admin forces a re-verification of a carrier — does that re-call this function? It should not; admin verification is a separate path.
-- **Acceptance criteria:** Submitting the carrier onboarding form either results in both a carrier record and a vehicle record, or neither. No partial state is possible. `npm run check` passes. A test that simulates a vehicle upsert failure confirms the carrier row is also rolled back.
-
----
-
-### Match score is computed differently in TypeScript and in the PostGIS RPC — results vary by geocoding availability
+### Degraded fallback ranking still needs formula parity with the RPC path
 
 - **Priority:** P2
 - **Stage:** Pre-MVP
 - **Type:** Product / Search
-- **Why this matters:** Search has two code paths: (1) when Google Maps geocoding is available, it calls the `find_matching_listings` Supabase RPC which computes `match_score` in SQL using PostGIS distances; (2) when geocoding is unavailable (no API key, local dev), it calls `queryTripsByDateWindow` and then `scoreMatch()` in `src/lib/matching/score.ts`. These two paths compute `match_score` differently: the SQL RPC uses `(100.0 - least(cl.price_cents / 100.0, 100.0)) * 0.10` for price fit, while the TypeScript `scoreMatch()` uses `Math.max(0, (1 - priceCents / 30000) * 10)`. At a price of $100: SQL gives `(100 - 1.0) * 0.10 = 9.9`, TypeScript gives `(1 - 100/30000) * 10 = 9.97`. Close but not the same. More importantly: the SQL path uses real PostGIS `ST_Distance` for spatial scoring; the TypeScript path uses `estimateDistanceKm()` which is a string comparison (exact match = 1km, via-stop = 4km, no match = 16km). These formulas produce materially different rankings. A carrier who scores 85 on the RPC path might score 40 on the text fallback path.
-- **What exactly needs to be done:** Decide on a canonical scoring formula and implement it in both places. Recommended approach: (1) keep the RPC formula as authoritative (it uses real distances); (2) update `score.ts` to match the RPC formula exactly, documented with a comment "must match find_matching_listings RPC scoring"; (3) add a unit test that asserts both formulas produce the same score for the same inputs (pickup 2km, dropoff 1.5km, rating 4.5, price $100 → expected score X). Also fix the ranking in the text-fallback path: `estimateDistanceKm` using suburb string matching is too coarse — use the suburb-coordinate lookup table (also needed for EP1 fix) to compute real km distances in the text-fallback path.
+- **Why this matters:** Production search is now maps-first, which removes the worst ranking drift from real user traffic. The remaining gap lives in degraded mode: local or missing-env fallback still relies on a TypeScript scoring path that is not guaranteed to match the RPC formula exactly.
+- **What exactly needs to be done:** Make the RPC formula the documented source of truth, align `score.ts` numerically with it, and add a parity test so degraded fallback ranking cannot silently drift away from the production path again.
 - **Likely areas affected:** `src/lib/matching/score.ts` (update price formula), `src/lib/__tests__/score.test.ts` (add formula-parity test), `supabase/migrations/013_p3_enhancements.sql` (note: read-only reference for the SQL formula), `src/lib/matching/rank.ts` (`estimateDistanceKm` replacement)
 - **Dependencies / open questions:** The EP1 item (suburb coordinate lookup) is a dependency for fixing the text-fallback path. The score formula fix in TypeScript can be done independently of EP1. Verify: what is `score.ts` currently producing for the price component? Is it `Math.max(0, (1 - priceCents / 30000) * 10)` exactly? Read the file to confirm before writing the fix.
-- **Acceptance criteria:** A unit test asserts that `scoreMatch({ pickupDistanceKm: 2, dropoffDistanceKm: 1.5, carrierRating: 4.5, priceCents: 10000 })` produces the exact same numeric result as the SQL formula applied to the same inputs. The `find_matching_listings` SQL formula is documented with a comment referencing `score.ts`. The text-fallback ranking path no longer uses string comparison for distance estimation.
+- **Acceptance criteria:** A unit test asserts that the degraded `score.ts` path produces the same numeric result as the RPC formula for the same inputs, and the fallback ranking path is documented as a degraded mirror of the production search contract.
 
 ---
 
@@ -790,14 +673,3 @@ No active EO items remain after the 2026-04-09 docs, hooks, and verification-tem
 - **Acceptance criteria:** `supabase/migrations/` has no duplicate sequence numbers. `supabase migration status` shows all migrations as applied with no gaps or duplicates. `supabase db reset` in local dev applies all migrations cleanly in order.
 
 ---
-
-### No refund code exists — `payment_status.refunded` is an unreachable state
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Payments / Trust
-- **Why this matters:** The `payment_status` column includes `refunded` as a valid enum value. The booking schema has `cancellation_reason_code` and `cancelled_at`. The cancellation flow (booking moves to `cancelled`) is wired in the status machine. But there is no `stripe.refunds.create()` call anywhere in the codebase. When a booking is cancelled after authorization: (1) the Stripe payment authorization should be voided (for pre-capture: `stripe.paymentIntents.cancel()`); (2) if capture already happened: `stripe.refunds.create({ payment_intent: intentId })`; (3) if authorization never happened: nothing to do. Currently none of these calls exist. The result: cancelled bookings leave authorized card holds on customer accounts indefinitely until Stripe's authorization expires (7 days). If capture has somehow already run (after the P0 capture fix is implemented), cancellations never return money to the customer. This is a regulatory and trust issue.
-- **What exactly needs to be done:** In the cancellation code path (wherever `status → cancelled` is handled in `updateBookingStatusForActor`), add payment handling based on current payment state: (1) `payment_status = 'pending'` — no Stripe action needed; (2) `payment_status = 'authorized'` — call `stripe.paymentIntents.cancel(intentId)` to void the hold; (3) `payment_status = 'captured'` — call `stripe.refunds.create({ payment_intent: intentId })` for a full refund; update `payment_status = 'refunded'`. (4) `payment_status = 'capture_failed'` or `failed` — no action. Add Sentry logging on all Stripe calls. The cancellation policy decision (FD-02) must be resolved first — it determines whether partial vs full refunds apply for late cancellations. For MVP: always void or fully refund.
-- **Likely areas affected:** `src/lib/data/bookings.ts` (cancellation path in `updateBookingStatusForActor`), `src/lib/stripe/` (add `voidPaymentIntent` and `refundPaymentIntent` helpers), `src/app/api/payments/webhook/route.ts` (handle `charge.refunded` webhook event), `src/lib/email/` (add cancellation + refund email template)
-- **Dependencies / open questions:** Resolve FD-02 (cancellation policy) before implementing. FD-02 is the founder decision item already in the backlog. The refund code should not be built until the policy is decided — otherwise the code will need to be changed immediately. However, the `stripe.paymentIntents.cancel()` path (for pre-capture voids) is unambiguously correct for MVP regardless of policy.
-- **Acceptance criteria:** When a booking with `payment_status = 'authorized'` is cancelled, the Stripe authorization is voided within the same API request. When a booking with `payment_status = 'captured'` is cancelled, `stripe.refunds.create()` is called and `payment_status` updates to `refunded`. A test cancellation flow in Stripe test mode shows the authorization void or refund in the Stripe dashboard. The customer receives a cancellation + refund email.

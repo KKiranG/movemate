@@ -313,6 +313,10 @@ export function CarrierTripWizard({
           from: origin.suburb,
           to: destination.suburb,
           spaceSize,
+          originLat: String(origin.latitude),
+          originLng: String(origin.longitude),
+          destinationLat: String(destination.latitude),
+          destinationLng: String(destination.longitude),
         }).toString()}`,
         {
           signal: controller.signal,
@@ -342,7 +346,15 @@ export function CarrierTripWizard({
         window.clearTimeout(guidanceTimerRef.current);
       }
     };
-  }, [origin?.suburb, destination?.suburb, spaceSize]);
+  }, [
+    destination?.latitude,
+    destination?.longitude,
+    destination?.suburb,
+    origin?.latitude,
+    origin?.longitude,
+    origin?.suburb,
+    spaceSize,
+  ]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -660,6 +672,8 @@ export function CarrierTripWizard({
         <div className="grid gap-4">
           <div className="rounded-xl border border-success/20 bg-success/5 p-4">
             <p className="section-label">Price rationale</p>
+            {/* Future post-MVP extension: return/backload listings may allow one customer counter up to 20% below ask,
+                followed by one final carrier response, with no contact detail exposure and no open-ended bidding. */}
             <h3 className="mt-1 text-lg text-text">
               {isGuidanceLoading
                 ? "Checking corridor pricing..."

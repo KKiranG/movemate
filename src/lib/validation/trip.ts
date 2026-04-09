@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getMinimumTripBasePriceCents, getRouteDistanceKm } from "@/lib/pricing/guardrails";
 import { sanitizeText } from "@/lib/utils";
 
 const categorySet = z.enum([
@@ -246,6 +247,33 @@ function applyTripPublishIssues(
   }
 }
 
+function applyTripPriceGuardrail(
+  data: {
+    originLatitude: number;
+    originLongitude: number;
+    destinationLatitude: number;
+    destinationLongitude: number;
+    priceCents: number;
+  },
+  ctx: z.RefinementCtx,
+) {
+  const distanceKm = getRouteDistanceKm({
+    originLatitude: data.originLatitude,
+    originLongitude: data.originLongitude,
+    destinationLatitude: data.destinationLatitude,
+    destinationLongitude: data.destinationLongitude,
+  });
+  const minimumPriceCents = getMinimumTripBasePriceCents(distanceKm);
+
+  if (data.priceCents < minimumPriceCents) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["priceCents"],
+      message: `Trips on this corridor need to be at least $${(minimumPriceCents / 100).toFixed(0)}.`,
+    });
+  }
+}
+
 export const tripSchema = z
   .object({
     vehicleId: z.string().uuid().optional(),
@@ -275,7 +303,10 @@ export const tripSchema = z
     publishAt: optionalPublishAt,
     specialNotes: optionalNotes,
   })
-  .superRefine((data, ctx) => applyTripPublishIssues(data, ctx));
+  .superRefine((data, ctx) => {
+    applyTripPublishIssues(data, ctx);
+    applyTripPriceGuardrail(data, ctx);
+  });
 
 export const tripUpdateSchema = z
   .object({

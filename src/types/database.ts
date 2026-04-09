@@ -329,6 +329,8 @@ export interface Database {
           carrier_id: string;
           item_description: string;
           item_category: "furniture" | "boxes" | "appliance" | "fragile" | "other";
+          item_size_class: "S" | "M" | "L" | "XL" | null;
+          item_weight_band: "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg" | null;
           item_dimensions: string | null;
           item_weight_kg: number | null;
           item_photo_urls: string[] | null;
@@ -382,6 +384,8 @@ export interface Database {
           carrier_id: string;
           item_description: string;
           item_category: "furniture" | "boxes" | "appliance" | "fragile" | "other";
+          item_size_class?: "S" | "M" | "L" | "XL" | null;
+          item_weight_band?: "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg" | null;
           item_dimensions?: string | null;
           item_weight_kg?: number | null;
           item_photo_urls?: string[] | null;
@@ -500,6 +504,19 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["booking_email_deliveries"]["Insert"]>;
+      };
+      stripe_webhook_events: {
+        Row: {
+          stripe_event_id: string;
+          event_type: string;
+          processed_at: string;
+        };
+        Insert: {
+          stripe_event_id: string;
+          event_type: string;
+          processed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["stripe_webhook_events"]["Insert"]>;
       };
       reviews: {
         Row: {
@@ -695,6 +712,8 @@ export interface Database {
           p_item_description: string;
           p_item_dimensions?: string | null;
           p_item_photo_urls?: string[] | null;
+          p_item_size_class?: "S" | "M" | "L" | "XL" | null;
+          p_item_weight_band?: "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg" | null;
           p_item_weight_kg?: number | null;
           p_listing_id: string;
           p_needs_helper: boolean;
@@ -708,6 +727,30 @@ export interface Database {
           p_pickup_postcode: string;
           p_pickup_suburb: string;
           p_special_instructions?: string | null;
+        };
+        Returns: string;
+      };
+      upsert_carrier_onboarding_atomic: {
+        Args: {
+          p_user_id: string;
+          p_business_name: string;
+          p_contact_name: string;
+          p_phone: string;
+          p_email: string;
+          p_abn?: string | null;
+          p_bio?: string | null;
+          p_licence_photo_url?: string | null;
+          p_insurance_photo_url?: string | null;
+          p_vehicle_photo_url?: string | null;
+          p_service_suburbs?: string[] | null;
+          p_licence_expiry_date?: string | null;
+          p_insurance_expiry_date?: string | null;
+          p_vehicle_type?: "van" | "ute" | "small_truck" | "large_truck" | "trailer";
+          p_vehicle_make?: string | null;
+          p_vehicle_model?: string | null;
+          p_vehicle_volume_m3?: number | null;
+          p_vehicle_weight_kg?: number | null;
+          p_rego_plate?: string | null;
         };
         Returns: string;
       };

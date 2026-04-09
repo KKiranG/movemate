@@ -4,7 +4,7 @@ import { requireSessionUser } from "@/lib/auth";
 import { createTripForCarrier, listCarrierTrips } from "@/lib/data/trips";
 import { toErrorResponse } from "@/lib/errors";
 import { sanitizeText } from "@/lib/utils";
-import type { TripInput } from "@/lib/validation/trip";
+import { tripSchema, type TripInput } from "@/lib/validation/trip";
 
 function sanitizeTripPayload(payload: Record<string, unknown>): TripInput {
   return Object.fromEntries(
@@ -40,7 +40,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireSessionUser();
-    const payload = sanitizeTripPayload((await request.json()) as Record<string, unknown>);
+    const rawPayload = (await request.json()) as Record<string, unknown>;
+    const payload = tripSchema.parse(sanitizeTripPayload(rawPayload));
     const trip = await createTripForCarrier(user.id, payload);
 
     return NextResponse.json({ trip });

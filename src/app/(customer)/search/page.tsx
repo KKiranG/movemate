@@ -226,6 +226,12 @@ async function SearchResultsSection({
           Sydney suburb positions instead of plain suburb-name text matching.
         </div>
       ) : null}
+      {searchResponse.fallbackReason === "geocoding_failed" ? (
+        <div className="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-text">
+          moverrr could not resolve one of those suburbs cleanly through Google Maps. Check the
+          suburb spelling or choose a more specific suburb before trying again.
+        </div>
+      ) : null}
       {searchResponse.fallbackUsed || sortedResults.length === 0 ? (
         <div className="rounded-xl border border-accent/20 bg-accent/5 p-3">
           <p className="text-sm font-medium text-text">

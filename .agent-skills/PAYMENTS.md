@@ -19,6 +19,15 @@ Stripe Connect Express.
 - support payout release after successful completion
 - handle refunds and failures without breaking booking truth
 
+## Current money-flow rules
+
+- customer payment is authorized first and captured on trustworthy completion
+- webhook replays must be idempotent before any booking mutation runs
+- cancelled uncaptured bookings should void the authorization
+- cancelled captured bookings should refund through Stripe
+- MVP cancellation policy is full void or full refund, with no cancellation-fee matrix yet
+- admin-only payment and booking mutations must fail loudly when service-role access is unavailable
+
 ## Guardrails
 
 - do not casually change the funds flow

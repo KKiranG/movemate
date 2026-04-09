@@ -5,6 +5,7 @@ type BookingEventRow = Database["public"]["Tables"]["booking_events"]["Row"];
 type CarrierRow = Database["public"]["Tables"]["carriers"]["Row"];
 type CustomerRow = Database["public"]["Tables"]["customers"]["Row"];
 type DisputeRow = Database["public"]["Tables"]["disputes"]["Row"];
+type StripeWebhookEventRow = Database["public"]["Tables"]["stripe_webhook_events"]["Row"];
 
 export interface SupabaseRequestLog {
   method: string;
@@ -24,6 +25,7 @@ export interface SupabaseRestHarnessSeed {
   carriers?: CarrierRow[];
   customers?: CustomerRow[];
   disputes?: DisputeRow[];
+  stripeWebhookEvents?: StripeWebhookEventRow[];
 }
 
 export interface SupabaseRestHarnessState {
@@ -32,6 +34,7 @@ export interface SupabaseRestHarnessState {
   carriers: CarrierRow[];
   customers: CustomerRow[];
   disputes: DisputeRow[];
+  stripeWebhookEvents: StripeWebhookEventRow[];
   requests: SupabaseRequestLog[];
   rpcCalls: SupabaseRpcCall[];
 }
@@ -204,6 +207,7 @@ export function installSupabaseRestHarness(
     carriers: clone(seed.carriers ?? []),
     customers: clone(seed.customers ?? []),
     disputes: clone(seed.disputes ?? []),
+    stripeWebhookEvents: clone(seed.stripeWebhookEvents ?? []),
     requests: [],
     rpcCalls: [],
   };
@@ -329,6 +333,47 @@ export function installSupabaseRestHarness(
       ]);
     }
 
+    if (
+      url.pathname === "/rest/v1/stripe_webhook_events" &&
+      request.method === "POST"
+    ) {
+      const inserts = Array.isArray(parsedBody) ? parsedBody : [parsedBody];
+
+      for (const insert of inserts) {
+        const eventId = String(
+          (insert as { stripe_event_id?: unknown }).stripe_event_id ?? "",
+        );
+
+        if (
+          state.stripeWebhookEvents.some(
+            (event) => event.stripe_event_id === eventId,
+          )
+        ) {
+          return jsonResponse(
+            {
+              code: "23505",
+              message:
+                "duplicate key value violates unique constraint \"stripe_webhook_events_pkey\"",
+            },
+            409,
+          );
+        }
+
+        state.stripeWebhookEvents.push({
+          stripe_event_id: eventId,
+          event_type: String(
+            (insert as { event_type?: unknown }).event_type ?? "",
+          ),
+          processed_at: nextTimestamp(20 + state.stripeWebhookEvents.length),
+        });
+      }
+
+      return jsonResponse(
+        shapeResponse(request.headers, state.stripeWebhookEvents),
+        201,
+      );
+    }
+
     throw new Error(
       `Unhandled Supabase request in test harness: ${request.method} ${url.pathname}${url.search}`,
     );
@@ -356,6 +401,8 @@ export function createBookingRow(
     carrier_id: "carrier-1",
     item_description: "Three sealed archive boxes",
     item_category: "boxes",
+    item_size_class: "S",
+    item_weight_band: "under_20kg",
     item_dimensions: "0.8m x 0.6m x 0.5m",
     item_weight_kg: 18,
     item_photo_urls: [],

@@ -1,3 +1,5 @@
+import { assertGoogleMapsApiKey } from "@/lib/maps/google";
+
 interface GeocodeResult {
   formattedAddress: string;
   location: {
@@ -19,11 +21,7 @@ interface GoogleGeocodeApiResponse {
 }
 
 export async function geocodeAddress(address: string): Promise<GeocodeResult[]> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
-
-  if (!apiKey) {
-    throw new Error("Missing NEXT_PUBLIC_GOOGLE_MAPS_KEY.");
-  }
+  const apiKey = assertGoogleMapsApiKey();
 
   const params = new URLSearchParams({ address, key: apiKey });
   const response = await fetch(

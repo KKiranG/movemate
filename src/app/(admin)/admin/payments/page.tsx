@@ -9,9 +9,43 @@ export const metadata: Metadata = {
   title: "Admin payments",
 };
 
+function AdminPaymentsLoadFailure() {
+  return (
+    <Card className="border-warning/30 bg-warning/5 p-4">
+      <div className="space-y-2">
+        <p className="section-label">Retry needed</p>
+        <h2 className="text-lg text-text">Payments queue could not load</h2>
+        <p className="text-sm text-text-secondary">
+          The payments summary failed to load, but the admin route stayed live.
+          Refresh to retry the revenue-impacting queues.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
 export default async function AdminPaymentsPage() {
   await requirePageAdminUser();
-  const bookings = await listAdminBookings({ pageSize: 200 });
+  let bookings: Awaited<ReturnType<typeof listAdminBookings>> | null = null;
+
+  try {
+    bookings = await listAdminBookings({ pageSize: 200 });
+  } catch (error) {
+    console.error("Failed to load admin payments", error);
+  }
+
+  if (!bookings) {
+    return (
+      <main id="main-content" className="page-shell">
+        <PageIntro
+          eyebrow="Payments"
+          title="Revenue-impacting failures in one place"
+          description="This page turns payment and booking friction into a quick scan instead of a hunt across Stripe and logs."
+        />
+        <AdminPaymentsLoadFailure />
+      </main>
+    );
+  }
 
   const paymentIntentFailures = bookings.filter(
     (booking) => booking.paymentStatus === "failed",

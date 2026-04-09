@@ -9,7 +9,7 @@ export type ItemCategory =
   | "fragile"
   | "other";
 
-export type ItemSizeCategory = "small" | "medium" | "large";
+export type ItemSizeCategory = "S" | "M" | "L" | "XL";
 
 export interface TripRoute {
   originSuburb: string;

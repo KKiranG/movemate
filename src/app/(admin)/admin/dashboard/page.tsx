@@ -18,6 +18,24 @@ export const metadata: Metadata = {
   title: "Admin dashboard",
 };
 
+function AdminLoadFailureCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card className="border-warning/30 bg-warning/5 p-4">
+      <div className="space-y-2">
+        <p className="section-label">Retry needed</p>
+        <h2 className="text-lg text-text">{title}</h2>
+        <p className="text-sm text-text-secondary">{description}</p>
+      </div>
+    </Card>
+  );
+}
+
 function formatMetricValue(
   metric: Awaited<ReturnType<typeof getValidationMetrics>>[number],
 ) {
@@ -34,10 +52,13 @@ function formatMetricValue(
 
 export default async function AdminDashboardPage() {
   await requirePageAdminUser();
-  const [{ metrics, lastUpdatedAt }, cockpit] = await Promise.all([
+  const [dashboardResult, cockpitResult] = await Promise.allSettled([
     getAdminDashboardData(),
     getFounderOpsCockpitData(),
   ]);
+  const dashboardData =
+    dashboardResult.status === "fulfilled" ? dashboardResult.value : null;
+  const cockpit = cockpitResult.status === "fulfilled" ? cockpitResult.value : null;
 
   return (
     <main id="main-content" className="page-shell">
@@ -49,134 +70,150 @@ export default async function AdminDashboardPage() {
 
       <p className="text-sm text-text-secondary">
         Last updated{" "}
-        {lastUpdatedAt
-          ? new Date(lastUpdatedAt).toLocaleString("en-AU")
+        {dashboardData?.lastUpdatedAt
+          ? new Date(dashboardData.lastUpdatedAt).toLocaleString("en-AU")
           : "No booking events yet"}
       </p>
 
-      <OpsFunnelCard metrics={metrics} />
+      {dashboardData ? (
+        <OpsFunnelCard metrics={dashboardData.metrics} />
+      ) : (
+        <AdminLoadFailureCard
+          title="Ops funnel could not load"
+          description="The top-line marketplace metrics failed to load, but the rest of the admin dashboard is still available. Refresh to retry this section."
+        />
+      )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <Card key={metric.label} className="p-4">
-            <p className="section-label">{metric.label}</p>
-            <p className="mt-2 text-3xl text-text">
-              {formatMetricValue(metric)}
-            </p>
-            {metric.helperText ? (
-              <p className="mt-2 text-sm text-text-secondary">
-                {metric.helperText}
+      {dashboardData ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {dashboardData.metrics.map((metric) => (
+            <Card key={metric.label} className="p-4">
+              <p className="section-label">{metric.label}</p>
+              <p className="mt-2 text-3xl text-text">
+                {formatMetricValue(metric)}
               </p>
-            ) : null}
-          </Card>
-        ))}
-      </div>
-
-      <Card className="p-4">
-        <div className="space-y-4">
-          <div>
-            <p className="section-label">Founder ops cockpit</p>
-            <h2 className="mt-1 text-lg text-text">
-              Top marketplace actions without a hunt
-            </h2>
-            <p className="mt-1 text-sm text-text-secondary">
-              This collapses the current trust, payout, listing-quality, and
-              booking-risk queues into one start-of-day surface.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="border-border/80 p-3">
-              <p className="section-label">Verification</p>
-              <p className="mt-2 text-2xl text-text">
-                {cockpit.headlineCounts.verification}
-              </p>
+              {metric.helperText ? (
+                <p className="mt-2 text-sm text-text-secondary">
+                  {metric.helperText}
+                </p>
+              ) : null}
             </Card>
-            <Card className="border-border/80 p-3">
-              <p className="section-label">Weak live listings</p>
-              <p className="mt-2 text-2xl text-text">
-                {cockpit.headlineCounts.weakListings}
-              </p>
-            </Card>
-            <Card className="border-border/80 p-3">
-              <p className="section-label">Payout blockers</p>
-              <p className="mt-2 text-2xl text-text">
-                {cockpit.headlineCounts.payoutBlockers}
-              </p>
-            </Card>
-            <Card className="border-border/80 p-3">
-              <p className="section-label">Risky bookings</p>
-              <p className="mt-2 text-2xl text-text">
-                {cockpit.headlineCounts.riskyBookings}
-              </p>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            {cockpit.sections.map((section) => (
-              <Card key={section.key} className="border-border/80 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="section-label">{section.title}</p>
-                    <h3 className="mt-1 text-lg text-text">
-                      {section.count} in queue
-                    </h3>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      {section.description}
-                    </p>
-                  </div>
-                  {section.href ? (
-                    <Link
-                      href={section.href}
-                      className="inline-flex min-h-[44px] min-w-[44px] items-center text-sm font-medium text-accent active:opacity-80"
-                    >
-                      Open
-                    </Link>
-                  ) : null}
-                </div>
-
-                <div className="mt-4 grid gap-3">
-                  {section.items.map((item) => {
-                    const itemHref = "href" in item ? item.href : undefined;
-
-                    return itemHref ? (
-                      <Link
-                        key={`${section.key}:${item.title}`}
-                        href={itemHref}
-                        className="block min-h-[44px] rounded-xl border border-border p-3 active:opacity-95"
-                      >
-                        <p className="text-sm font-medium text-text">
-                          {item.title}
-                        </p>
-                        <p className="mt-1 text-sm text-text-secondary">
-                          {item.detail}
-                        </p>
-                      </Link>
-                    ) : (
-                      <div
-                        key={`${section.key}:${item.title}`}
-                        className="rounded-xl border border-border p-3"
-                      >
-                        <p className="text-sm font-medium text-text">
-                          {item.title}
-                        </p>
-                        <p className="mt-1 text-sm text-text-secondary">
-                          {item.detail}
-                        </p>
-                      </div>
-                    );
-                  })}
-                  {section.items.length === 0 ? (
-                    <p className="text-sm text-text-secondary">
-                      No items in this queue right now.
-                    </p>
-                  ) : null}
-                </div>
-              </Card>
-            ))}
-          </div>
+          ))}
         </div>
-      </Card>
+      ) : null}
+
+      {cockpit ? (
+        <Card className="p-4">
+          <div className="space-y-4">
+            <div>
+              <p className="section-label">Founder ops cockpit</p>
+              <h2 className="mt-1 text-lg text-text">
+                Top marketplace actions without a hunt
+              </h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                This collapses the current trust, payout, listing-quality, and
+                booking-risk queues into one start-of-day surface.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <Card className="border-border/80 p-3">
+                <p className="section-label">Verification</p>
+                <p className="mt-2 text-2xl text-text">
+                  {cockpit.headlineCounts.verification}
+                </p>
+              </Card>
+              <Card className="border-border/80 p-3">
+                <p className="section-label">Weak live listings</p>
+                <p className="mt-2 text-2xl text-text">
+                  {cockpit.headlineCounts.weakListings}
+                </p>
+              </Card>
+              <Card className="border-border/80 p-3">
+                <p className="section-label">Payout blockers</p>
+                <p className="mt-2 text-2xl text-text">
+                  {cockpit.headlineCounts.payoutBlockers}
+                </p>
+              </Card>
+              <Card className="border-border/80 p-3">
+                <p className="section-label">Risky bookings</p>
+                <p className="mt-2 text-2xl text-text">
+                  {cockpit.headlineCounts.riskyBookings}
+                </p>
+              </Card>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {cockpit.sections.map((section) => (
+                <Card key={section.key} className="border-border/80 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="section-label">{section.title}</p>
+                      <h3 className="mt-1 text-lg text-text">
+                        {section.count} in queue
+                      </h3>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        {section.description}
+                      </p>
+                    </div>
+                    {section.href ? (
+                      <Link
+                        href={section.href}
+                        className="inline-flex min-h-[44px] min-w-[44px] items-center text-sm font-medium text-accent active:opacity-80"
+                      >
+                        Open
+                      </Link>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 grid gap-3">
+                    {section.items.map((item) => {
+                      const itemHref = "href" in item ? item.href : undefined;
+
+                      return itemHref ? (
+                        <Link
+                          key={`${section.key}:${item.title}`}
+                          href={itemHref}
+                          className="block min-h-[44px] rounded-xl border border-border p-3 active:opacity-95"
+                        >
+                          <p className="text-sm font-medium text-text">
+                            {item.title}
+                          </p>
+                          <p className="mt-1 text-sm text-text-secondary">
+                            {item.detail}
+                          </p>
+                        </Link>
+                      ) : (
+                        <div
+                          key={`${section.key}:${item.title}`}
+                          className="rounded-xl border border-border p-3"
+                        >
+                          <p className="text-sm font-medium text-text">
+                            {item.title}
+                          </p>
+                          <p className="mt-1 text-sm text-text-secondary">
+                            {item.detail}
+                          </p>
+                        </div>
+                      );
+                    })}
+                    {section.items.length === 0 ? (
+                      <p className="text-sm text-text-secondary">
+                        No items in this queue right now.
+                      </p>
+                    ) : null}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <AdminLoadFailureCard
+          title="Founder ops cockpit could not load"
+          description="The individual queue snapshot failed to load, but the rest of the admin dashboard is still available. Refresh to retry this section."
+        />
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <ReviewQueue />

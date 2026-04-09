@@ -1,8 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 
 import { requireSessionUser } from "@/lib/auth";
 import { respondToReviewAsCarrier } from "@/lib/data/feedback";
 import { toErrorResponse } from "@/lib/errors";
+
+const reviewResponseSchema = z.object({
+  response: z.string().trim().min(1).max(1000),
+});
 
 export async function POST(
   request: NextRequest,
@@ -10,8 +15,8 @@ export async function POST(
 ) {
   try {
     const user = await requireSessionUser();
-    const payload = (await request.json()) as { response?: string };
-    const review = await respondToReviewAsCarrier(user.id, params.id, payload.response ?? "");
+    const payload = reviewResponseSchema.parse(await request.json());
+    const review = await respondToReviewAsCarrier(user.id, params.id, payload.response);
 
     return NextResponse.json({ review });
   } catch (error) {

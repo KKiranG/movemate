@@ -4,7 +4,7 @@ import { buildBookingEmail } from "@/lib/email";
 import { AppError } from "@/lib/errors";
 import { sendBookingTransactionalEmail } from "@/lib/notifications";
 import { captureAppError } from "@/lib/sentry";
-import { getStripeServerClient } from "@/lib/stripe/client";
+import { reverseBookingPayment } from "@/lib/stripe/payment-actions";
 import { updateBookingStatusForActor } from "@/lib/data/bookings";
 import { sanitizeText } from "@/lib/utils";
 import { getTripPublishReadiness } from "@/lib/validation/trip";
@@ -129,26 +129,18 @@ export async function resolveDispute(params: {
     bookingPaymentStatus = booking.paymentStatus ?? null;
     stripePaymentIntentId = booking.stripePaymentIntentId ?? null;
 
-    // When resolving a dispute as cancelled, trigger Stripe refund/cancellation
+    // When resolving a dispute as cancelled, trigger the shared payment reversal path.
     if (params.bookingStatus === "cancelled" && process.env.STRIPE_SECRET_KEY) {
       if (stripePaymentIntentId) {
         try {
-          const stripe = getStripeServerClient();
-
-          if (bookingPaymentStatus === "authorized") {
-            // Payment was authorised but not captured — cancel the intent
-            await stripe.paymentIntents.cancel(stripePaymentIntentId);
-          } else if (bookingPaymentStatus === "captured") {
-            // Payment was captured — issue a full refund
-            await stripe.refunds.create({
-              payment_intent: stripePaymentIntentId,
-            });
-          }
-
-          await supabase
-            .from("bookings")
-            .update({ payment_status: "refunded" })
-            .eq("id", data.booking_id);
+          await reverseBookingPayment({
+            supabase,
+            bookingId: data.booking_id,
+            paymentIntentId: stripePaymentIntentId,
+            paymentStatus: bookingPaymentStatus,
+            feature: "admin",
+            action: "dispute_cancellation_payment_reversal",
+          });
         } catch (stripeError) {
           captureAppError(stripeError, {
             feature: "admin",

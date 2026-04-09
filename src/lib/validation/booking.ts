@@ -67,7 +67,7 @@ const PROHIBITED_ITEM_RULES = [
 const OFF_PLATFORM_PAYMENT_RULES = [
   {
     pattern: /\b(payid|bank transfer|direct deposit|cash extra|cash only|pay outside)\b/i,
-    message: "Do not use booking notes to move payment or extras off-platform.",
+    message: "Payments must stay in moverrr for your protection. Remove cash, bank transfer, or side-payment requests.",
     hint: "moverrr only supports the listed add-ons or an admin-reviewed exception.",
   },
 ] as const;
@@ -96,8 +96,10 @@ export interface BookingTrustIssue {
   hint: string;
   path: Array<
     | "itemDescription"
+    | "itemSizeClass"
     | "specialInstructions"
     | "itemWeightKg"
+    | "itemWeightBand"
     | "pickupAccessNotes"
     | "dropoffAccessNotes"
     | "needsHelper"
@@ -107,7 +109,9 @@ export interface BookingTrustIssue {
 export interface BookingTrustInput {
   itemDescription: string;
   specialInstructions?: string;
+  itemSizeClass?: "S" | "M" | "L" | "XL";
   itemWeightKg?: number;
+  itemWeightBand?: "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg";
   needsHelper?: boolean;
   pickupAccessNotes?: string;
   dropoffAccessNotes?: string;
@@ -116,9 +120,13 @@ export interface BookingTrustInput {
 export function getBookingTrustIssues(input: BookingTrustInput) {
   const issues: BookingTrustIssue[] = [];
   const joinedText = [input.itemDescription, input.specialInstructions].filter(Boolean).join(" ");
-  const looksHeavy = typeof input.itemWeightKg === "number" && input.itemWeightKg >= 70;
+  const looksHeavy =
+    (typeof input.itemWeightKg === "number" && input.itemWeightKg >= 70) ||
+    input.itemWeightBand === "50_to_100kg" ||
+    input.itemWeightBand === "over_100kg";
   const looksAwkward = MANUAL_HANDLING_PATTERNS.some((pattern) => pattern.test(joinedText));
-  const looksManualHandlingRisk = looksHeavy || looksAwkward;
+  const looksLargeBySize = input.itemSizeClass === "L" || input.itemSizeClass === "XL";
+  const looksManualHandlingRisk = looksHeavy || looksAwkward || looksLargeBySize;
   const accessNotesProvided = Boolean(
     input.pickupAccessNotes?.trim() || input.dropoffAccessNotes?.trim(),
   );
@@ -155,7 +163,7 @@ export function getBookingTrustIssues(input: BookingTrustInput) {
       severity: "warning",
       message: "This looks like a bulky or one-person-risky item. Re-check whether a helper is needed.",
       hint: "Heavy, awkward, or bulky pieces usually need the helper toggle and clearer handling expectations.",
-      path: ["needsHelper", "itemWeightKg"],
+        path: ["needsHelper", "itemWeightKg", "itemWeightBand", "itemSizeClass"],
     });
   }
 
@@ -178,6 +186,10 @@ export const bookingSchema = z
     carrierId: z.string().uuid(),
     itemDescription: sanitizedString(4, 200),
     itemCategory: z.enum(["furniture", "boxes", "appliance", "fragile", "other"]),
+    itemSizeClass: z.enum(["S", "M", "L", "XL"]).optional(),
+    itemWeightBand: z
+      .enum(["under_20kg", "20_to_50kg", "50_to_100kg", "over_100kg"])
+      .optional(),
     itemDimensions: optionalSanitizedString(120),
     itemWeightKg: z.number().min(0).max(500).optional(),
     itemPhotoUrls: z.array(z.string().min(1)).default([]),

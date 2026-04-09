@@ -11,6 +11,9 @@ export function SiteFooter() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-text-secondary">
+          <Link href="/trust" className="inline-flex min-h-[44px] items-center rounded-lg px-2 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
+            Trust & Safety
+          </Link>
           <Link href="/privacy" className="inline-flex min-h-[44px] items-center rounded-lg px-2 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
             Privacy Policy
           </Link>

@@ -8,6 +8,7 @@ import { AppError } from "@/lib/errors";
 import { buildBookingEmail, buildReviewRequestEmail } from "@/lib/email";
 import { sendBookingTransactionalEmail } from "@/lib/notifications";
 import { captureAppError } from "@/lib/sentry";
+import { reverseBookingPayment } from "@/lib/stripe/payment-actions";
 import { getStripeServerClient } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
@@ -230,7 +231,7 @@ async function recordBookingEvent(params: {
     return;
   }
 
-  const supabase = getPrivilegedSupabaseClient();
+  const supabase = getRequiredAdminSupabaseClient();
   await supabase.from("booking_events").insert({
     booking_id: params.bookingId,
     actor_role: params.actorRole,
@@ -240,10 +241,12 @@ async function recordBookingEvent(params: {
   });
 }
 
-function getPrivilegedSupabaseClient() {
-  return hasSupabaseAdminEnv()
-    ? createAdminClient()
-    : createServerSupabaseClient();
+function getRequiredAdminSupabaseClient() {
+  if (!hasSupabaseAdminEnv()) {
+    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
+  }
+
+  return createAdminClient();
 }
 
 function canActorTransitionBooking(params: {
@@ -369,7 +372,7 @@ async function syncListingStatusForBooking(params: {
     return;
   }
 
-  const supabase = getPrivilegedSupabaseClient();
+  const supabase = getRequiredAdminSupabaseClient();
   const { error } = await supabase.rpc("recalculate_listing_capacity", {
     p_listing_id: params.listingId,
   });
@@ -538,6 +541,8 @@ export async function createBookingForCustomer(
     p_item_description: parsed.data.itemDescription,
     p_item_dimensions: parsed.data.itemDimensions ?? null,
     p_item_photo_urls: parsed.data.itemPhotoUrls ?? [],
+    p_item_size_class: parsed.data.itemSizeClass ?? null,
+    p_item_weight_band: parsed.data.itemWeightBand ?? null,
     p_item_weight_kg: parsed.data.itemWeightKg ?? null,
     p_listing_id: parsed.data.listingId,
     p_needs_helper: parsed.data.needsHelper,
@@ -943,16 +948,17 @@ export async function updateBookingStatusForActor(params: {
     process.env.STRIPE_SECRET_KEY
   ) {
     try {
-      const stripe = getStripeServerClient();
-      const intent = await stripe.paymentIntents.retrieve(data.stripe_payment_intent_id);
+      const reversal = await reverseBookingPayment({
+        supabase,
+        bookingId: data.id,
+        paymentIntentId: data.stripe_payment_intent_id,
+        paymentStatus: data.payment_status,
+        feature: "bookings",
+        action: "cancel_booking_payment_reversal",
+      });
 
-      if (intent.status !== "canceled" && intent.status !== "succeeded") {
-        await stripe.paymentIntents.cancel(data.stripe_payment_intent_id);
-        await supabase
-          .from("bookings")
-          .update({ payment_status: "authorization_cancelled" })
-          .eq("id", data.id);
-        data.payment_status = "authorization_cancelled";
+      if (reversal.nextPaymentStatus) {
+        data.payment_status = reversal.nextPaymentStatus;
       }
     } catch {
       // Best effort: the booking cancellation is already persisted.
@@ -1037,7 +1043,12 @@ export async function updateBookingStatusForActor(params: {
                         "Raise a dispute in-platform if the item, condition, or handoff was not correct.",
                       ]
                     : params.nextStatus === "cancelled"
-                      ? ["No extra payment should move outside moverrr for this booking."]
+                      ? [
+                          data.payment_status === "refunded"
+                            ? "Any captured payment is being returned through moverrr."
+                            : "Any uncaptured payment hold is being voided inside moverrr.",
+                          "No extra payment should move outside moverrr for this booking.",
+                        ]
                       : [],
             }),
           }),

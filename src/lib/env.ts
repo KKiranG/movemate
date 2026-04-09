@@ -26,7 +26,7 @@ export function hasSupabaseAdminEnv() {
 }
 
 export function hasMapsEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY);
+  return Boolean(process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY);
 }
 
 export function hasStripeEnv() {

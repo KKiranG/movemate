@@ -29,6 +29,14 @@ Always make these legible:
 - helper
 - whether the trip is already happening anyway
 
+## Launch guardrails
+
+- fixed-price booking only for MVP
+- no public counteroffer flow yet
+- route price guidance should prefer real corridor distance over suburb-name similarity
+- long-distance spare-capacity trips keep a minimum base price floor of `$50` once the route is `>= 250km`
+- any future negotiation must stay in-platform, hide direct contact details, and be tightly bounded
+
 ## Do not add in MVP
 
 - surge pricing
