@@ -224,9 +224,9 @@
 
 ---
 
-## ⚪ P4 — Post-MVP / Deferred
+## ⚪ After MVP / Deferred
 
-*Good ideas, not now. One line each — documented so they are not lost.*
+*Explicitly out of the MVP queue. Keep these one-line, separated from launch work, and do not pull them into active delivery without a fresh prioritization pass.*
 
 - [ ] **P4-01** — LLM item classification from customer photo or description
 - [ ] **P4-02** — Fixed price per item category (sofa, fridge, etc.) instead of carrier-set price
@@ -424,17 +424,17 @@
 
 ---
 
-### Search result cards don't show why a trip matches the customer's query
+### Search cards now explain route fit, but fallback consistency still needs QA
 
 - **Priority:** P2
 - **Stage:** Pre-MVP
 - **Type:** Product / Customer trust
-- **Why this matters:** The `TripCard` component and search results show route, date, price, and space size. The matching score is calculated and available in `TripSearchResult.matchScore` and `scoreBreakdown`. But customers see no explanation of why a trip appeared in their results or how well it fits. "Route fit" is the core value proposition — a customer who searches "Bondi to CBD" should see that a Randwick to Sydney trip is "2.1km from your pickup and 0.8km from your dropoff" — not just a generic card. Without this, the browsing experience feels like a generic list.
-- **What exactly needs to be done:** Add a "match quality" indicator to `TripCard` that uses the `matchScore` and `scoreBreakdown` from the search result. Specifically: (1) show pickup distance ("1.4km from pickup") when `pickupDistanceKm` is available in the `scoreBreakdown`; (2) show dropoff distance ("0.9km from dropoff"); (3) show a visual fit indicator (e.g. a colored bar or "Strong match / Decent match / Loose match" badge) based on `matchScore` ranges (>70: strong, 50-70: decent, <50: loose); (4) the "match score" terminology must NOT be shown to customers — use plain language only. Note: `scoreBreakdown` with pickup/dropoff distances is already returned from `scoreMatch()` — this is primarily a UI change.
+- **Why this matters:** Browse cards now show plain-language route-fit labels and real distance cues when spatial data exists. The remaining product risk is inconsistency on fallback or low-signal searches where those cues are absent, making some result sets feel richer than others.
+- **What exactly needs to be done:** QA the browse card across spatial, fallback, and flexible-date result sets. Add a graceful fallback explanation when exact pickup/dropoff distances are unavailable so cards never regress into feeling opaque again.
 - **Likely areas affected:** `src/components/trip/trip-card.tsx`, `src/types/trip.ts` (TripSearchResult already has matchScore + scoreBreakdown), `src/app/(customer)/search/page.tsx`
-- **Dependencies / open questions:** `scoreBreakdown` must be passed through from the search RPC to the TripSearchResult type. Check if it's currently available in the data flow. The PostGIS RPC returns `pickup_distance_km` and `dropoff_distance_km` — confirm these flow through to the frontend.
-- **Edge cases / failure modes:** When search uses the text-fallback path (no Google Maps), `pickupDistanceKm` is 0 (the `queryTripsByDateWindow` path calls `toTripSearchResult(trip, 0)`). In this case, don't show distance indicators — show nothing rather than "0km from pickup." Detect this with `matchScore === 0` or `pickupDistanceKm === 0`.
-- **Acceptance criteria:** On a successful spatial search, each TripCard shows pickup and dropoff distances. The card includes a plain-language fit indicator. A trip that is 8km from the customer's pickup (outside detour radius) does not appear in results (already filtered). At 375px viewport the distance info is readable without truncation.
+- **Dependencies / open questions:** The current card suppresses distance cues when the fallback path cannot produce truthful kilometre values. Decide whether that should remain silent or be replaced by a softer route-fit explanation.
+- **Edge cases / failure modes:** Flexible-date grouped results may mix cards with exact spatial cues and cards with only route-fit labels, which can feel uneven if the copy hierarchy is not deliberate.
+- **Acceptance criteria:** Result cards remain legible and trustworthy across both spatial and fallback searches, and mobile QA confirms the fit cue still reads clearly at `375px`.
 
 ---
 
@@ -609,16 +609,16 @@
 
 ---
 
-### No-result search state captures waitlist demand but offers no immediate recovery
+### No-result search recovery is stronger, but adjacent-route suggestions still need work
 
 - **Priority:** P2
 - **Stage:** Pre-MVP
 - **Type:** Product / Demand
-- **Why this matters:** The search page has a `SaveSearchForm` and `WaitlistForm` for customers who find no results. Both exist. But: (1) does the no-result state clearly explain WHY there are no results (no carriers on this route, wrong date, no capacity)? (2) Is the waitlist form clearly differentiated from the save-search form? (3) Is there any immediate recovery path — "Try these nearby trips" or "Broaden your date range"?
-- **What exactly needs to be done:** (1) Read the current no-result state rendering in the search page. (2) Add a "no results" state that explains the gap: "No trips from [from] to [to] on [date] yet" with sub-copy: "moverrr works best with a bit of flexibility — try a date range or nearby suburbs." (3) Add a "Similar trips" row: show 3 trips on nearby routes (same origin suburb, any destination) or same route on adjacent dates as recovery options. (4) Ensure the save-search form is the primary CTA above the waitlist form, not equal or below. The save-search captures demand for notification; waitlist captures intent before the product exists. In MVP, save-search is more actionable.
+- **Why this matters:** The search page now explains the gap, keeps save-search as the primary recovery CTA, and offers nearby-date or broader-corridor escape hatches. The missing piece is better adjacent-route recovery when there is no exact or nearby-date supply.
+- **What exactly needs to be done:** Add a secondary recovery query that can suggest close corridor alternatives, not just nearby dates or broader item-category results, and verify the hierarchy still keeps save-search as the main action.
 - **Likely areas affected:** `src/app/(customer)/search/page.tsx`, `src/components/search/save-search-form.tsx`, `src/components/customer/waitlist-form.tsx`
-- **Dependencies / open questions:** The "similar trips" query needs a fallback search that ignores date but keeps route, or ignores destination but keeps origin. Implement as a secondary query when the primary returns 0 results.
-- **Acceptance criteria:** No-result state includes an explanation, a save-search CTA as primary action, and at least one nearby trip suggestion when available. On mobile at 375px, the save-search form is visible without scrolling past the no-result explanation.
+- **Dependencies / open questions:** Decide whether “nearby” should bias origin suburb, destination suburb, or a corridor-level match once route density improves.
+- **Acceptance criteria:** No-result search still prioritizes save-search, and when exact matches are missing it can suggest at least one useful adjacent-route recovery path without cluttering the mobile layout.
 
 ---
 
@@ -683,207 +683,26 @@
 
 ---
 
-### The distance estimation fallback uses `ilike` — gives equal weight to "Bondi" and "Bondi Junction"
+### Coordinate-backed suburb fallback now exists, but Sydney coverage still needs expansion
 
 - **Priority:** P2
 - **Stage:** Pre-MVP
 - **Type:** Product / Search
-- **Why this matters:** This is already tracked as EP1 in the existing backlog with full detail. Including a pointer here because it's a core trust issue: a carrier posting "Bondi Beach to CBD" appears for "Bondi Junction to CBD" searches with no distance penalty. These suburbs are ~3km apart. A customer who books based on suburb match and then finds the pickup is 3km away from their actual location is a bad experience.
-- **What exactly needs to be done:** See EP1 in existing backlog for the full task specification. The key missing piece: when geocoding fails (no Google Maps credentials), the fallback should use a curated suburb-to-coordinates lookup table for the most common Sydney suburbs, rather than raw text matching. This avoids the "Bondi" ≈ "Bondi Junction" problem without requiring live geocoding API calls.
-- **Likely areas affected:** `src/lib/data/trips.ts` (`queryTripsByDateWindow`), new file `src/lib/maps/suburb-coords.ts` (Sydney suburb coordinate lookup)
-- **Acceptance criteria:** See EP1 in existing backlog.
-
----
-
-### Flexible-date search is now live, but browse grouping quality still needs user feedback
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Demand
-- **Why this matters:** Flexible date search, grouped results, and coordinate-backed fallback now exist. The remaining risk is user comprehension and whether grouped browse still feels clear on mobile when supply gets denser.
-- **What exactly needs to be done:** Run mobile browse QA on the grouped flexible-date results, then tighten headings, ordering, or show-more behavior if customers struggle to scan the grouped output.
-- **Likely areas affected:** `src/components/search/search-bar.tsx`, `src/app/api/search/route.ts`, `src/lib/data/trips.ts` (`searchTrips` input type)
-- **Dependencies / open questions:** When flexible dates are used with spatial search (PostGIS RPC), does the RPC also support date arrays? Inspect `find_matching_listings` — it accepts `p_date date` (single). Would need to modify the RPC or call it multiple times. For MVP, text-fallback mode with date arrays is simpler.
-- **Acceptance criteria:** Real mobile browse testing confirms grouped flexible-date results remain easy to scan and compare when multiple dates have live supply.
+- **Why this matters:** The raw suburb `ilike` fallback is gone for the main search path, which closes the worst “Bondi” vs “Bondi Junction” mismatch. The remaining risk is lookup coverage: suburbs outside the curated Sydney set still fall back less gracefully than the core corridors.
+- **What exactly needs to be done:** Expand the curated suburb coordinate map, add regression cases for near-name suburbs and adjacent corridors, and document which search fallback paths are fully coordinate-backed versus still heuristic.
+- **Likely areas affected:** `src/lib/data/trips.ts`, `src/lib/maps/sydney-suburb-coords.ts`, search-ranking tests
+- **Acceptance criteria:** The suburb fallback covers the launch corridors plus common adjacent Sydney suburbs, and regression tests catch false-equivalence cases such as similarly named suburbs.
 
 ---
 
 ## Agentic Development System — Infrastructure Backlog
 
-> Previously added section preserved as-is below.
+> Most of this lane shipped on `2026-04-09`. Only intentionally deferred runtime-team work remains active below.
 
 > Added: `2026-04-08` — based on review of Claude Code best practices (subagents, skills, hooks, agent teams, session management, context discipline).
 > These items upgrade how AI agents are configured, equipped, and constrained in this repo. They are NOT product features — they are operating system improvements.
 > Each item is written with enough precision that an AI agent can implement it without needing further clarification.
 > Work these in order within each category, as later items often depend on earlier foundations.
-
----
-
-### AG-H — Hooks Infrastructure
-*Remaining hook work after the 2026-04-09 core OS sweep.*
-
-- [ ] **AG-H1** — Add macOS Notification hooks for permission and idle prompts
-  - **File(s):** `.claude/settings.json`
-  - **What:** Extend the shared settings with `Notification` hooks for `permission_prompt` and `idle_prompt`, using native macOS alerts so blocked long-running sessions are obvious.
-  - **Why:** The repo now has a shared settings foundation, but it still depends on the user noticing when Claude is waiting.
-  - **Done when:** Both notification matchers exist in `settings.json`, and each one produces a visible local alert in a manual test.
-
-- [ ] **AG-H2** — Add a PostToolUse type-check hook for TypeScript edits
-  - **File(s):** `.claude/settings.json`, optional new script under `.claude/scripts/`
-  - **What:** Run `npx tsc --noEmit --project tsconfig.json` after `Edit|Write` on `*.ts` and `*.tsx` files, returning recent failures into Claude's context without rewriting files.
-  - **Why:** `npm run check` still catches type errors too late in long edit sessions.
-  - **Done when:** A deliberate type error in a TypeScript file triggers the hook and surfaces the failure immediately after the edit.
-
-- [ ] **AG-H4** — Add a Stop hook that reminds Claude to sync docs after markdown changes
-  - **File(s):** `.claude/settings.json`, optional new script under `.claude/scripts/`
-  - **What:** Add a lightweight close-out reminder when `CLAUDE.md`, `TASK-RULES.md`, `.claude/**`, or `.agent-skills/**` changed in the session.
-  - **Why:** The repo now has sharper docs rules, but there is still no end-of-session prompt to re-check memory sync.
-  - **Done when:** A docs-only session ends with a reminder in Claude's output.
-
-- [ ] **AG-H6** — Add a SubagentStop session log for agent observability
-  - **File(s):** `.claude/settings.json`, new file: `.claude/scripts/log-subagent.sh`, `.gitignore`
-  - **What:** Append newline-delimited JSON records for completed subagents into a gitignored `.claude/session-log.jsonl`.
-  - **Why:** Multi-agent sessions still have no durable local trace of what ran and in what order.
-  - **Done when:** A test subagent run writes a valid JSONL record with timestamp and agent type.
-
----
-
-### AG-A — Agent Configuration Upgrades
-*Remaining agent-runtime hardening after the memory and read-only sweep landed.*
-
-- [ ] **AG-A3** — Add `isolation: worktree` to `schema-reviewer`
-  - **File(s):** `.claude/agents/schema-reviewer.md`
-  - **What:** Move schema review into a worktree-isolated agent contract and document why migration review must not pollute the main working tree.
-  - **Why:** Schema review is still the highest-risk agent lane and deserves stronger isolation than the rest of the roster.
-  - **Done when:** `schema-reviewer` declares `isolation: worktree`, and a test spawn runs in a separate worktree.
-
-- [ ] **AG-A5** — Preload booking-safety context into payment and schema reviewers
-  - **File(s):** `.claude/agents/payments-verifier.md`, `.claude/agents/schema-reviewer.md`
-  - **What:** Add `skills: [booking-safety-audit]` so both agents start with the critical booking and pricing invariants already loaded.
-  - **Why:** Payment and schema review still re-discover the same safety rules each session.
-  - **Done when:** Both agents include the preload and expose booking-safety context immediately on spawn.
-
-- [ ] **AG-A6** — Tighten the `feature-implementer` description for better auto-triggering
-  - **File(s):** `.claude/agents/feature-implementer.md`
-  - **What:** Rewrite the description so it front-loads scoped implementation triggers and explicitly pushes exploratory work toward `repo-explorer`.
-  - **Why:** The current description is still too passive for reliable auto-delegation.
-  - **Done when:** The description is concise, trigger-first, and <=250 characters.
-
-- [ ] **AG-A7** — Make docs and copy reviewers background-friendly
-  - **File(s):** `.claude/agents/docs-keeper.md`, `.claude/agents/copy-guardian.md`
-  - **What:** Add `background: true` where it is still missing so low-risk parallel review work does not block implementation.
-  - **Why:** Docs and copy review are ideal sidecar tasks once the operating-system baseline exists.
-  - **Done when:** Both agents can run without blocking the main session.
-
-- [ ] **AG-A8** — Add `maxTurns` limits to exploratory agents and implementers
-  - **File(s):** `.claude/agents/repo-explorer.md`, `.claude/agents/product-researcher.md`, `.claude/agents/feature-implementer.md`
-  - **What:** Add bounded turn limits so open-ended explore or implementation loops terminate cleanly instead of drifting.
-  - **Why:** Read-only restrictions are in place now, but runaway context growth is still possible.
-  - **Done when:** Each target agent has an explicit `maxTurns` policy aligned with its job.
-
----
-
-### AG-S — Skill System Upgrades
-*These are still open because PR 9 focused on repo-portable workflows instead of speculative runtime-only frontmatter.*
-
-- [ ] **AG-S1** — Make side-effect and release-sensitive skills manual-only
-  - **File(s):** `.claude/skills/release-readiness/SKILL.md`, `.claude/skills/postmortem/SKILL.md`, `.claude/skills/experiment-design/SKILL.md`, `.claude/skills/dispute-resolution-audit/SKILL.md`
-  - **What:** Add the relevant manual-invocation frontmatter once that runtime behavior is verified locally.
-  - **Why:** These skills should not auto-trigger off casual conversation.
-  - **Done when:** They no longer auto-load unless explicitly invoked.
-
-- [ ] **AG-S2** — Fork heavy research skills into isolated read-only execution
-  - **File(s):** `.claude/skills/saved-search-demand-review/SKILL.md`, `.claude/skills/admin-queue-review/SKILL.md`, `.claude/skills/carrier-quality-review/SKILL.md`
-  - **What:** Add verified fork/context metadata only after confirming the local runtime semantics.
-  - **Why:** These skills still risk polluting the main context with large research passes.
-  - **Done when:** Each one runs in isolated exploratory context instead of inline.
-
-- [ ] **AG-S3** — Raise reasoning effort on trust-critical workflows
-  - **File(s):** `.claude/skills/booking-safety-audit/SKILL.md`, `.claude/skills/dispute-resolution-audit/SKILL.md`, `.claude/skills/verify-moverrr-change/SKILL.md`, `.claude/skills/release-readiness/SKILL.md`
-  - **What:** Add explicit high-effort frontmatter once verified against the local runtime.
-  - **Why:** These workflows carry the most financial and trust risk in the repo.
-  - **Done when:** Each target skill declares the higher-effort policy.
-
-- [ ] **AG-S4** — Add scoped arguments to parameterized verification and metrics skills
-  - **File(s):** `.claude/skills/verify-moverrr-change/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/verify-web-ui/SKILL.md`, `.claude/skills/metrics-review/SKILL.md`
-  - **What:** Add `argument-hint` plus scoped `$ARGUMENTS` usage so these skills can target one route, surface, or area without inference.
-  - **Why:** The current skills are still broader than they need to be for focused verification runs.
-  - **Done when:** Each target skill accepts and uses a meaningful scope argument.
-
-- [ ] **AG-S5** — Add dynamic context injection to ops and metrics review skills
-  - **File(s):** `.claude/skills/metrics-review/SKILL.md`, `.claude/skills/admin-queue-review/SKILL.md`
-  - **What:** Add verified shell-injection context blocks only after confirming the exact runtime syntax locally.
-  - **Why:** These review loops still start with zero live repo state.
-  - **Done when:** Invoking either skill loads the expected live context before reasoning begins.
-
-- [ ] **AG-S6** — Add worked examples to complex verification workflows
-  - **File(s):** `.claude/skills/booking-safety-audit/`, `.claude/skills/verify-moverrr-change/`, `.claude/skills/release-readiness/`
-  - **What:** Create `examples/` directories with worked pricing, verification-report, and release-checklist examples.
-  - **Why:** The repo now has sharper verification rules, but not enough concrete examples for reusable output quality.
-  - **Done when:** Each target skill ships an example file and links to it from the skill prompt.
-
-- [ ] **AG-S7** — Tighten path-scoped skill activation on frontend and API skills
-  - **File(s):** `.claude/skills/booking-safety-audit/SKILL.md`, `.claude/skills/ios-touch-audit/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/chrome-qa-tester/SKILL.md`
-  - **What:** Audit and add missing `paths:` frontmatter so relevant skills surface automatically for matching files.
-  - **Why:** There is still too much manual discovery friction for path-specific skills.
-  - **Done when:** The target skills advertise precise path scopes and auto-load where expected.
-
----
-
-### AG-NS — New Skills To Build
-*The first two core OS skills landed in PR 9; these are the remaining workflow gaps.*
-
-- [ ] **AG-NS2** — Create `fix-issue`
-  - **File(s):** new dir: `.claude/skills/fix-issue/`
-  - **What:** Add a GitHub issue -> implement -> verify -> PR workflow that gates on moverrr's browse-first thesis before coding.
-  - **Why:** Issue handling is still too manual for a repeatable repo workflow.
-  - **Done when:** The skill can take an issue number, stage the work, and guide the full loop safely.
-
-- [ ] **AG-NS3** — Create `spec`
-  - **File(s):** new dir: `.claude/skills/spec/`
-  - **What:** Add an interview-first feature specification workflow that produces an implementation-ready `SPEC.md`.
-  - **Why:** Large feature work still lacks a reusable think-first ritual.
-  - **Done when:** The skill interviews the user and outputs a durable spec document.
-
-- [ ] **AG-NS5** — Create `review-pr`
-  - **File(s):** new dir: `.claude/skills/review-pr/`
-  - **What:** Add a moverrr-specific PR review workflow centered on invariants, trust copy, and verification evidence.
-  - **Why:** PR review is still generic instead of repo-aware.
-  - **Done when:** The skill produces structured review findings for a given PR.
-
-- [ ] **AG-NS6** — Create `session-start`
-  - **File(s):** new dir: `.claude/skills/session-start/`
-  - **What:** Add a kickoff workflow that reads the top relevant backlog item, recent git state, and the right memory before implementation starts.
-  - **Why:** Session startup is still ad hoc and easy to do sloppily.
-  - **Done when:** The skill presents the current task context and asks for scope confirmation before coding.
-
----
-
-### AG-NA — New Agents To Build
-*The backlog-groomer landed in PR 9; these are the remaining specialist gaps.*
-
-- [ ] **AG-NA1** — Create `debugger`
-  - **File(s):** new file: `.claude/agents/debugger.md`
-  - **What:** Add a root-cause-first debugging agent for test failures, incidents, and runtime errors.
-  - **Why:** The repo still lacks a specialist who is explicitly optimized for reproduction and minimal fixes.
-  - **Done when:** The agent can take a concrete bug, reproduce it, explain the cause, and report the fix path.
-
-- [ ] **AG-NA2** — Create `test-runner`
-  - **File(s):** new file: `.claude/agents/test-runner.md`
-  - **What:** Add a background agent that runs tests and returns only failures plus file:line evidence.
-  - **Why:** Test output still floods the main context when large suites run.
-  - **Done when:** The agent reports compact failure summaries instead of raw test logs.
-
----
-
-### AG-C — CLAUDE.md Follow-Ups
-*PR 9 added the task-system import, session discipline, and the <=150-line reduction. This is what remains.*
-
-- [ ] **AG-C1** — Add compaction-specific preservation rules
-  - **File(s):** `CLAUDE.md`
-  - **What:** Add a short section that tells compaction which task IDs, user decisions, and failed approaches must survive context compression.
-  - **Why:** The file is leaner now, but compaction policy is still implicit.
-  - **Done when:** `CLAUDE.md` contains a compact, moverrr-specific compaction checklist.
 
 ---
 
@@ -904,51 +723,6 @@
 
 ---
 
-### AG-M — Context & Memory Architecture
-*PR 9 created the shared memory layer. The worktree discipline follow-up remains.*
-
-- [ ] **AG-M2** — Document worktree naming and cleanup rules
-  - **File(s):** `.claude/operating-system.md`, `.claude/command-catalog.md`
-  - **What:** Expand the worktree section with moverrr-specific naming examples plus cleanup commands.
-  - **Why:** The repo now uses stacked branches and agent memory, but its worktree discipline is still under-specified.
-  - **Done when:** Worktree examples and cleanup steps are documented in both places.
-
----
-
-### AG-CI — CI & Automation Patterns
-*Still deferred until the local Claude runtime path is proven end to end for unattended checks.*
-
-- [ ] **AG-CI1** — Add a docs and memory drift workflow to GitHub Actions
-  - **File(s):** new file: `.github/workflows/claude-docs-check.yml`
-  - **What:** Add a read-only `claude -p` docs-consistency workflow once the CLI contract is verified in CI.
-  - **Why:** Docs drift is still mostly caught manually.
-  - **Done when:** PRs run an automated docs-drift pass with deterministic failure behavior.
-
-- [ ] **AG-CI2** — Add an automated pricing identity regression hook
-  - **File(s):** new file: `.claude/scripts/pricing-check.sh`, `.husky/pre-commit` or `.claude/settings.json`
-  - **What:** Add a fast invariant check for commission math before commits or before stop.
-  - **Why:** Pricing remains the most dangerous formula to change casually.
-  - **Done when:** A wrong pricing formula is blocked automatically before merge.
-
----
-
-### AG-X — Cross-Cutting Infrastructure
-*PR 9 landed the shared scripts home and capability-index sync. These follow-ups remain.*
-
-- [ ] **AG-X1** — Add `CLAUDE.local.md` support
-  - **File(s):** `.gitignore`, `CLAUDE.md`
-  - **What:** Document and ignore a personal, uncommitted `CLAUDE.local.md`.
-  - **Why:** The repo still lacks a safe place for machine- or user-specific local overrides.
-  - **Done when:** `CLAUDE.local.md` is ignored and documented.
-
-- [ ] **AG-X3** — Audit all agent descriptions for trigger quality
-  - **File(s):** `.claude/agents/*.md`
-  - **What:** Make every agent description trigger-first, concise, and <=250 characters.
-  - **Why:** The roster still has a few descriptions that could delegate more reliably.
-  - **Done when:** Every agent description meets the trigger and length bar.
-
----
-
 ## Agent Operating System — Rule Files, Docs & OS Meta-Tasks
 
 > Remaining meta-work after the 2026-04-09 operating-system cleanup. Shipped rule files, the experiment ledger, and the capability index were removed from active backlog because they already exist in the repo.
@@ -957,17 +731,7 @@
 
 ### EO — Operating System Tasks
 
-- [ ] **EO10** — Backfill structured report templates into the remaining verification skills
-  - **File(s):** `.claude/skills/verify-web-ui/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/verify-admin-ops/SKILL.md`
-  - **What:** Add the same report template shape already used by the main verifier lane: checks run, evidence observed, verdict, adversarial probe, residual risk.
-  - **Why:** The repo now has better verification standards, but the surface-specific skills still do not all prompt for the same evidence shape.
-  - **Done when:** Each target skill instructs Claude to end with the shared structured report.
-
-- [ ] **EO12** — Backfill named adversarial probes into the remaining verification skills
-  - **File(s):** `.claude/skills/verify-web-ui/SKILL.md`, `.claude/skills/verify-api/SKILL.md`, `.claude/skills/verify-admin-ops/SKILL.md`
-  - **What:** Require at least one explicit adversarial probe per run and name the probe in the final report.
-  - **Why:** The verifier and core docs now demand adversarial checks, but the narrower verification skills still underspecify them.
-  - **Done when:** Each target skill asks for at least one named try-to-break-it check.
+No active EO items remain after the 2026-04-09 docs, hooks, and verification-template sweep.
 
 ## Moverrr — Critical Gaps Found in Deep Repo Review
 
@@ -1026,19 +790,6 @@
 - **Likely areas affected:** `supabase/migrations/010_saved_searches.sql` (rename), `supabase/migrations/` (numbering audit), Supabase `schema_migrations` table (may need a manual update in production)
 - **Dependencies / open questions:** This MUST be done carefully in production — renaming an applied migration filename can cause `supabase migration repair` to be needed. Do a dry run locally first: `supabase db reset` and confirm both migrations apply cleanly after the rename. Coordinate with any pending migration work that uses number `014` or beyond.
 - **Acceptance criteria:** `supabase/migrations/` has no duplicate sequence numbers. `supabase migration status` shows all migrations as applied with no gaps or duplicates. `supabase db reset` in local dev applies all migrations cleanly in order.
-
----
-
-### Admin has no individual booking detail page — BookingSupportPanel is unreachable
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Ops / Admin
-- **Why this matters:** `src/components/admin/admin-booking-support-panel.tsx` exists and shows booking details, status history, and manual ops actions. The admin bookings LIST page (`/admin/bookings`) exists. But there is no `/admin/bookings/[id]` page route — the component has no page to live in. The EA5 item references `src/app/(admin)/admin/bookings/[id]/page.tsx` as if it exists — it does not. This means: (1) admin cannot drill into an individual booking from the bookings list; (2) the manual override features planned in EA5 and EA7 have no UI surface to be added to; (3) when a customer contacts support about a booking reference (MVR-YYYY-NNNN), admin cannot look up that booking in the app — they'd need to query the database directly.
-- **What exactly needs to be done:** Create `src/app/(admin)/admin/bookings/[id]/page.tsx`. This page should: (1) use `requirePageAdminUser()` for auth; (2) load the full booking by ID including all related records (listing, customer, carrier, events, payments, disputes, reviews); (3) render `AdminBookingSupportPanel` with the full booking data; (4) add a booking reference search input at the top of the `/admin/bookings` list page so admin can look up a booking by reference (MVR-YYYY-NNNN) without scrolling. The booking detail page is the surface for EA5 (manual override audit) and EA7 (manual payment capture) — those items cannot be implemented without this page existing first.
-- **Likely areas affected:** New page `src/app/(admin)/admin/bookings/[id]/page.tsx`, `src/app/(admin)/admin/bookings/page.tsx` (add reference search input), `src/components/admin/admin-booking-support-panel.tsx` (may need props update), `src/lib/data/admin.ts` (add `getAdminBookingById` function)
-- **Dependencies / open questions:** What data does `AdminBookingSupportPanel` currently expect as props? Read the component before building the page. The page needs a data loader that joins booking + listing + carrier + customer + booking_events. Use `createAdminClient()` for the query (RLS bypass needed for cross-user joins).
-- **Acceptance criteria:** Navigating to `/admin/bookings/[booking-id]` shows the full booking detail. The admin bookings list links each booking row to its detail page. A booking reference search on the list page works. `npm run check` passes. EA5 and EA7 can reference this page as their target UI surface.
 
 ---
 

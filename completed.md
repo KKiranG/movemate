@@ -6,6 +6,68 @@
 
 ---
 
+## 2026-04-09 — Agentic Development System — Infrastructure
+
+### `COMP-2026-04-09-43` — Hooks, agent hardening, skill upgrades, new skills, new agents, and CI docs check
+- Moved from active backlog:
+  - `AG-H1`, `AG-H2`, `AG-H4`, `AG-H6`, `AG-A3`, `AG-A5`, `AG-A6`, `AG-A7`, `AG-A8`, `AG-S1`, `AG-S2`, `AG-S3`, `AG-S4`, `AG-S5`, `AG-S6`, `AG-S7`, `AG-NS2`, `AG-NS3`, `AG-NS5`, `AG-NS6`, `AG-NA1`, `AG-NA2`, `AG-C1`, `AG-M2`, `AG-CI1`, `AG-CI2`, `AG-X1`, `AG-X3`, `EO10`, and `EO12`
+- When: `2026-04-09`
+- Where:
+  - `.claude/settings.json`
+  - `.claude/scripts/typecheck-on-edit.sh`
+  - `.claude/scripts/docs-sync-reminder.sh`
+  - `.claude/scripts/log-subagent.sh`
+  - `.claude/scripts/pricing-check.sh`
+  - `.claude/agents/schema-reviewer.md`
+  - `.claude/agents/payments-verifier.md`
+  - `.claude/agents/feature-implementer.md`
+  - `.claude/agents/docs-keeper.md`
+  - `.claude/agents/repo-explorer.md`
+  - `.claude/agents/product-researcher.md`
+  - `.claude/agents/debugger.md`
+  - `.claude/agents/test-runner.md`
+  - `.claude/skills/verify-web-ui/SKILL.md`
+  - `.claude/skills/verify-api/SKILL.md`
+  - `.claude/skills/verify-admin-ops/SKILL.md`
+  - `.claude/skills/verify-moverrr-change/SKILL.md`
+  - `.claude/skills/booking-safety-audit/SKILL.md`
+  - `.claude/skills/dispute-resolution-audit/SKILL.md`
+  - `.claude/skills/release-readiness/SKILL.md`
+  - `.claude/skills/postmortem/SKILL.md`
+  - `.claude/skills/experiment-design/SKILL.md`
+  - `.claude/skills/metrics-review/SKILL.md`
+  - `.claude/skills/admin-queue-review/SKILL.md`
+  - `.claude/skills/saved-search-demand-review/SKILL.md`
+  - `.claude/skills/carrier-quality-review/SKILL.md`
+  - `.claude/skills/chrome-qa-tester/SKILL.md`
+  - `.claude/skills/fix-issue/SKILL.md`
+  - `.claude/skills/spec/SKILL.md`
+  - `.claude/skills/review-pr/SKILL.md`
+  - `.claude/skills/session-start/SKILL.md`
+  - `.claude/skills/booking-safety-audit/examples/pricing-check.md`
+  - `.claude/skills/verify-moverrr-change/examples/verification-report.md`
+  - `.claude/skills/release-readiness/examples/release-checklist.md`
+  - `CLAUDE.md`
+  - `.gitignore`
+  - `.claude/operating-system.md`
+  - `.claude/command-catalog.md`
+  - `.github/workflows/claude-docs-check.yml`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The repo’s agent operating system still had a second layer of unfinished runtime hardening: hooks were incomplete, several specialist agents still lacked tighter contracts, high-value skills needed stronger report scaffolding, and the remaining workflow skills and agents were still only backlog ideas.
+- What changed:
+  - Added the remaining shared hooks for notifications, typecheck-on-edit, docs-sync reminders, pricing guards, and subagent session logging.
+  - Hardened the schema, payments, feature, docs, and explorer agent contracts with stronger trigger rules, turn limits, background behavior, isolation, and skill preload alignment.
+  - Created the `debugger` and `test-runner` agents plus the `fix-issue`, `spec`, `review-pr`, and `session-start` workflow skills.
+  - Backfilled structured report templates, argument hints, adversarial probes, examples, and path-scoping into the remaining verification and review skills.
+  - Added repo-side docs consistency automation and synced the backlog so the shipped agent OS surface is no longer listed as open work.
+- Verification:
+  - `npm run check` not applicable for the infrastructure-only subset Claude landed
+  - reviewed the changed `.md`, `.sh`, `.json`, and `.yml` files for structural consistency and repo-path correctness
+
+---
+
 ## 2026-04-09 — Carrier activation, branded lifecycle email, search truth, admin carrier detail, and repo-side observability wiring
 
 ### `COMP-2026-04-09-42` — PR 10 closed the carrier activation and search-truth architecture wave
