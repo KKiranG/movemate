@@ -2,6 +2,7 @@
 name: carrier-quality-review
 description: Review weak listings, low-trust carrier surfaces, and poor proof quality with an activation-plus-trust lens.
 when_to_use: Use when carrier quality, listing completeness, proof style, or trust gaps need review.
+background: true
 ---
 
 # Carrier Quality Review

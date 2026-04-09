@@ -1,8 +1,69 @@
 # moverrr — Completed Work Log
 
-> Last updated: `2026-04-09`
+> Last updated: `2026-04-09` (PR 10)
 >
 > Purpose: keep a durable record of what is already done, where it lives, why it was changed, and when it landed, so completed work can be removed from the active backlog without losing context.
+
+---
+
+## 2026-04-09 — PR 10: Agentic Development System — Infrastructure
+
+### `COMP-2026-04-09-42` — Hooks, agent hardening, skill upgrades, new skills, new agents, and CI docs check
+- **Moved from active backlog:** `AG-H1`, `AG-H2`, `AG-H4`, `AG-H6`, `AG-A3`, `AG-A5`, `AG-A6`, `AG-A7`, `AG-A8`, `AG-S1`, `AG-S2`, `AG-S3`, `AG-S4`, `AG-S5`, `AG-S6`, `AG-S7`, `AG-NS2`, `AG-NS3`, `AG-NS5`, `AG-NS6`, `AG-NA1`, `AG-NA2`, `AG-C1`, `AG-M2`, `AG-CI1`, `AG-CI2`, `AG-X1`, `AG-X3`, `EO10`, `EO12`
+- **When:** `2026-04-09`
+- **Where:**
+  - `.claude/settings.json` (Notification, PostToolUse, Stop, SubagentStop hooks)
+  - `.claude/scripts/typecheck-on-edit.sh` (new)
+  - `.claude/scripts/docs-sync-reminder.sh` (new)
+  - `.claude/scripts/log-subagent.sh` (new)
+  - `.claude/scripts/pricing-check.sh` (new)
+  - `.claude/agents/schema-reviewer.md` (isolation:worktree, skills preload)
+  - `.claude/agents/payments-verifier.md` (skills preload)
+  - `.claude/agents/feature-implementer.md` (trigger-first description, maxTurns:30)
+  - `.claude/agents/docs-keeper.md` (background:true)
+  - `.claude/agents/repo-explorer.md` (maxTurns:20)
+  - `.claude/agents/product-researcher.md` (maxTurns:15)
+  - `.claude/agents/debugger.md` (new)
+  - `.claude/agents/test-runner.md` (new)
+  - `.claude/skills/verify-web-ui/SKILL.md` (argument-hint, report template, adversarial probe)
+  - `.claude/skills/verify-api/SKILL.md` (paths, argument-hint, report template, adversarial probe)
+  - `.claude/skills/verify-admin-ops/SKILL.md` (report template, adversarial probe)
+  - `.claude/skills/verify-moverrr-change/SKILL.md` (effort:high, argument-hint, report template)
+  - `.claude/skills/booking-safety-audit/SKILL.md` (effort:high, examples link)
+  - `.claude/skills/dispute-resolution-audit/SKILL.md` (effort:high, invocation:manual, adversarial probe)
+  - `.claude/skills/release-readiness/SKILL.md` (effort:high, invocation:manual, adversarial probe)
+  - `.claude/skills/postmortem/SKILL.md` (invocation:manual)
+  - `.claude/skills/experiment-design/SKILL.md` (invocation:manual)
+  - `.claude/skills/metrics-review/SKILL.md` (argument-hint, context injection)
+  - `.claude/skills/admin-queue-review/SKILL.md` (background:true, context injection)
+  - `.claude/skills/saved-search-demand-review/SKILL.md` (background:true)
+  - `.claude/skills/carrier-quality-review/SKILL.md` (background:true)
+  - `.claude/skills/chrome-qa-tester/SKILL.md` (paths)
+  - `.claude/skills/fix-issue/SKILL.md` (new)
+  - `.claude/skills/spec/SKILL.md` (new)
+  - `.claude/skills/review-pr/SKILL.md` (new)
+  - `.claude/skills/session-start/SKILL.md` (new)
+  - `.claude/skills/booking-safety-audit/examples/pricing-check.md` (new)
+  - `.claude/skills/verify-moverrr-change/examples/verification-report.md` (new)
+  - `.claude/skills/release-readiness/examples/release-checklist.md` (new)
+  - `CLAUDE.md` (compaction rules, CLAUDE.local.md docs)
+  - `.gitignore` (CLAUDE.local.md, session-log.jsonl)
+  - `.claude/operating-system.md` (worktree naming/cleanup, new agents/skills in index)
+  - `.claude/command-catalog.md` (new skills, worktree commands)
+  - `.github/workflows/claude-docs-check.yml` (new)
+- **Why:** Agent OS infrastructure was fragmented — hooks were minimal, agents had no turn limits or skill preloads, skills lacked structured reports and adversarial probes, and there were no repeatable workflows for issue fixing, spec writing, PR review, or session start. This PR closes the remaining open infrastructure items after the 2026-04-09 OS sweep.
+- **What changed:**
+  - Added 5 hook types (Notification, PostToolUse tsc check, Stop docs reminder, Stop pricing guard, SubagentStop session log)
+  - Hardened 6 agents with background, maxTurns, isolation:worktree, and booking-safety skill preloads
+  - Created 2 new agents: `debugger` and `test-runner`
+  - Upgraded 12 skills with structured report templates, named adversarial probes, effort:high, invocation:manual, background:true, paths, and argument-hint
+  - Created 4 new workflow skills: `fix-issue`, `spec`, `review-pr`, `session-start`
+  - Added 3 worked example files for pricing, verification, and release checklist
+  - Added `CLAUDE.local.md` support (gitignored, documented in CLAUDE.md)
+  - Added compaction preservation rules to CLAUDE.md
+  - Expanded worktree section in operating-system.md with named examples and cleanup commands
+  - Added GitHub Actions docs-consistency check workflow
+- **Verification:** `npm run check` not applicable (no TypeScript changes). All modified files are `.md`, `.sh`, `.json`, and `.yml` — no source code changed. Reviewed each file for structural correctness and consistency with existing patterns.
 
 ---
 
