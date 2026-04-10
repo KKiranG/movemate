@@ -58,7 +58,9 @@ export function formatDateTimeInputValue(value: string | null | undefined) {
     return "";
   }
 
-  const localDate = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000);
+  const localDate = new Date(
+    parsed.getTime() - parsed.getTimezoneOffset() * 60_000,
+  );
   return localDate.toISOString().slice(0, 16);
 }
 
@@ -152,4 +154,16 @@ export function sanitizeText(value: string) {
     .replace(/[\u0000-\u001F\u007F]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+export function getSafeRedirectUrl(
+  url: string | null | undefined,
+  fallback: string = "/",
+): string {
+  if (!url) return fallback;
+  // Ensure the URL is an internal path and not a protocol-relative URL (e.g. //example.com)
+  if (url.startsWith("/") && !url.startsWith("//")) {
+    return url;
+  }
+  return fallback;
 }

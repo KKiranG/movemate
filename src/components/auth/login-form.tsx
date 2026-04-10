@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { getSafeRedirectUrl } from "@/lib/utils";
 
 export function LoginForm() {
   const router = useRouter();
@@ -34,7 +35,11 @@ export function LoginForm() {
         return;
       }
 
-      router.push(searchParams.get("next") ?? "/search");
+      const redirectUrl = getSafeRedirectUrl(
+        searchParams.get("next"),
+        "/search",
+      );
+      router.push(redirectUrl);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to log in.");
@@ -66,10 +71,16 @@ export function LoginForm() {
         />
       </label>
       <div className="flex items-center justify-between gap-3 text-sm">
-        <Link href="/reset-password" className="inline-flex min-h-[44px] items-center text-accent">
+        <Link
+          href="/reset-password"
+          className="inline-flex min-h-[44px] items-center text-accent"
+        >
           Forgot password?
         </Link>
-        <Link href="/signup" className="inline-flex min-h-[44px] items-center text-text-secondary">
+        <Link
+          href="/signup"
+          className="inline-flex min-h-[44px] items-center text-text-secondary"
+        >
           No account yet? Sign up
         </Link>
       </div>
