@@ -13,6 +13,7 @@ import {
   getDateDistanceInDays,
   getDateOffsetIso,
   getNextWeekdayDate,
+  getSafeRedirectUrl,
   getTodayIsoDate,
 } from "@/lib/utils";
 
@@ -89,20 +90,14 @@ describe("Formatting Utilities", () => {
 });
 
 describe("Date Utilities", () => {
-  test("getDateOffsetIso adds days correctly", () => {
+  test("getDateOffsetIso adds and subtracts days correctly", () => {
     assert.equal(getDateOffsetIso("2023-01-01", 5), "2023-01-06");
-  });
-
-  test("getDateOffsetIso subtracts days correctly", () => {
     assert.equal(getDateOffsetIso("2023-01-06", -5), "2023-01-01");
   });
 
-  test("getDateOffsetIso handles month and year boundaries", () => {
+  test("getDateOffsetIso handles boundaries and leap years", () => {
     assert.equal(getDateOffsetIso("2023-01-31", 1), "2023-02-01");
     assert.equal(getDateOffsetIso("2023-12-31", 1), "2024-01-01");
-  });
-
-  test("getDateOffsetIso handles leap years", () => {
     assert.equal(getDateOffsetIso("2024-02-28", 1), "2024-02-29");
     assert.equal(getDateOffsetIso("2024-02-29", 1), "2024-03-01");
     assert.equal(getDateOffsetIso("2023-02-28", 1), "2023-03-01");
@@ -141,5 +136,26 @@ describe("Date Utilities", () => {
     const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
     const expected = localDate.toISOString().split("T")[0];
     assert.equal(today, expected);
+  });
+});
+
+describe("Redirect Safety", () => {
+  test("getSafeRedirectUrl returns safe in-app paths", () => {
+    assert.equal(getSafeRedirectUrl("/dashboard"), "/dashboard");
+    assert.equal(getSafeRedirectUrl("/user/123"), "/user/123");
+  });
+
+  test("getSafeRedirectUrl falls back for dangerous URLs", () => {
+    assert.equal(getSafeRedirectUrl("https://evil.com"), "/search");
+    assert.equal(getSafeRedirectUrl("//evil.com"), "/search");
+    assert.equal(getSafeRedirectUrl("/\\evil.com"), "/search");
+    assert.equal(getSafeRedirectUrl("javascript:alert(1)"), "/search");
+  });
+
+  test("getSafeRedirectUrl falls back for missing or invalid input", () => {
+    assert.equal(getSafeRedirectUrl(null), "/search");
+    assert.equal(getSafeRedirectUrl(undefined), "/search");
+    assert.equal(getSafeRedirectUrl(""), "/search");
+    assert.equal(getSafeRedirectUrl(null, "/custom"), "/custom");
   });
 });
