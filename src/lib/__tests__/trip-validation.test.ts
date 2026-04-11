@@ -10,8 +10,12 @@ import {
 function buildTripUpdateInput(
   overrides: Partial<Parameters<typeof tripUpdateSchema.parse>[0]> = {},
 ) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const futureDateStr = tomorrow.toISOString().split("T")[0];
+
   return {
-    tripDate: "2026-04-10",
+    tripDate: futureDateStr,
     timeWindow: "morning",
     spaceSize: "M",
     availableVolumeM3: 1.2,

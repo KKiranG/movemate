@@ -10,6 +10,7 @@ import {
   formatDateTime,
   formatDateTimeInputValue,
   formatFileSize,
+  getSafeRedirectUrl,
 } from "@/lib/utils";
 
 describe("Formatting Utilities", () => {
@@ -86,4 +87,23 @@ describe("Formatting Utilities", () => {
     assert.equal(formatFileSize(1024 * 1024), "1.0 MB");
     assert.equal(formatFileSize(1024 * 1024 * 2.5), "2.5 MB");
   });
+});
+
+test("getSafeRedirectUrl returns safe URLs", () => {
+  assert.equal(getSafeRedirectUrl("/dashboard"), "/dashboard");
+  assert.equal(getSafeRedirectUrl("/user/123"), "/user/123");
+});
+
+test("getSafeRedirectUrl falls back for dangerous URLs", () => {
+  assert.equal(getSafeRedirectUrl("https://evil.com"), "/search");
+  assert.equal(getSafeRedirectUrl("//evil.com"), "/search");
+  assert.equal(getSafeRedirectUrl("/\\evil.com"), "/search");
+  assert.equal(getSafeRedirectUrl("javascript:alert(1)"), "/search");
+});
+
+test("getSafeRedirectUrl falls back for missing or invalid input", () => {
+  assert.equal(getSafeRedirectUrl(null), "/search");
+  assert.equal(getSafeRedirectUrl(undefined), "/search");
+  assert.equal(getSafeRedirectUrl(""), "/search");
+  assert.equal(getSafeRedirectUrl(null, "/custom"), "/custom");
 });
