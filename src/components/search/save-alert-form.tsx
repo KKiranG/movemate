@@ -50,7 +50,11 @@ export function SaveAlertForm({
 
       setMessage(`Alert active at ${email}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to turn on this alert.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to turn on this alert.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -59,7 +63,9 @@ export function SaveAlertForm({
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
       <label className="grid gap-2">
-        <span className="text-sm font-medium text-text">Notification email</span>
+        <span className="text-sm font-medium text-text">
+          Notification email
+        </span>
         <Input
           type="email"
           value={email}
@@ -69,7 +75,11 @@ export function SaveAlertForm({
       </label>
       {error ? <p className="text-sm text-error">{error}</p> : null}
       {message ? <p className="text-sm text-success">✓ {message}</p> : null}
-      <Button type="submit" disabled={isSubmitting} className="min-h-[44px] active:opacity-80">
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+        className="min-h-[44px] active:opacity-80"
+      >
         {isSubmitting ? "Saving..." : "Turn on alerts"}
       </Button>
     </form>

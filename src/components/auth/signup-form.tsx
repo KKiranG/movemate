@@ -17,7 +17,8 @@ export function SignupForm({
   lockAccountType?: boolean;
 }) {
   const router = useRouter();
-  const [accountType, setAccountType] = useState<AccountType>(defaultAccountType);
+  const [accountType, setAccountType] =
+    useState<AccountType>(defaultAccountType);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -49,7 +50,9 @@ export function SignupForm({
         return;
       }
 
-      router.push(accountType === "carrier" ? "/carrier/onboarding" : "/verify");
+      router.push(
+        accountType === "carrier" ? "/carrier/onboarding" : "/verify",
+      );
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to sign up.");
@@ -61,10 +64,14 @@ export function SignupForm({
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-text">I am signing up as</span>
+        <span className="text-sm font-medium text-text">
+          I am signing up as
+        </span>
         <select
           value={accountType}
-          onChange={(event) => setAccountType(event.target.value as AccountType)}
+          onChange={(event) =>
+            setAccountType(event.target.value as AccountType)
+          }
           disabled={lockAccountType}
           className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text disabled:cursor-not-allowed disabled:opacity-70"
         >
@@ -73,7 +80,8 @@ export function SignupForm({
         </select>
         {lockAccountType ? (
           <span className="text-xs text-text-secondary">
-            This carrier signup path is preconfigured so you land straight in onboarding.
+            This carrier signup path is preconfigured so you land straight in
+            onboarding.
           </span>
         ) : null}
       </label>

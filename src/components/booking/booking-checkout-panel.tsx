@@ -60,7 +60,7 @@ export function BookingCheckoutPanel({
           <button
             type="button"
             onClick={() => setRequestMode("single")}
-            className={`rounded-2xl border p-4 text-left active:opacity-80 ${
+            className={`rounded-2xl border p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:opacity-80 ${
               requestMode === "single" ? "border-accent bg-accent/5" : "border-border"
             }`}
           >
@@ -72,7 +72,7 @@ export function BookingCheckoutPanel({
           <button
             type="button"
             onClick={() => setRequestMode("fast_match")}
-            className={`rounded-2xl border p-4 text-left active:opacity-80 ${
+            className={`rounded-2xl border p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:opacity-80 ${
               requestMode === "fast_match" ? "border-accent bg-accent/5" : "border-border"
             }`}
           >
@@ -126,7 +126,7 @@ export function BookingCheckoutPanel({
 
       <Card className="p-4">
         <details className="group">
-          <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-left [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 [&::-webkit-details-marker]:hidden">
             <div>
               <p className="section-label">What happens next</p>
               <h3 className="mt-1 text-lg text-text">Know the request timeline before you submit</h3>

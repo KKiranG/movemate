@@ -33,7 +33,9 @@ const RESOLUTION_TEMPLATES = [
 export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
   const router = useRouter();
   const [resolutionNotes, setResolutionNotes] = useState("");
-  const [bookingStatus, setBookingStatus] = useState<"keep" | "completed" | "cancelled">("keep");
+  const [bookingStatus, setBookingStatus] = useState<
+    "keep" | "completed" | "cancelled"
+  >("keep");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeAction, setActiveAction] = useState<
@@ -68,7 +70,9 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to update dispute.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to update dispute.",
+      );
     } finally {
       setIsSubmitting(false);
       setActiveAction(null);
@@ -86,7 +90,9 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
             <Button
               key={template.label}
               type="button"
-              variant={resolutionNotes === template.notes ? "secondary" : "ghost"}
+              variant={
+                resolutionNotes === template.notes ? "secondary" : "ghost"
+              }
               size="sm"
               disabled={isSubmitting}
               onClick={() => setResolutionNotes(template.notes)}
@@ -108,7 +114,11 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
       </p>
       <select
         value={bookingStatus}
-        onChange={(event) => setBookingStatus(event.target.value as "keep" | "completed" | "cancelled")}
+        onChange={(event) =>
+          setBookingStatus(
+            event.target.value as "keep" | "completed" | "cancelled",
+          )
+        }
         disabled={isSubmitting}
         className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
       >
@@ -123,7 +133,9 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
           disabled={isSubmitting || resolutionNotes.trim().length < 20}
           onClick={() => submit("investigating")}
         >
-          {activeAction === "investigating" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {activeAction === "investigating" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : null}
           Mark investigating
         </Button>
         <Button
@@ -131,7 +143,9 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
           disabled={isSubmitting || resolutionNotes.trim().length < 20}
           onClick={() => submit("resolved")}
         >
-          {activeAction === "resolved" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {activeAction === "resolved" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : null}
           Resolve dispute
         </Button>
         <Button
@@ -140,7 +154,9 @@ export function ResolveDisputeActions({ disputeId }: { disputeId: string }) {
           disabled={isSubmitting || resolutionNotes.trim().length < 20}
           onClick={() => submit("closed")}
         >
-          {activeAction === "closed" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {activeAction === "closed" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : null}
           Close
         </Button>
       </div>

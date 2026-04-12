@@ -2,7 +2,10 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 
-function buildHref(basePath: string, params: Record<string, string | number | undefined>) {
+function buildHref(
+  basePath: string,
+  params: Record<string, string | number | undefined>,
+) {
   const searchParams = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
@@ -37,20 +40,56 @@ export function AdminPagination({
       </p>
       <div className="flex items-center gap-2">
         {page <= 1 ? (
-          <Button variant="secondary" size="sm" disabled className="justify-start">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            className="justify-start"
+          >
             Previous
           </Button>
         ) : (
-          <Button asChild variant="secondary" size="sm" className="justify-start">
-            <Link href={buildHref(basePath, { ...params, q: query, page: page - 1 })}>Previous</Link>
+          <Button
+            asChild
+            variant="secondary"
+            size="sm"
+            className="justify-start"
+          >
+            <Link
+              href={buildHref(basePath, {
+                ...params,
+                q: query,
+                page: page - 1,
+              })}
+            >
+              Previous
+            </Link>
           </Button>
         )}
         {hasNext ? (
-          <Button asChild variant="secondary" size="sm" className="justify-start">
-            <Link href={buildHref(basePath, { ...params, q: query, page: page + 1 })}>Next</Link>
+          <Button
+            asChild
+            variant="secondary"
+            size="sm"
+            className="justify-start"
+          >
+            <Link
+              href={buildHref(basePath, {
+                ...params,
+                q: query,
+                page: page + 1,
+              })}
+            >
+              Next
+            </Link>
           </Button>
         ) : (
-          <Button variant="secondary" size="sm" disabled className="justify-start">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            className="justify-start"
+          >
             Next
           </Button>
         )}

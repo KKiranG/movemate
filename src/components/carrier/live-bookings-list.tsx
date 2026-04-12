@@ -20,11 +20,15 @@ export function LiveBookingsList({
   const [isLive, setIsLive] = useState(false);
   const [newBookingCount, setNewBookingCount] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const knownBookingIdsRef = useRef(new Set(initialBookings.map((booking) => booking.id)));
+  const knownBookingIdsRef = useRef(
+    new Set(initialBookings.map((booking) => booking.id)),
+  );
 
   useEffect(() => {
     setBookings(initialBookings);
-    knownBookingIdsRef.current = new Set(initialBookings.map((booking) => booking.id));
+    knownBookingIdsRef.current = new Set(
+      initialBookings.map((booking) => booking.id),
+    );
   }, [initialBookings]);
 
   async function refreshBookings() {
@@ -121,65 +125,82 @@ export function LiveBookingsList({
   return (
     <div ref={containerRef}>
       <Card className="p-4">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="section-label">Your Bookings</p>
-            <h2 className="mt-1 text-lg text-text">Incoming jobs refresh automatically</h2>
-            {newBookingCount > 0 ? (
-              <p className="mt-2 inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
-                {newBookingCount} new booking request{newBookingCount === 1 ? "" : "s"}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="section-label">Your Bookings</p>
+              <h2 className="mt-1 text-lg text-text">
+                Incoming jobs refresh automatically
+              </h2>
+              {newBookingCount > 0 ? (
+                <p className="mt-2 inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
+                  {newBookingCount} new booking request
+                  {newBookingCount === 1 ? "" : "s"}
+                </p>
+              ) : null}
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-text-secondary">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${isLive ? "animate-pulse bg-success" : "bg-border"}`}
+              />
+              {isLive ? "Live" : "Offline"}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(["pending", "confirmed", "in_transit", "disputed"] as const).map(
+              (status) => (
+                <div
+                  key={status}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-text"
+                >
+                  <StatusBadge status={status} />
+                  <span>{statusCounts[status] ?? 0}</span>
+                </div>
+              ),
+            )}
+          </div>
+
+          <div className="grid gap-3">
+            {bookings.map((booking) => (
+              <Link
+                key={booking.id}
+                href={`/carrier/trips/${booking.listingId}?focus=${booking.id}#booking-${booking.id}`}
+                className="block rounded-xl border border-border p-3 active:opacity-95"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-text">
+                      {booking.itemDescription}
+                    </p>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {booking.pickupAddress} to {booking.dropoffAddress}
+                    </p>
+                    <p className="mt-1 text-xs text-text-secondary">
+                      {booking.createdAt
+                        ? formatDateTime(booking.createdAt)
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <StatusBadge
+                      status={booking.status}
+                      className="justify-center"
+                    />
+                    <p className="mt-1 text-sm text-text">
+                      {formatCurrency(booking.pricing.totalPriceCents)}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+            {bookings.length === 0 ? (
+              <p className="subtle-text">
+                No bookings yet. New jobs will appear here live.
               </p>
             ) : null}
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs font-medium text-text-secondary">
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${isLive ? "animate-pulse bg-success" : "bg-border"}`}
-            />
-            {isLive ? "Live" : "Offline"}
-          </div>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          {(["pending", "confirmed", "in_transit", "disputed"] as const).map((status) => (
-            <div key={status} className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-text">
-              <StatusBadge status={status} />
-              <span>{statusCounts[status] ?? 0}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid gap-3">
-          {bookings.map((booking) => (
-            <Link
-              key={booking.id}
-              href={`/carrier/trips/${booking.listingId}?focus=${booking.id}#booking-${booking.id}`}
-              className="block rounded-xl border border-border p-3 active:opacity-95"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-text">{booking.itemDescription}</p>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    {booking.pickupAddress} to {booking.dropoffAddress}
-                  </p>
-                  <p className="mt-1 text-xs text-text-secondary">
-                    {booking.createdAt ? formatDateTime(booking.createdAt) : ""}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <StatusBadge status={booking.status} className="justify-center" />
-                  <p className="mt-1 text-sm text-text">
-                    {formatCurrency(booking.pricing.totalPriceCents)}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
-          {bookings.length === 0 ? (
-            <p className="subtle-text">No bookings yet. New jobs will appear here live.</p>
-          ) : null}
-        </div>
-      </div>
       </Card>
     </div>
   );

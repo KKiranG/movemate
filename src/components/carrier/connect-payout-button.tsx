@@ -30,14 +30,23 @@ export function ConnectPayoutButton({
 
       window.location.href = payload.url as string;
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to start payout setup.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to start payout setup.",
+      );
       setIsSubmitting(false);
     }
   }
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant={variant} disabled={isSubmitting} onClick={() => void startConnectFlow()}>
+      <Button
+        type="button"
+        variant={variant}
+        disabled={isSubmitting}
+        onClick={() => void startConnectFlow()}
+      >
         {isSubmitting ? "Opening Stripe..." : label}
       </Button>
       {error ? <p className="text-sm text-error">{error}</p> : null}

@@ -7,13 +7,24 @@ import { VerifyCarrierActions } from "@/components/admin/verify-carrier-actions"
 import { Button } from "@/components/ui/button";
 import type { CarrierProfile } from "@/types/carrier";
 
-const INTERNAL_TAG_OPTIONS = ["trusted", "probation", "flagged", "vip"] as const;
+const INTERNAL_TAG_OPTIONS = [
+  "trusted",
+  "probation",
+  "flagged",
+  "vip",
+] as const;
 
 export function CarrierOpsForm({ carrier }: { carrier: CarrierProfile }) {
   const router = useRouter();
-  const [verificationNotes, setVerificationNotes] = useState(carrier.verificationNotes ?? "");
-  const [internalNotes, setInternalNotes] = useState(carrier.internalNotes ?? "");
-  const [internalTags, setInternalTags] = useState<string[]>(carrier.internalTags ?? []);
+  const [verificationNotes, setVerificationNotes] = useState(
+    carrier.verificationNotes ?? "",
+  );
+  const [internalNotes, setInternalNotes] = useState(
+    carrier.internalNotes ?? "",
+  );
+  const [internalTags, setInternalTags] = useState<string[]>(
+    carrier.internalTags ?? [],
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +50,11 @@ export function CarrierOpsForm({ carrier }: { carrier: CarrierProfile }) {
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to save carrier ops notes.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to save carrier ops notes.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -47,14 +62,18 @@ export function CarrierOpsForm({ carrier }: { carrier: CarrierProfile }) {
 
   function toggleTag(tag: string) {
     setInternalTags((current) =>
-      current.includes(tag) ? current.filter((entry) => entry !== tag) : [...current, tag],
+      current.includes(tag)
+        ? current.filter((entry) => entry !== tag)
+        : [...current, tag],
     );
   }
 
   return (
     <div className="space-y-4">
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-text">Verification notes</span>
+        <span className="text-sm font-medium text-text">
+          Verification notes
+        </span>
         <textarea
           value={verificationNotes}
           maxLength={280}
@@ -86,7 +105,7 @@ export function CarrierOpsForm({ carrier }: { carrier: CarrierProfile }) {
                 key={tag}
                 type="button"
                 onClick={() => toggleTag(tag)}
-                className={`inline-flex min-h-[44px] items-center rounded-xl border px-3 text-sm font-medium capitalize ${
+                className={`inline-flex min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30  items-center rounded-xl border px-3 text-sm font-medium capitalize ${
                   isActive
                     ? "border-accent bg-accent/10 text-accent"
                     : "border-border bg-surface text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"

@@ -32,7 +32,11 @@ export function CarrierReviewResponseForm({ reviewId }: { reviewId: string }) {
       setResponse("");
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to post carrier response.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to post carrier response.",
+      );
     } finally {
       setIsSubmitting(false);
     }

@@ -481,7 +481,7 @@ export function CarrierTripWizard({
             key={label}
             type="button"
             onClick={() => handleStepChange(index)}
-            className={`min-h-[44px] min-w-[44px] rounded-xl border px-3 py-2 text-sm transition-colors ${
+            className={`min-h-[44px] min-w-[44px] rounded-xl border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
               index === stepIndex
                 ? "border-accent bg-accent/10 text-accent"
                 : "border-border text-text-secondary active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -526,7 +526,7 @@ export function CarrierTripWizard({
                   name="vehicleId"
                   value={selectedVehicleId}
                   onChange={(event) => setSelectedVehicleId(event.target.value)}
-                  className="min-h-[44px] rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                  className="min-h-[44px] rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 >
                   <option value="">Choose a vehicle</option>
                   {vehicles.map((vehicle) => (
@@ -550,7 +550,7 @@ export function CarrierTripWizard({
             initialResolvedValue={initialDestination}
             onResolved={setDestination}
           />
-          <label className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border px-3 py-3 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
+          <label className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border px-3 py-3 focus-within:ring-2 focus-within:ring-accent/25 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
             <div>
               <span className="block text-sm font-medium text-text">Return trip / backload</span>
               <span className="text-xs text-text-secondary">
@@ -599,7 +599,7 @@ export function CarrierTripWizard({
                   key={option.value}
                   type="button"
                   onClick={() => setDetourToleranceLabel(option.value as "tight" | "standard" | "flexible")}
-                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
                     detourToleranceLabel === option.value
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -616,7 +616,7 @@ export function CarrierTripWizard({
                   key={preset.value}
                   type="button"
                   onClick={() => setDetourRadiusKm(String(preset.value))}
-                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
                     detourRadiusKm === String(preset.value)
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -660,7 +660,7 @@ export function CarrierTripWizard({
             <span className="text-sm font-medium text-text">Time window</span>
             <select
               name="timeWindow"
-              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
               value={timeWindow}
               onChange={(event) =>
                 setTimeWindow(event.target.value as "morning" | "afternoon" | "evening" | "flexible")
@@ -691,7 +691,7 @@ export function CarrierTripWizard({
                           : [...current, option.value],
                       )
                     }
-                    className={`min-h-[44px] rounded-xl border px-3 py-2 text-sm ${
+                    className={`min-h-[44px] rounded-xl border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
                       selected
                         ? "border-accent bg-accent/10 text-accent"
                         : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -723,7 +723,7 @@ export function CarrierTripWizard({
               name="spaceSize"
               value={spaceSize}
               onChange={(event) => setSpaceSize(event.target.value as "S" | "M" | "L" | "XL")}
-              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
             >
               <option value="S">Small</option>
               <option value="M">Medium</option>
@@ -854,7 +854,7 @@ export function CarrierTripWizard({
                 key={preset.id}
                 type="button"
                 onClick={() => applyItemPreset(preset)}
-                className="min-h-[44px] rounded-xl border border-border px-3 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                className="min-h-[44px] rounded-xl border border-border px-3 py-3 text-left text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:bg-black/[0.04] dark:active:bg-white/[0.08]"
               >
                 <span className="block font-medium">{preset.label}</span>
                 <span className="block text-xs text-text-secondary">
@@ -878,7 +878,7 @@ export function CarrierTripWizard({
                         : [...current, option.value],
                     )
                   }
-                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
                     isSelected
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -922,7 +922,7 @@ export function CarrierTripWizard({
               <span className="text-sm font-medium text-text">Stairs support</span>
               <select
                 name="stairsOk"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 value={stairsOk ? "yes" : "no"}
                 onChange={(event) => setStairsOk(event.target.value === "yes")}
               >
@@ -946,7 +946,7 @@ export function CarrierTripWizard({
               <span className="text-sm font-medium text-text">Helper support</span>
               <select
                 name="helperAvailable"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 value={helperAvailable ? "yes" : "no"}
                 onChange={(event) => setHelperAvailable(event.target.value === "yes")}
               >
@@ -969,7 +969,7 @@ export function CarrierTripWizard({
             <span className="text-sm font-medium text-text">Publish state</span>
             <select
               name="status"
-              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
               value={publishState}
               onChange={(event) => setPublishState(event.target.value as "draft" | "active")}
             >
@@ -992,7 +992,7 @@ export function CarrierTripWizard({
                   key={note}
                   type="button"
                   onClick={() => appendPresetNote(note)}
-                  className="min-h-[44px] rounded-full border border-border px-3 py-2 text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                className="min-h-[44px] rounded-full border border-border px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:bg-black/[0.04] dark:active:bg-white/[0.08]"
                 >
                   {note.replace(/\.$/, "")}
                 </button>

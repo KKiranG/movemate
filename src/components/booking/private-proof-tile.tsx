@@ -72,7 +72,7 @@ export async function PrivateProofTile({
           href={asset.signedUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex min-h-[44px] items-center text-sm font-medium text-accent active:opacity-80"
+          className="inline-flex min-h-[44px] items-center rounded-lg text-sm font-medium text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:opacity-80"
         >
           Open proof
         </a>

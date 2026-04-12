@@ -25,7 +25,11 @@ export function FileSelectionPreview({
         <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-border bg-black/[0.03]">
           {isImage && imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={label ?? file.name} className="h-full w-full object-cover" />
+            <img
+              src={imageUrl}
+              alt={label ?? file.name}
+              className="h-full w-full object-cover"
+            />
           ) : isPdf ? (
             <FileText className="h-6 w-6 text-text-secondary" />
           ) : (
@@ -33,9 +37,15 @@ export function FileSelectionPreview({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-text">{label ?? "Selected file"}</p>
-          <p className="mt-1 truncate text-sm text-text-secondary">{file.name}</p>
-          <p className="text-xs text-text-secondary">{formatFileSize(file.size)}</p>
+          <p className="text-sm font-medium text-text">
+            {label ?? "Selected file"}
+          </p>
+          <p className="mt-1 truncate text-sm text-text-secondary">
+            {file.name}
+          </p>
+          <p className="text-xs text-text-secondary">
+            {formatFileSize(file.size)}
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
               type="button"

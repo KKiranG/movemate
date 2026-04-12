@@ -426,7 +426,7 @@ export function CarrierOnboardingForm({
           <span className="text-sm font-medium text-text">Vehicle type</span>
           <select
             name="vehicleType"
-            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
             value={draft.vehicleType}
             onChange={(event) => setDraft((current) => ({ ...current, vehicleType: event.target.value }))}
           >

@@ -25,7 +25,10 @@ function TemplateRow({
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function mutate(method: "PATCH" | "DELETE", body?: Record<string, unknown>) {
+  async function mutate(
+    method: "PATCH" | "DELETE",
+    body?: Record<string, unknown>,
+  ) {
     setIsBusy(true);
     setError(null);
 
@@ -43,7 +46,9 @@ function TemplateRow({
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to update template.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to update template.",
+      );
       setIsBusy(false);
     }
   }
@@ -53,9 +58,13 @@ function TemplateRow({
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
-            <Input value={name} onChange={(event) => setName(event.target.value)} />
+            <Input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
             <p className="text-sm text-text-secondary">
-              {template.originSuburb} to {template.destinationSuburb} · {template.timeWindow} · Space {template.spaceSize}
+              {template.originSuburb} to {template.destinationSuburb} ·{" "}
+              {template.timeWindow} · Space {template.spaceSize}
             </p>
           </div>
           <div className="rounded-xl border border-border px-3 py-2 text-caption">
@@ -66,15 +75,21 @@ function TemplateRow({
         <div className="grid gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Trips posted</p>
-            <p className="mt-2 text-2xl text-text">{insight?.tripCount ?? template.timesUsed}</p>
+            <p className="mt-2 text-2xl text-text">
+              {insight?.tripCount ?? template.timesUsed}
+            </p>
           </div>
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Bookings</p>
-            <p className="mt-2 text-2xl text-text">{insight?.bookingCount ?? 0}</p>
+            <p className="mt-2 text-2xl text-text">
+              {insight?.bookingCount ?? 0}
+            </p>
           </div>
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Completion rate</p>
-            <p className="mt-2 text-2xl text-text">{insight?.completionRatePct ?? 0}%</p>
+            <p className="mt-2 text-2xl text-text">
+              {insight?.completionRatePct ?? 0}%
+            </p>
           </div>
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Total earnings</p>
@@ -85,14 +100,21 @@ function TemplateRow({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" disabled={isBusy} onClick={() => mutate("PATCH", { name })}>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isBusy}
+            onClick={() => mutate("PATCH", { name })}
+          >
             Rename
           </Button>
           <Button
             type="button"
             variant="ghost"
             disabled={isBusy}
-            onClick={() => mutate("PATCH", { isArchived: !template.isArchived })}
+            onClick={() =>
+              mutate("PATCH", { isArchived: !template.isArchived })
+            }
           >
             {template.isArchived ? "Unarchive" : "Archive"}
           </Button>
@@ -104,7 +126,12 @@ function TemplateRow({
           >
             Duplicate
           </Button>
-          <Button type="button" variant="ghost" disabled={isBusy} onClick={() => mutate("DELETE")}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isBusy}
+            onClick={() => mutate("DELETE")}
+          >
             Delete
           </Button>
         </div>
@@ -151,7 +178,9 @@ export function TemplateLibrary({
       return;
     }
 
-    setMessage(`Draft created for ${suggestion.routeLabel} on ${suggestion.nextTripDate}.`);
+    setMessage(
+      `Draft created for ${suggestion.routeLabel} on ${suggestion.nextTripDate}.`,
+    );
     router.refresh();
   }
 
@@ -162,16 +191,23 @@ export function TemplateLibrary({
           <div className="space-y-3">
             <div>
               <p className="section-label">Recurring helper</p>
-              <h2 className="mt-1 text-lg text-text">Suggested weekly reposts</h2>
+              <h2 className="mt-1 text-lg text-text">
+                Suggested weekly reposts
+              </h2>
             </div>
             <div className="grid gap-3">
               {suggestions.map((suggestion) => (
-                <div key={suggestion.routeLabel} className="rounded-xl border border-border p-3">
+                <div
+                  key={suggestion.routeLabel}
+                  className="rounded-xl border border-border p-3"
+                >
                   <p className="text-sm text-text">
-                    {suggestion.routeLabel} appears repeatedly in your template history.
+                    {suggestion.routeLabel} appears repeatedly in your template
+                    history.
                   </p>
                   <p className="mt-1 text-sm text-text-secondary">
-                    Suggested next run: {suggestion.nextWeekday}, {suggestion.nextTripDate}
+                    Suggested next run: {suggestion.nextWeekday},{" "}
+                    {suggestion.nextTripDate}
                   </p>
                   <Button
                     type="button"
@@ -200,7 +236,10 @@ export function TemplateLibrary({
 
       {templates.length === 0 ? (
         <Card className="p-4">
-          <p className="subtle-text">No route templates yet. Save a trip as a template to build your quick-post library.</p>
+          <p className="subtle-text">
+            No route templates yet. Save a trip as a template to build your
+            quick-post library.
+          </p>
         </Card>
       ) : null}
       {message ? <p className="text-sm text-success">{message}</p> : null}

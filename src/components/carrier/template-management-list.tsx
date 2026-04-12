@@ -8,10 +8,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { TripTemplate } from "@/types/carrier";
 
-export function TemplateManagementList({ templates }: { templates: TripTemplate[] }) {
+export function TemplateManagementList({
+  templates,
+}: {
+  templates: TripTemplate[];
+}) {
   const router = useRouter();
   const [names, setNames] = useState<Record<string, string>>(
-    Object.fromEntries(templates.map((template) => [template.id, template.name])),
+    Object.fromEntries(
+      templates.map((template) => [template.id, template.name]),
+    ),
   );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +33,10 @@ export function TemplateManagementList({ templates }: { templates: TripTemplate[
     try {
       const response = await fetch(`/api/trips/templates/${templateId}`, {
         method,
-        headers: method === "PATCH" ? { "Content-Type": "application/json" } : undefined,
+        headers:
+          method === "PATCH"
+            ? { "Content-Type": "application/json" }
+            : undefined,
         body: method === "PATCH" ? JSON.stringify(payload) : undefined,
       });
       const body = await response.json().catch(() => ({}));
@@ -38,7 +47,9 @@ export function TemplateManagementList({ templates }: { templates: TripTemplate[
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to update template.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to update template.",
+      );
     } finally {
       setBusyId(null);
     }
@@ -52,7 +63,8 @@ export function TemplateManagementList({ templates }: { templates: TripTemplate[
             <div>
               <p className="text-base font-medium text-text">{template.name}</p>
               <p className="mt-1 text-sm text-text-secondary">
-                {template.originSuburb} to {template.destinationSuburb} · {template.timeWindow}
+                {template.originSuburb} to {template.destinationSuburb} ·{" "}
+                {template.timeWindow}
               </p>
             </div>
             <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
@@ -64,7 +76,10 @@ export function TemplateManagementList({ templates }: { templates: TripTemplate[
             <Input
               value={names[template.id] ?? template.name}
               onChange={(event) =>
-                setNames((current) => ({ ...current, [template.id]: event.target.value }))
+                setNames((current) => ({
+                  ...current,
+                  [template.id]: event.target.value,
+                }))
               }
             />
             <Button

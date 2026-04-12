@@ -708,7 +708,7 @@ export function BookingForm({
               <span className="text-sm font-medium text-text">Category</span>
               <select
                 name="itemCategory"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 value={itemCategory}
                 onChange={(event) => setItemCategory(event.target.value as ItemCategory)}
               >
@@ -723,7 +723,7 @@ export function BookingForm({
               <span className="text-sm font-medium text-text">Size class</span>
               <select
                 name="itemSizeClass"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 value={itemSizeClass}
                 onChange={(event) => setItemSizeClass(event.target.value as "" | "S" | "M" | "L" | "XL")}
                 required
@@ -743,7 +743,7 @@ export function BookingForm({
               <span className="text-sm font-medium text-text">How heavy is it to lift?</span>
               <select
                 name="itemWeightBand"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 value={itemWeightBand}
                 onChange={(event) =>
                   setItemWeightBand(
@@ -802,7 +802,7 @@ export function BookingForm({
                   key={value}
                   type="button"
                   onClick={() => setItemSizeClass(value as "S" | "M" | "L" | "XL")}
-                  className={`rounded-xl border p-3 text-left ${
+                  className={`rounded-xl border p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
                     itemSizeClass === value ? "border-accent bg-accent/10" : "border-border"
                   }`}
                 >
@@ -818,7 +818,7 @@ export function BookingForm({
             <span className="text-sm font-medium text-text">Item photo</span>
             <div className="space-y-2">
               <div className="flex flex-col gap-3 sm:flex-row">
-                <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white active:opacity-80">
+                <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white focus-within:ring-2 focus-within:ring-accent/25 active:opacity-80">
                   <Camera className="h-4 w-4" />
                   Take photo
                   <input
@@ -829,7 +829,7 @@ export function BookingForm({
                     onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
                   />
                 </label>
-                <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
+                <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text focus-within:ring-2 focus-within:ring-accent/25 active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
                   <Upload className="h-4 w-4" />
                   Upload file
                   <input
@@ -992,7 +992,7 @@ export function BookingForm({
               <span className="text-sm font-medium text-text">Stairs?</span>
               <select
                 name="needsStairs"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 value={needsStairs ? "yes" : "no"}
                 onChange={(event) => setNeedsStairs(event.target.value === "yes")}
               >
@@ -1004,7 +1004,7 @@ export function BookingForm({
               <span className="text-sm font-medium text-text">Need a helper?</span>
               <select
                 name="needsHelper"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 value={needsHelper ? "yes" : "no"}
                 onChange={(event) => setNeedsHelper(event.target.value === "yes")}
               >
