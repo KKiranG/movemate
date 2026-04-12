@@ -69,8 +69,8 @@ export default async function CarrierTripsPage({
     <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Carrier trips"
-        title="Manage posted inventory"
-        description="Listings are the core inventory unit. This view becomes the operational heart of supply-side usage."
+        title="Manage your live and drafted trips"
+        description="Keep active routes, drafts, paused trips, and archive history tidy without leaving the carrier workflow."
       />
 
       {posted ? (
@@ -79,11 +79,11 @@ export default async function CarrierTripsPage({
             <div>
               <p className="text-sm font-medium text-success">Trip posted successfully</p>
               <p className="mt-1 text-sm text-text-secondary">
-                Your route is live. Head back to the dashboard to watch incoming activity.
+                Your route is live. Head back to carrier home to watch incoming activity.
               </p>
             </div>
             <Button asChild variant="secondary">
-              <Link href="/carrier/dashboard">Go to dashboard</Link>
+              <Link href="/carrier/dashboard">Go to carrier home</Link>
             </Button>
           </div>
         </Card>
@@ -91,8 +91,8 @@ export default async function CarrierTripsPage({
 
       <div className="grid gap-6">
         <TripSection
-          title="Live inventory"
-          description="Active and partially booked routes customers can still browse right now."
+          title="Live trips"
+          description="Active and partially booked routes that can still accept matching work."
           trips={liveTrips}
         />
         <TripSection
@@ -102,7 +102,7 @@ export default async function CarrierTripsPage({
         />
         <TripSection
           title="Paused"
-          description="Hidden from browse, but still editable when you need to tighten timing or rules."
+          description="Hidden from matching, but still editable when you need to tighten timing or rules."
           trips={pausedTrips}
         />
         <TripSection

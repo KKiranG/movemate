@@ -9,7 +9,7 @@ import { hasSupabaseEnv } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Log in",
-  description: "Log in to continue a booking, manage saved searches, or post your next trip.",
+  description: "Log in to manage bookings, alerts, or carrier work on moverrr.",
 };
 
 export default function LoginPage() {

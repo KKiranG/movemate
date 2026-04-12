@@ -25,7 +25,7 @@ import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Carrier dashboard",
+  title: "Carrier home",
 };
 
 function isTripActive(tripDate: string, status?: string | null) {
@@ -159,10 +159,10 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
           <Link href="/carrier/today">Today screen</Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link href="/carrier/payouts">View payouts</Link>
+          <Link href="/carrier/requests">Open requests</Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link href="/carrier/stats">Performance stats</Link>
+          <Link href="/carrier/payouts">View payouts</Link>
         </Button>
         <Button asChild variant="secondary">
           <Link href="/carrier/templates">Manage templates</Link>
@@ -273,7 +273,7 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
               </Link>
             ))}
             {activityFeed.length === 0 ? (
-              <p className="subtle-text">Post a trip to start building your carrier activity timeline.</p>
+              <p className="subtle-text">Post a trip to start building your carrier home activity timeline.</p>
             ) : null}
           </div>
         </div>
@@ -364,9 +364,9 @@ export default async function CarrierDashboardPage() {
   return (
     <main id="main-content" className="page-shell">
       <PageIntro
-        eyebrow="Carrier dashboard"
-        title="Fill spare capacity without the quote chase"
-        description="Active listings, incoming bookings, and trip-day actions all live here in the MVP."
+        eyebrow="Carrier home"
+        title="Run your spare-capacity work from one place"
+        description="Open requests, active trips, proof blockers, and payout blockers all live here in the MVP carrier shell."
         actions={
           <Button asChild size="sm">
             <Link href="/carrier/post">Post a trip</Link>

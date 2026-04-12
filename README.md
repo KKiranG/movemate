@@ -6,8 +6,8 @@ Carriers post trips they are already taking and set structured pricing. Customer
 
 ## Current Status
 
-- The app runs as a need-first MVP shell with live Supabase-backed auth, listings, bookings, admin review tools, dispute handling, and review capture.
-- Carrier onboarding, trip posting, trip editing, customer booking, booking-state progression, waitlist capture, smoke-dataset bootstrap, and admin verification are wired in code.
+- The app now opens with a need-first customer entry and matched-results framing, while deeper request-to-book and data-model realignment work is still in progress.
+- Supabase-backed auth, listings, bookings, admin review tools, dispute handling, review capture, carrier onboarding, and trip posting are wired in code.
 - External services still need real credentials before production behavior is fully live for Maps, Stripe, Resend, Sentry, and deployment hosting.
 
 ## The Most Important Question
@@ -84,13 +84,13 @@ supabase             Config, migrations, edge function stubs, seed data
 
 ## What Is Implemented
 
-- Browse-first landing page with MVP framing
+- Need-first landing page and matched-results search entry
 - Search results backed by Supabase listings and PostGIS matching when Maps geocoding is available
 - Trip detail with live booking creation, item photo upload, and payment-intent creation
 - Customer booking list/detail with confirmation, review submission, and dispute intake
 - Carrier onboarding with document uploads, trip posting wizard, live listing editing, and proof-backed booking status controls
 - Admin dashboard with validation metrics, carrier verification, dispute resolution, and smoke-dataset bootstrap controls
-- Waitlist capture for no-result searches and analytics event logging
+- Saved-search capture for no-result searches and analytics event logging
 - Supabase schema, RLS, indexes, matching function, private storage buckets, and audit/event tables
 
 ## What Still Needs Live Wiring

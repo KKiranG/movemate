@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { SaveAlertForm } from "@/components/search/save-alert-form";
 import { PageIntro } from "@/components/layout/page-intro";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
-import { SaveSearchForm } from "@/components/search/save-search-form";
 import { SearchBar } from "@/components/search/search-bar";
 import { SearchRefineButton } from "@/components/search/search-refine-button";
 import { SearchResultsSkeleton } from "@/components/search/search-results-skeleton";
@@ -16,8 +16,6 @@ import { searchTrips } from "@/lib/data/trips";
 import { getTripQualityScore } from "@/lib/trip-presenters";
 import { formatDate, formatLongDate, getDateOffsetIso, getTodayIsoDate } from "@/lib/utils";
 import type { ItemCategory, TripSearchResult } from "@/types/trip";
-
-type SearchSort = "date" | "price" | "rating";
 
 function buildSearchCanonical({
   from,
@@ -74,7 +72,6 @@ function buildTripDetailHref(params: {
   when?: string;
   what: ItemCategory;
   backload: boolean;
-  sort: SearchSort;
   page?: number;
   flexibleDates?: boolean;
 }) {
@@ -84,7 +81,6 @@ function buildTripDetailHref(params: {
     ...(params.when ? { when: params.when } : {}),
     ...(params.what ? { what: params.what } : {}),
     ...(params.backload ? { backload: "1" } : {}),
-    ...(params.sort !== "date" ? { sort: params.sort } : {}),
     ...(params.page && params.page > 1 ? { page: String(params.page) } : {}),
     ...(params.flexibleDates ? { flex: "1" } : {}),
   }).toString();
@@ -92,30 +88,8 @@ function buildTripDetailHref(params: {
   return `/trip/${params.tripId}${query ? `?${query}` : ""}`;
 }
 
-function sortResults(
-  results: TripSearchResult[],
-  sort: SearchSort,
-) {
+function rankResultsByBestFit(results: TripSearchResult[]) {
   return [...results].sort((a, b) => {
-    if (sort === "price") {
-      return (
-        a.priceCents - b.priceCents ||
-        b.matchScore - a.matchScore ||
-        a.tripDate.localeCompare(b.tripDate) ||
-        a.id.localeCompare(b.id)
-      );
-    }
-
-    if (sort === "rating") {
-      return (
-        b.carrier.averageRating - a.carrier.averageRating ||
-        b.carrier.ratingCount - a.carrier.ratingCount ||
-        b.matchScore - a.matchScore ||
-        a.tripDate.localeCompare(b.tripDate) ||
-        a.id.localeCompare(b.id)
-      );
-    }
-
     return (
       getTripQualityScore(b) - getTripQualityScore(a) ||
       a.tripDate.localeCompare(b.tripDate) ||
@@ -131,7 +105,6 @@ async function SearchResultsSection({
   when,
   what,
   backload,
-  sort,
   page,
   flexibleDates,
   userEmail,
@@ -142,7 +115,6 @@ async function SearchResultsSection({
   when?: string;
   what: ItemCategory;
   backload: boolean;
-  sort: SearchSort;
   page: number;
   flexibleDates: boolean;
   userEmail?: string;
@@ -155,21 +127,21 @@ async function SearchResultsSection({
       <div className="grid gap-4">
         <Card className="p-4">
           <div className="space-y-3">
-            <div>
-              <p className="section-label">Start here</p>
-              <h2 className="mt-1 text-lg text-text">Search by suburb and date</h2>
+              <div>
+                <p className="section-label">Start here</p>
+                <h2 className="mt-1 text-lg text-text">Start with the move details</h2>
+              </div>
+              <p className="subtle-text">
+                Enter the pickup suburb, dropoff suburb, timing, and move type.
+                moverrr will rank the strongest spare-capacity matches for that need.
+              </p>
             </div>
-            <p className="subtle-text">
-              moverrr starts with live listings. Enter a route above and we’ll restore your draft the
-              next time you come back on this device.
-            </p>
-          </div>
-        </Card>
+          </Card>
         <Card className="p-4">
           <p className="section-label">Tip</p>
           <p className="mt-1 text-sm text-text-secondary">
-            If you already searched once, the browser draft will refill your suburbs and date when
-            you return.
+            If you already searched once, the browser draft will refill your route and timing when
+            you come back on this device.
           </p>
         </Card>
       </div>
@@ -193,7 +165,7 @@ async function SearchResultsSection({
     flexibleDates,
     page,
   });
-  const sortedResults = sortResults(searchResponse.results, sort);
+  const sortedResults = rankResultsByBestFit(searchResponse.results);
   const groupedResults = flexibleDates ? groupTripsByDate(sortedResults) : [];
   const nearbyDates =
     searchResponse.nearbyDateOptions.length > 0
@@ -203,7 +175,7 @@ async function SearchResultsSection({
             .map((offset) => getDateOffsetIso(when, offset))
             .filter((date) => date >= getTodayIsoDate())
         : [];
-  const resultSummary = `${searchResponse.visibleCount} of ${searchResponse.totalCount} trips for ${from} to ${to}${
+  const resultSummary = `${searchResponse.visibleCount} of ${searchResponse.totalCount} best-fit matches for ${from} to ${to}${
     when ? ` ${flexibleDates ? `around ${formatLongDate(when)}` : `on ${formatLongDate(when)}`}` : ""
   }.`;
   const showMoreHref = `/search?${new URLSearchParams({
@@ -212,7 +184,6 @@ async function SearchResultsSection({
     ...(when ? { when } : {}),
     what,
     ...(backload ? { backload: "1" } : {}),
-    ...(sort !== "date" ? { sort } : {}),
     ...(flexibleDates ? { flex: "1" } : {}),
     page: String(page + 1),
   }).toString()}`;
@@ -236,8 +207,8 @@ async function SearchResultsSection({
         <div className="rounded-xl border border-accent/20 bg-accent/5 p-3">
           <p className="text-sm font-medium text-text">
             {sortedResults.length === 0
-              ? "No trips found for that exact route."
-              : "No trips on your exact date. Showing nearby dates instead."}
+              ? "No direct matches found for that exact route."
+              : "No direct matches on your exact date. Showing nearby dates instead."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {nearbyDates.map((date) => (
@@ -248,7 +219,6 @@ async function SearchResultsSection({
                   to,
                   when: date,
                   what,
-                  sort,
                   ...(backload ? { backload: "1" } : {}),
                 }).toString()}`}
                 className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-3 py-2 text-sm font-medium text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -280,7 +250,6 @@ async function SearchResultsSection({
                           when,
                           what,
                           backload,
-                          sort,
                           page,
                           flexibleDates,
                         })}
@@ -300,7 +269,6 @@ async function SearchResultsSection({
                     when,
                     what,
                     backload,
-                    sort,
                     page,
                   })}
                 />
@@ -309,14 +277,14 @@ async function SearchResultsSection({
             <Card className="p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="section-label">Keep browsing</p>
+                  <p className="section-label">More matches</p>
                   <p className="mt-1 text-sm text-text-secondary">
-                    Showing {searchResponse.visibleCount} of {searchResponse.totalCount} matching
-                    trips so far{flexibleDates ? " across nearby dates." : "."}
+                    Showing {searchResponse.visibleCount} of {searchResponse.totalCount} ranked
+                    matches so far{flexibleDates ? " across nearby dates." : "."}
                   </p>
                 </div>
                 <Button asChild className="min-h-[44px] active:opacity-80">
-                  <Link href={showMoreHref}>Show more trips</Link>
+                  <Link href={showMoreHref}>Show more matches</Link>
                 </Button>
               </div>
             </Card>
@@ -327,12 +295,12 @@ async function SearchResultsSection({
           <Card className="p-4">
             <div className="space-y-3">
               <div>
-                <p className="section-label">No match yet</p>
-                <h2 className="mt-1 text-lg text-text">Save the corridor and keep searching</h2>
+                <p className="section-label">No direct match yet</p>
+                <h2 className="mt-1 text-lg text-text">Try nearby dates or keep this route on watch</h2>
               </div>
               <p className="subtle-text">
-                Try a flexible date window first, then widen the corridor, and save this route so
-                moverrr can alert you when supply appears.
+                Start with nearby dates first. If there is still no fit, keep this route on watch
+                so moverrr can notify you when matching spare capacity appears.
               </p>
             </div>
           </Card>
@@ -346,7 +314,6 @@ async function SearchResultsSection({
                     to,
                     what,
                     flex: "1",
-                    sort,
                     ...(backload ? { backload: "1" } : {}),
                   }).toString()}`}
                   className="inline-flex min-h-[44px] items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -362,7 +329,6 @@ async function SearchResultsSection({
                     to,
                     when: date,
                     what,
-                    sort,
                     ...(backload ? { backload: "1" } : {}),
                   }).toString()}`}
                   className="inline-flex min-h-[44px] items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -370,19 +336,6 @@ async function SearchResultsSection({
                   <span>Try {formatLongDate(date)} instead</span>
                 </Link>
               ))}
-              <Link
-                href={`/search?${new URLSearchParams({
-                  from,
-                  to,
-                  when: when ?? "",
-                  what: "furniture",
-                  sort,
-                  ...(backload ? { backload: "1" } : {}),
-                }).toString()}`}
-                className="inline-flex min-h-[44px] items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
-              >
-                <span>Broaden to general furniture inventory on this corridor</span>
-              </Link>
             </div>
           </Card>
         </div>
@@ -390,18 +343,18 @@ async function SearchResultsSection({
       <div className="surface-card p-4">
         <div className="space-y-3">
           <div>
-            <p className="section-label">Save this search</p>
+            <p className="section-label">Route alerts</p>
             <h2 className="mt-1 text-lg text-text">
               {sortedResults.length === 0
-                ? "Get an alert when this route shows up"
-                : "Get notified when new trips appear"}
+                ? "Get an alert when a matching trip appears"
+                : "Keep this route on watch"}
             </h2>
           </div>
           <p className="subtle-text">
-            We&apos;ll email you when a new spare-capacity trip matches this route and item type.
+            We&apos;ll email you when new spare-capacity supply matches this route and move type.
           </p>
           {userEmail ? (
-            <SaveSearchForm
+            <SaveAlertForm
               fromSuburb={from}
               toSuburb={to}
               itemCategory={what}
@@ -410,10 +363,10 @@ async function SearchResultsSection({
             />
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-text-secondary">Sign in to save this search.</p>
+              <p className="text-sm text-text-secondary">Sign in to turn this route into an alert.</p>
               <Button asChild className="min-h-[44px] active:opacity-80">
                 <Link href={`/login?next=/search?${redirectSearch}`}>
-                  Sign in to get notified
+                  Sign in to get alerts
                 </Link>
               </Button>
             </div>
@@ -437,7 +390,6 @@ export default async function SearchPage({
   const intent = getValue(params.intent) || "single_furniture";
   const backload = getValue(params.backload) === "1";
   const flexibleDates = getValue(params.flex) === "1";
-  const sort = (getValue(params.sort) || "date") as SearchSort;
   const page = Math.max(1, Number(getValue(params.page) || "1") || 1);
   const user = await getOptionalSessionUser();
   const redirectSearch = new URLSearchParams({
@@ -448,16 +400,15 @@ export default async function SearchPage({
     ...(intent ? { intent } : {}),
     ...(backload ? { backload: "1" } : {}),
     ...(flexibleDates ? { flex: "1" } : {}),
-    ...(sort !== "date" ? { sort } : {}),
     ...(page > 1 ? { page: String(page) } : {}),
   }).toString();
 
   return (
     <main id="main-content" className="page-shell">
       <PageIntro
-        eyebrow="Browse & book"
-        title="Search matching trips"
-        description="Browse-first means customers see real spare-capacity inventory first, with route alerts only when supply is missing."
+        eyebrow="Need-first matching"
+        title="Tell us the move and we’ll rank the best matches"
+        description="moverrr ranks spare-capacity options in best-fit order with route context, pricing clarity, and trust signals before you request a spot."
       />
 
       <SearchBar
@@ -475,7 +426,6 @@ export default async function SearchPage({
             | "boxes",
           backload,
           flexibleDates,
-          sort,
         }}
       />
 
@@ -487,7 +437,6 @@ export default async function SearchPage({
             when={when}
             what={what}
             backload={backload}
-            sort={sort}
             page={page}
             flexibleDates={flexibleDates}
             userEmail={user?.email ?? undefined}
@@ -515,8 +464,8 @@ export async function generateMetadata({
 
   if (!from && !to) {
     return {
-      title: "Search trips",
-      description: "Browse live spare-capacity trips across Sydney by route, date, and item type.",
+      title: "Find a move match",
+      description: "Tell moverrr the route, timing, and move type to see ranked spare-capacity matches across Sydney.",
       alternates: { canonical },
     };
   }
@@ -526,7 +475,7 @@ export async function generateMetadata({
 
   return {
     title: `${routeLabel} ${categoryLabel}`,
-    description: `Browse live spare-capacity trips for ${routeLabel} on moverrr and compare transparent route-first pricing.`,
+    description: `See ranked spare-capacity matches for ${routeLabel} on moverrr with clear fit notes, timing, and customer pricing.`,
     alternates: { canonical },
   };
 }

@@ -79,6 +79,57 @@ export function getHumanCapacityLabel(
   return getHumanCapacitySummary(trip);
 }
 
+export function getTripFitConfidenceLabel(matchScore?: number | null) {
+  if (typeof matchScore !== "number") {
+    return "Likely fits";
+  }
+
+  if (matchScore >= 70) {
+    return "Likely fits";
+  }
+
+  if (matchScore >= 50) {
+    return "Review photos";
+  }
+
+  return "Needs approval";
+}
+
+export function getTripRouteFitLabel(
+  trip:
+    | Pick<Trip, "route">
+    | Pick<TripSearchResult, "route" | "breakdown" | "matchScore">,
+) {
+  if (!("breakdown" in trip)) {
+    return "Direct route";
+  }
+
+  const pickupDistanceKm = trip.breakdown.pickupDistanceKm ?? null;
+  const dropoffDistanceKm = trip.breakdown.dropoffDistanceKm ?? null;
+
+  if (typeof pickupDistanceKm !== "number" || typeof dropoffDistanceKm !== "number") {
+    return "Direct route";
+  }
+
+  if (trip.matchScore < 50) {
+    return "Needs approval";
+  }
+
+  if (pickupDistanceKm <= 2 && dropoffDistanceKm <= 2) {
+    return "Direct route";
+  }
+
+  if (pickupDistanceKm > 2 && dropoffDistanceKm <= 2) {
+    return `Near your pickup (~${pickupDistanceKm.toFixed(1)} km)`;
+  }
+
+  if (pickupDistanceKm <= 2 && dropoffDistanceKm > 2) {
+    return `Near your drop-off (~${dropoffDistanceKm.toFixed(1)} km)`;
+  }
+
+  return "Partial route";
+}
+
 export function getTripFitSummary(
   trip: Pick<Trip, "route" | "timeWindow" | "spaceSize" | "rules">,
 ) {

@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Admin dashboard",
+  title: "Admin operations",
 };
 
 function AdminLoadFailureCard({
@@ -63,7 +63,7 @@ export default async function AdminDashboardPage() {
   return (
     <main id="main-content" className="page-shell">
       <PageIntro
-        eyebrow="Admin dashboard"
+        eyebrow="Admin operations"
         title="Manual-first operations control"
         description="Early moverrr needs a human override for verification, disputes, and booking exceptions."
       />
@@ -80,7 +80,7 @@ export default async function AdminDashboardPage() {
       ) : (
         <AdminLoadFailureCard
           title="Ops funnel could not load"
-          description="The top-line marketplace metrics failed to load, but the rest of the admin dashboard is still available. Refresh to retry this section."
+          description="The top-line marketplace metrics failed to load, but the rest of admin operations is still available. Refresh to retry this section."
         />
       )}
 
@@ -211,7 +211,7 @@ export default async function AdminDashboardPage() {
       ) : (
         <AdminLoadFailureCard
           title="Founder ops cockpit could not load"
-          description="The individual queue snapshot failed to load, but the rest of the admin dashboard is still available. Refresh to retry this section."
+          description="The individual queue snapshot failed to load, but the rest of admin operations is still available. Refresh to retry this section."
         />
       )}
 

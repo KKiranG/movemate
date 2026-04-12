@@ -60,7 +60,7 @@ export function PendingBookingsAlert({ bookings }: { bookings: Booking[] }) {
           nextStatus,
           cancellationReason:
             nextStatus === "cancelled"
-              ? "Declined from carrier dashboard before confirmation."
+              ? "Declined from carrier home before confirmation."
               : undefined,
           cancellationReasonCode:
             nextStatus === "cancelled" ? "carrier_unavailable" : undefined,
@@ -74,7 +74,7 @@ export function PendingBookingsAlert({ bookings }: { bookings: Booking[] }) {
 
       router.refresh();
     } catch (error) {
-      // Keep this lightweight: the dashboard refresh will re-sync after retry.
+      // Keep this lightweight: the carrier-home refresh will re-sync after retry.
       console.error(error);
     } finally {
       setBusyId(null);

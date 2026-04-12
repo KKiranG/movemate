@@ -104,10 +104,10 @@ export default async function CarrierProfilePage({
             </p>
           </div>
           <div className="rounded-xl border border-border p-3">
-            <p className="section-label">Vehicle</p>
+            <p className="section-label">Vehicle setup</p>
             <p className="mt-2 text-sm text-text-secondary">
               {profile.vehicle
-                ? `${profile.vehicle.type} · up to ${profile.vehicle.maxVolumeM3}m3 and ${profile.vehicle.maxWeightKg}kg`
+                ? `${profile.vehicle.type} set up for bulky-item and awkward-middle moves on this route.`
                 : "Vehicle details are available on each trip."}
             </p>
           </div>

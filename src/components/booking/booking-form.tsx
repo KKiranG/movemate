@@ -393,7 +393,7 @@ export function BookingForm({
         if (bookingPayload.code === "listing_not_bookable") {
           bookingIdempotencyKeyRef.current = null;
           throw new Error(
-            "This trip filled or closed before payment setup finished. Search again for another spare-capacity run.",
+            "This trip filled or closed before your request finished submitting. Search again for another spare-capacity run.",
           );
         }
 
@@ -401,7 +401,7 @@ export function BookingForm({
           bookingIdempotencyKeyRef.current = null;
         }
 
-        throw new Error(bookingPayload.error ?? "Failed to create booking.");
+        throw new Error(bookingPayload.error ?? "Failed to submit request.");
       }
 
       try {
@@ -417,7 +417,7 @@ export function BookingForm({
         throw paymentError;
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to create booking.");
+      setError(caught instanceof Error ? caught.message : "Unable to submit request.");
     } finally {
       setIsSubmitting(false);
       setSubmissionStage("idle");
@@ -428,20 +428,20 @@ export function BookingForm({
     return (
       <div className="grid gap-4 rounded-2xl border border-success/20 bg-success/5 p-4">
         <div>
-          <p className="section-label">Booking created</p>
-          <h2 className="mt-1 text-lg text-text">Your booking reference is ready</h2>
+          <p className="section-label">Request submitted</p>
+          <h2 className="mt-1 text-lg text-text">Your request reference is ready</h2>
           <p className="mt-2 text-sm text-text-secondary">
-            moverrr is setting up the payment step and taking you to the full booking detail now.
+            moverrr is opening the request detail now so you can track the carrier response window and next steps.
           </p>
         </div>
         <div className="rounded-xl border border-success/20 bg-background px-4 py-3">
           <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-            Booking reference
+            Request reference
           </p>
           <p className="mt-2 text-2xl font-medium text-text">{successState.bookingReference}</p>
         </div>
         <p className="text-sm text-text-secondary">
-          Keep this reference handy if you need support or want to double-check the booking email.
+          Keep this reference handy if you need support or want to double-check the request email.
         </p>
       </div>
     );
@@ -503,7 +503,7 @@ export function BookingForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-text">Weight band</span>
+          <span className="text-sm font-medium text-text">How heavy is it to lift?</span>
           <select
             name="itemWeightBand"
             className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
@@ -520,15 +520,15 @@ export function BookingForm({
             }
             required
           >
-            <option value="">Choose a weight band</option>
-            <option value="under_20kg">Under 20kg</option>
-            <option value="20_to_50kg">20 to 50kg</option>
-            <option value="50_to_100kg">50 to 100kg</option>
-            <option value="over_100kg">Over 100kg</option>
+            <option value="">Choose the closest lift band</option>
+            <option value="under_20kg">Light carry (under 20kg)</option>
+            <option value="20_to_50kg">Bulky one-person lift (20 to 50kg)</option>
+            <option value="50_to_100kg">Heavy item or careful two-person lift (50 to 100kg)</option>
+            <option value="over_100kg">Very heavy or specialist check (over 100kg)</option>
           </select>
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-text">Dimensions</span>
+          <span className="text-sm font-medium text-text">Approx dimensions</span>
           <Input
             name="itemDimensions"
             value={itemDimensions}
@@ -539,7 +539,7 @@ export function BookingForm({
       </div>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-text">Weight</span>
+        <span className="text-sm font-medium text-text">Approx weight if you know it</span>
         <Input
           name="itemWeightKg"
           type="number"
@@ -548,7 +548,7 @@ export function BookingForm({
           step="0.1"
           value={itemWeightKg}
           onChange={(event) => setItemWeightKg(event.target.value)}
-          placeholder="Approx weight in kg"
+          placeholder="Optional exact weight in kg"
         />
       </label>
 
@@ -556,7 +556,7 @@ export function BookingForm({
         <div>
           <p className="text-sm font-medium text-text">Size guide</p>
           <p className="mt-1 text-sm text-text-secondary">
-            Match your item to the closest size before you continue.
+            Match your item to the closest everyday size so the carrier can judge fit quickly.
           </p>
         </div>
         <div className="grid gap-2 sm:grid-cols-4">
@@ -865,7 +865,7 @@ export function BookingForm({
             {submissionStage === "uploading_photo"
               ? "Uploading photo..."
               : submissionStage === "creating_booking"
-                ? "Creating booking..."
+                ? "Submitting request..."
                 : "Starting payment setup..."}
           </p>
         ) : null}
@@ -887,7 +887,7 @@ export function BookingForm({
             blockingTrustIssues.length > 0
           }
         >
-          {isSubmitting ? "Creating booking..." : "Continue to payment"}
+          {isSubmitting ? "Submitting request..." : "Submit request"}
         </Button>
         {!isAddressResolved ? (
           <p className="text-sm text-text-secondary">

@@ -476,7 +476,7 @@ export function StatusUpdateActions({
             <div className="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-text">
               <p className="font-medium text-warning">Cancel this booking?</p>
               <p className="mt-1 text-text-secondary">
-                This action is immediate and cannot be undone from the carrier dashboard.
+                This action is immediate and cannot be undone from carrier home.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button

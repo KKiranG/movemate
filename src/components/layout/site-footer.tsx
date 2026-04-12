@@ -7,7 +7,7 @@ export function SiteFooter() {
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium text-text">moverrr</p>
           <p className="max-w-xl text-sm text-text-secondary">
-            Browse real spare-capacity trips across Sydney and book with transparent pricing.
+            Tell moverrr what needs moving and get ranked spare-capacity matches with transparent pricing and trust signals.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-text-secondary">

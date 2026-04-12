@@ -4,15 +4,14 @@ import { ArrowRight, BadgeCheck, ShieldCheck, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { TimeBar } from "@/components/ui/time-bar";
-import { getCapacityIndicator } from "@/lib/data/listings";
 import {
   ITEM_CATEGORY_LABELS,
   SPACE_SIZE_DESCRIPTIONS,
 } from "@/lib/constants";
 import {
   getBaseCustomerPriceCents,
-  getTripCustomerPricePreview,
-  getHumanCapacityLabel,
+  getTripFitConfidenceLabel,
+  getTripRouteFitLabel,
   getTripFitSummary,
   getTripTimingBadges,
   getTripTrustStack,
@@ -35,18 +34,6 @@ function isTripSearchResult(trip: Trip | TripSearchResult): trip is TripSearchRe
   );
 }
 
-function getFitLabel(matchScore: number) {
-  if (matchScore >= 70) {
-    return "Strong route fit";
-  }
-
-  if (matchScore >= 50) {
-    return "Decent route fit";
-  }
-
-  return "Loose route fit";
-}
-
 const VEHICLE_TYPE_LABELS: Record<Trip["vehicle"]["type"], string> = {
   van: "Van",
   ute: "Ute",
@@ -63,9 +50,7 @@ const SPACE_SIZE_EXAMPLES: Record<Trip["spaceSize"], string> = {
 };
 
 export function TripCard({ trip, href }: TripCardProps) {
-  const capacityIndicator = getCapacityIndicator(trip.remainingCapacityPct);
   const isFullyBooked = trip.remainingCapacityPct <= 0 || trip.status === "booked_full";
-  const pricingPreview = getTripCustomerPricePreview(trip.priceCents);
   const timingBadges = getTripTimingBadges(trip);
   const trustRow = getTripTrustStack(trip).map((label) =>
     label.includes("reviews")
@@ -77,12 +62,8 @@ export function TripCard({ trip, href }: TripCardProps) {
     to: trip.route.destinationSuburb,
   }).toString()}`;
   const cardHref = isFullyBooked ? searchHref : href;
-  const pickupDistanceKm = isTripSearchResult(trip) ? trip.breakdown.pickupDistanceKm ?? null : null;
-  const dropoffDistanceKm = isTripSearchResult(trip) ? trip.breakdown.dropoffDistanceKm ?? null : null;
-  const fitLabel =
-    isTripSearchResult(trip) && pickupDistanceKm !== null && dropoffDistanceKm !== null
-      ? getFitLabel(trip.matchScore)
-      : null;
+  const fitLabel = isTripSearchResult(trip) ? getTripFitConfidenceLabel(trip.matchScore) : "Likely fits";
+  const routeFitLabel = getTripRouteFitLabel(trip);
 
   const content = (
     <Card className="p-4">
@@ -109,37 +90,43 @@ export function TripCard({ trip, href }: TripCardProps) {
                   Return trip
                 </Badge>
               ) : null}
-              {capacityIndicator ? (
-                <Badge>{capacityIndicator.label}</Badge>
-              ) : null}
             </div>
-            {trustRow.length > 0 ? (
-              <p className="text-sm text-text-secondary">{trustRow.join(" · ")}</p>
-            ) : null}
             <p className="text-sm text-text-secondary">
               {trip.route.via.length > 0
                 ? `${trip.route.label} via ${trip.route.via.join(", ")}`
                 : trip.route.label}
             </p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl border border-border px-3 py-2">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">Fit</p>
+                <p className="mt-1 text-sm font-medium text-text">{fitLabel}</p>
+              </div>
+              <div className="rounded-xl border border-border px-3 py-2">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">Route</p>
+                <p className="mt-1 text-sm font-medium text-text">{routeFitLabel}</p>
+              </div>
+              <div className="rounded-xl border border-border px-3 py-2">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">Timing</p>
+                <p className="mt-1 text-sm font-medium text-text">{formatDate(trip.tripDate)}</p>
+              </div>
+            </div>
             <TimeBar timeWindow={trip.timeWindow} />
-            <p className="rounded-xl border border-accent/10 bg-accent/5 px-3 py-2 text-sm text-text">
-              {getTripFitSummary(trip)}
-            </p>
-            {fitLabel ? (
+            {trustRow.length > 0 ? (
               <p className="text-sm text-text-secondary">
-                {fitLabel} · {pickupDistanceKm?.toFixed(1)}km from pickup ·{" "}
-                {dropoffDistanceKm?.toFixed(1)}km from dropoff
+                <span className="font-medium text-text">Trust:</span> {trustRow.join(" · ")}
               </p>
             ) : null}
+            <div className="rounded-xl border border-accent/10 bg-accent/5 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">
+                Why this matches
+              </p>
+              <p className="mt-1 text-sm text-text">{getTripFitSummary(trip)}</p>
+            </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
-              <span>{formatDate(trip.tripDate)}</span>
-              <span>{getHumanCapacityLabel(trip)}</span>
-              <span>Picks up within {trip.detourRadiusKm}km of the route</span>
+              <span>{SPACE_SIZE_EXAMPLES[trip.spaceSize]}</span>
+              <span>{trip.detourRadiusKm} km corridor pickup range</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-              <span className="inline-flex rounded-full border border-border px-2 py-1">
-                {SPACE_SIZE_EXAMPLES[trip.spaceSize]}
-              </span>
               {trip.carrier.isVerified ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2 py-1 text-success">
                   <ShieldCheck className="h-3.5 w-3.5" />
@@ -177,8 +164,7 @@ export function TripCard({ trip, href }: TripCardProps) {
             {formatCurrency(getBaseCustomerPriceCents(trip))}
           </p>
           <p className="mt-1 text-sm text-text-secondary">
-            {formatCurrency(pricingPreview.basePriceCents)} route price +{" "}
-            {formatCurrency(pricingPreview.bookingFeeCents)} booking fee
+            Includes moverrr charges before any selected add-ons.
           </p>
           <p className="mt-1 text-xs text-text-secondary">
             Optional stairs or helper add-ons only if you select them.
@@ -195,14 +181,11 @@ export function TripCard({ trip, href }: TripCardProps) {
           ) : (
             <p className="text-sm text-text-secondary">Dedicated van pricing varies by route.</p>
           )}
-          {capacityIndicator ? (
-            <p className="mt-2 text-xs text-text-secondary">{capacityIndicator.description}</p>
-          ) : null}
         </div>
       </div>
       <div className="mt-4 flex items-center justify-end">
         <span className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-accent px-4 text-sm font-medium text-white active:bg-[#0047b3]">
-          {isFullyBooked ? "Fully booked - see similar trips" : "Book into this trip"}
+          {isFullyBooked ? "Fully booked - see similar trips" : "Request this trip"}
           <ArrowRight className="h-4 w-4" />
         </span>
       </div>

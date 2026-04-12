@@ -9,9 +9,12 @@ import {
   MANUAL_HANDLING_POLICY_LINES,
   PROHIBITED_ITEM_POLICY_LINES,
   SPACE_SIZE_DESCRIPTIONS,
-  SPACE_SIZE_LABELS,
 } from "@/lib/constants";
-import { getTripCustomerPricePreview } from "@/lib/trip-presenters";
+import {
+  getTripCustomerPricePreview,
+  getTripFitConfidenceLabel,
+  getTripRouteFitLabel,
+} from "@/lib/trip-presenters";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
 
@@ -21,6 +24,8 @@ interface TripDetailSummaryProps {
 
 export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
   const pricingPreview = getTripCustomerPricePreview(trip.priceCents);
+  const routeFitLabel = getTripRouteFitLabel(trip);
+  const fitConfidenceLabel = getTripFitConfidenceLabel();
   const includedItems = [
     "Route-fit transport on a trip that is already happening",
     "Pickup and dropoff inside the stated corridor radius",
@@ -57,16 +62,16 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
             <h1 className="text-2xl text-text">{trip.route.label}</h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
               <span>{formatDate(trip.tripDate)}</span>
-              <span>Space {SPACE_SIZE_LABELS[trip.spaceSize]}</span>
-              <span>{trip.remainingCapacityPct}% capacity left</span>
+              <span>{fitConfidenceLabel}</span>
+              <span>{routeFitLabel}</span>
               {trip.isReturnTrip ? (
                 <Badge className="border-success/20 bg-success/10 text-success">Return trip</Badge>
               ) : null}
             </div>
             <TimeBar timeWindow={trip.timeWindow} />
             <p className="text-sm text-text">
-              You are booking into spare room on a trip that is already happening, so the price is
-              lower than hiring a dedicated truck for the whole job.
+              You are requesting spare room on a trip that is already happening, so the price is
+              usually lower than hiring a dedicated truck for the whole job.
             </p>
           </div>
           <div className="text-right">
@@ -75,8 +80,7 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               {formatCurrency(pricingPreview.totalPriceCents)}
             </p>
             <p className="mt-1 text-sm text-text-secondary">
-              Base {formatCurrency(pricingPreview.basePriceCents)} + booking fee{" "}
-              {formatCurrency(pricingPreview.bookingFeeCents)}
+              Route price, moverrr charges, and any selected add-ons are included in this total.
             </p>
             <p className="text-sm text-savings">{trip.savingsPct}% cheaper before optional add-ons</p>
           </div>
@@ -113,11 +117,10 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               {trip.vehicle.type.replaceAll("_", " ")}
             </div>
             <p className="subtle-text">
-              Up to {trip.availableVolumeM3}m3 and {trip.availableWeightKg}kg
-              remaining.
+              {SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              {SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}
+              Best for {trip.rules.accepts.map((item) => ITEM_CATEGORY_LABELS[item]).join(", ").toLowerCase()} on this route.
             </p>
           </div>
         </div>
@@ -164,9 +167,9 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
             <p className="section-label">What happens next</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                "1. Book into the trip and keep fit or access clarifications inside moverrr.",
-                "2. moverrr places an authorization hold now, then the carrier confirms before the pending hold expires.",
-                "3. Pickup and delivery proof are captured in-app on the live route so support is not chasing chat screenshots.",
+                "1. Send a request for this trip and keep fit or access clarifications inside moverrr.",
+                "2. moverrr places an authorization hold while the carrier reviews the request inside the response window.",
+                "3. If accepted, pickup and delivery proof are captured in-app on the live route so support is not chasing chat screenshots.",
                 "4. You confirm receipt, then payout release and reviews can close cleanly.",
               ].map((step) => (
                 <p key={step} className="text-sm text-text-secondary">
@@ -189,12 +192,10 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Hold and privacy boundary</p>
             <p className="mt-2 text-sm text-text-secondary">
-              Exact street addresses stay hidden until booking is confirmed. You can see suburb and
-              corridor fit now so you know whether this route makes sense before you pay.
+              Exact street addresses and direct phone details stay hidden until the booking is confirmed. Before that point you only see suburb-level route fit and the on-platform booking record.
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              The booking stays on-platform with an authorization hold until proof and completion
-              requirements are satisfied.
+              Keep coordination, proof, and any issue handling on-platform so moverrr has one clean record of what happened.
             </p>
           </div>
         </div>

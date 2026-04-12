@@ -37,8 +37,8 @@ export function BookingCheckoutPanel({
   return (
     <div className="space-y-4">
       <div>
-        <p className="section-label">Booking form</p>
-        <h2 className="mt-1 text-lg text-text">Item and address details</h2>
+        <p className="section-label">Request details</p>
+        <h2 className="mt-1 text-lg text-text">Item, access, and address details</h2>
       </div>
       <Card className="border-success/20 bg-success/5 p-4">
         <p className="section-label">Savings context</p>
@@ -66,11 +66,11 @@ export function BookingCheckoutPanel({
 
       <Card className="p-4">
         <p className="section-label">Payment reassurance</p>
-        <h3 className="mt-1 text-lg text-text">Your money is held until the job is properly completed</h3>
+        <h3 className="mt-1 text-lg text-text">Your payment stays protected while the carrier reviews</h3>
         <div className="mt-3 space-y-2 text-sm text-text-secondary">
-          <p>Your card is authorized during booking so the spare-capacity spot is reserved.</p>
-          <p>moverrr only captures the payment after proof, delivery, and completion rules are satisfied.</p>
-          <p>If the carrier never confirms, the pending hold expires instead of turning into a free-form off-platform negotiation.</p>
+          <p>Your card is authorized when you submit the request so the spare-capacity spot can be held.</p>
+          <p>moverrr only captures the payment after the carrier accepts and the fulfilment rules are satisfied.</p>
+          <p>If the carrier never responds or declines, the response window expires instead of turning into a free-form off-platform negotiation.</p>
           <p>If the route cannot proceed cleanly, ops can review the in-platform proof trail instead of chat screenshots.</p>
         </div>
       </Card>
@@ -80,7 +80,7 @@ export function BookingCheckoutPanel({
           <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-left [&::-webkit-details-marker]:hidden">
             <div>
               <p className="section-label">What happens next</p>
-              <h3 className="mt-1 text-lg text-text">Know the booking timeline before you pay</h3>
+              <h3 className="mt-1 text-lg text-text">Know the request timeline before you submit</h3>
             </div>
             <span className="text-xs uppercase tracking-[0.18em] text-text-secondary group-open:hidden">
               Open
@@ -90,9 +90,9 @@ export function BookingCheckoutPanel({
             </span>
           </summary>
           <div className="mt-3 space-y-2 text-sm text-text-secondary">
-            <p>1. The carrier confirms the booking before the pending hold expires.</p>
-            <p>2. Pickup happens on the trip date during the listed window with route-fit handoff details confirmed in-app.</p>
-            <p>3. Delivery proof is captured, then you confirm receipt so payout can be released.</p>
+            <p>1. You submit the request and moverrr opens the carrier response window.</p>
+            <p>2. If the carrier accepts, the trip becomes active and the handoff stays coordinated in-app.</p>
+            <p>3. Pickup and delivery proof are captured, then you confirm receipt so payout can be released.</p>
             <p>4. Any extra charges must stay inside the listed add-ons or an admin-reviewed exception.</p>
           </div>
         </details>

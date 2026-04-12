@@ -51,7 +51,7 @@ export default async function CarrierTodayPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="secondary">
-              <Link href="/carrier/dashboard">Back to dashboard</Link>
+              <Link href="/carrier/dashboard">Back to carrier home</Link>
             </Button>
             <Button asChild variant="secondary">
               <Link href="/carrier/payouts">Open payouts</Link>
@@ -111,7 +111,7 @@ export default async function CarrierTodayPage() {
               ))}
               {snapshot.tripHealth.length === 0 ? (
                 <p className="text-sm text-text-secondary">
-                  No active routes yet. Post a trip to start seeing today-level health checks.
+                  No active routes yet. Post a trip to start seeing today-level health checks on carrier home.
                 </p>
               ) : null}
             </div>

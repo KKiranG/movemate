@@ -44,7 +44,7 @@ export default async function CarrierStatsPage() {
         description="A lightweight quality loop for improving acceptance, completion, and repeat-route performance."
         actions={
           <Button asChild variant="secondary">
-            <Link href="/carrier/dashboard">Back to dashboard</Link>
+            <Link href="/carrier/dashboard">Back to carrier home</Link>
           </Button>
         }
       />
@@ -56,7 +56,7 @@ export default async function CarrierStatsPage() {
               <p className="section-label">Unlock your performance profile</p>
               <h2 className="mt-1 text-lg text-text">Post a few trips to see your live stats</h2>
               <p className="mt-2 text-sm text-text-secondary">
-                The dashboard will light up once your first completed bookings land.
+                Carrier home will light up once your first completed bookings land.
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">

@@ -10,11 +10,11 @@ import { hasSupabaseEnv } from "@/lib/env";
 const roles = [
   {
     title: "Customer",
-    description: "Browse trips and book into spare capacity.",
+    description: "Declare a move need, review ranked matches, and keep route alerts active.",
   },
   {
     title: "Carrier",
-    description: "Post routes and fill otherwise empty space.",
+    description: "Post real trips and review requests that fit spare room on those runs.",
   },
 ];
 
@@ -31,7 +31,7 @@ export default function SignupPage() {
       <PageIntro
         eyebrow="Auth"
         title="Create an account"
-        description="Customers can browse without auth, but booking and carrier posting both require an account."
+        description="Customers need an account to manage bookings and alerts, and carriers need one to post trips and handle requests."
       />
 
       {showDevBanner ? (

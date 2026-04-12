@@ -81,7 +81,7 @@ function getEventSummaryLines(event: {
 
 function getNextAction(booking: NonNullable<Awaited<ReturnType<typeof getBookingByIdForUser>>>) {
   if (booking.status === "pending") {
-    return "Carrier confirmation is still needed. moverrr expects an answer within 24 hours and auto-expires stale requests.";
+    return "Your request is still with the carrier. Keep access details ready and watch this response window instead of reaching out off-platform.";
   }
 
   if (booking.status === "confirmed") {
@@ -129,7 +129,7 @@ export default async function BookingDetailPage({
       <PageIntro
         eyebrow="Booking detail"
         title={booking.bookingReference}
-        description="Track fulfilment, confirm receipt, retry payment if needed, and keep a clean receipt for reimbursements."
+        description="Track the request, fulfilment, payment, and proof in one on-platform record from first response through completion."
       />
 
       <Card className="p-4">
@@ -186,13 +186,12 @@ export default async function BookingDetailPage({
         </Card>
       ) : null}
 
-      {["confirmed", "picked_up", "in_transit"].includes(booking.status) &&
-      (booking.carrierBusinessName || booking.carrierPhone) ? (
+      {["confirmed", "picked_up", "in_transit"].includes(booking.status) && booking.carrierBusinessName ? (
         <Card className="p-4">
           <div className="space-y-3">
             <div>
-              <p className="section-label">Carrier contact</p>
-              <h2 className="mt-1 text-lg text-text">Day-of-job coordination</h2>
+              <p className="section-label">Privacy boundary</p>
+              <h2 className="mt-1 text-lg text-text">Keep coordination inside moverrr</h2>
             </div>
             {booking.carrierBusinessName ? (
               <div className="rounded-xl border border-border p-3">
@@ -200,19 +199,8 @@ export default async function BookingDetailPage({
                 <p className="mt-1 text-sm text-text">{booking.carrierBusinessName}</p>
               </div>
             ) : null}
-            {booking.carrierPhone ? (
-              <div className="rounded-xl border border-border p-3">
-                <p className="text-sm text-text-secondary">Phone</p>
-                <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm text-text">{booking.carrierPhone}</p>
-                  <Button asChild variant="secondary" className="min-h-[44px]">
-                    <a href={`tel:${booking.carrierPhone}`}>Call carrier</a>
-                  </Button>
-                </div>
-              </div>
-            ) : null}
             <p className="text-sm text-text-secondary">
-              Use direct contact only for confirmed day-of-job coordination. Pricing changes and disputes stay on-platform.
+              Address details, proof, support, and any dispute handling stay on-platform. Use this booking record as the source of truth for day-of-job coordination.
             </p>
           </div>
         </Card>

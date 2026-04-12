@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { getTodayIsoDate } from "@/lib/utils";
 import type { ItemCategory } from "@/types/trip";
 
-type SearchSort = "date" | "price" | "rating";
 type SearchIntent =
   | "single_furniture"
   | "appliance"
@@ -49,7 +48,6 @@ export function SearchBar({
     intent?: SearchIntent;
     backload?: boolean;
     flexibleDates?: boolean;
-    sort?: SearchSort;
   };
 }) {
   const router = useRouter();
@@ -73,7 +71,6 @@ export function SearchBar({
   );
   const [backload, setBackload] = useState(defaults?.backload ?? false);
   const [flexibleDates, setFlexibleDates] = useState(defaults?.flexibleDates ?? false);
-  const [sort, setSort] = useState<SearchSort>(defaults?.sort ?? "date");
 
   const defaultDate = useMemo(() => getTodayIsoDate(), []);
 
@@ -96,7 +93,6 @@ export function SearchBar({
         intent: SearchIntent;
         backload: boolean;
         flexibleDates: boolean;
-        sort: SearchSort;
       }>;
 
       if (parsed.from !== undefined) setFrom(parsed.from);
@@ -107,7 +103,6 @@ export function SearchBar({
       if (parsed.intent !== undefined) setIntent(parsed.intent);
       if (parsed.backload !== undefined) setBackload(parsed.backload);
       if (parsed.flexibleDates !== undefined) setFlexibleDates(parsed.flexibleDates);
-      if (parsed.sort !== undefined) setSort(parsed.sort);
     } catch {
       window.localStorage.removeItem("moverrr:search:draft");
     }
@@ -120,9 +115,9 @@ export function SearchBar({
 
     window.localStorage.setItem(
       "moverrr:search:draft",
-      JSON.stringify({ from, to, when, intent, backload, flexibleDates, sort }),
+      JSON.stringify({ from, to, when, intent, backload, flexibleDates }),
     );
-  }, [backload, flexibleDates, from, intent, sort, to, when]);
+  }, [backload, flexibleDates, from, intent, to, when]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -180,7 +175,6 @@ export function SearchBar({
     params.set("intent", intent);
     if (backload) params.set("backload", "1");
     if (flexibleDates) params.set("flex", "1");
-    if (sort !== "date") params.set("sort", sort);
 
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("moverrr:search:scroll-to-results", "1");
@@ -194,7 +188,7 @@ export function SearchBar({
       id="search-form"
       onSubmit={handleSubmit}
       className="surface-card flex flex-col gap-3 p-4"
-      aria-label="Search available trips"
+      aria-label="Tell moverrr what needs moving"
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
@@ -224,8 +218,8 @@ export function SearchBar({
 
       <div className="hidden gap-2 sm:grid">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-text">Browse by item type</span>
-          <span className="text-xs text-text-secondary">Use customer language first</span>
+          <span className="text-sm font-medium text-text">What are you moving?</span>
+          <span className="text-xs text-text-secondary">Choose the closest move type</span>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {SEARCH_INTENT_OPTIONS.map((option) => (
@@ -246,7 +240,7 @@ export function SearchBar({
         </div>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:grid-cols-[1fr_1fr_auto_auto_auto]">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:grid-cols-[1fr_1fr_auto_auto]">
         <label className="flex flex-col gap-2">
           <span className="text-sm font-medium text-text">When</span>
           <Input
@@ -288,28 +282,15 @@ export function SearchBar({
             </span>
           </div>
         </label>
-        <label className="hidden flex-col gap-2 sm:flex">
-          <span className="text-sm font-medium text-text">Sort by</span>
-          <select
-            name="sort-desktop"
-            value={sort}
-            onChange={(event) => setSort(event.target.value as SearchSort)}
-            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-          >
-            <option value="date">Date (earliest)</option>
-            <option value="price">Price (lowest)</option>
-            <option value="rating">Rating (highest)</option>
-          </select>
-        </label>
         <Button type="submit" className="mt-auto min-h-[44px] gap-2">
           <Search className="h-4 w-4" />
-          Search
+          See matches
         </Button>
       </div>
 
       <details className="group rounded-xl border border-border p-3 sm:hidden">
         <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-text [&::-webkit-details-marker]:hidden">
-          <span>Filters</span>
+          <span>More options</span>
           <span className="text-xs uppercase tracking-[0.18em] text-text-secondary group-open:hidden">
             Open
           </span>
@@ -373,19 +354,6 @@ export function SearchBar({
                 Return trips often have the best prices because the carrier is already coming back.
               </span>
             </div>
-          </label>
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-text">Sort by</span>
-            <select
-              name="sort-mobile"
-              value={sort}
-              onChange={(event) => setSort(event.target.value as SearchSort)}
-              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
-            >
-              <option value="date">Date (earliest)</option>
-              <option value="price">Price (lowest)</option>
-              <option value="rating">Rating (highest)</option>
-            </select>
           </label>
         </div>
       </details>

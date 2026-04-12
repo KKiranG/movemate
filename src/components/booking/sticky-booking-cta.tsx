@@ -21,7 +21,7 @@ export function StickyBookingCta({
       <div className="mx-auto flex w-full max-w-content items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-            {isBookable ? "Book now" : "Fully booked"}
+            {isBookable ? "Send request" : "Fully booked"}
           </p>
           <p className="truncate text-sm font-medium text-text">
             {formatCurrency(priceCents)}
@@ -31,13 +31,13 @@ export function StickyBookingCta({
               </span>
             ) : null}
           </p>
-          <p className="text-xs text-text-secondary">Starting total incl. booking fee</p>
+          <p className="text-xs text-text-secondary">Starting total incl. moverrr charges</p>
           {savingsNote ? (
             <p className="truncate text-xs text-text-secondary">{savingsNote}</p>
           ) : null}
         </div>
         <Button asChild size="sm" className="min-h-[44px]">
-          <a href={href}>{isBookable ? "Book into this trip" : "See similar trips"}</a>
+          <a href={href}>{isBookable ? "Send request" : "See similar trips"}</a>
         </Button>
       </div>
     </div>

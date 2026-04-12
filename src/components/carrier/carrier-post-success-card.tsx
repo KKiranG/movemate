@@ -39,7 +39,7 @@ export function CarrierPostSuccessCard({ trip }: { trip: Trip }) {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button asChild variant="secondary">
-            <Link href="/carrier/dashboard">Go to dashboard</Link>
+            <Link href="/carrier/dashboard">Go to carrier home</Link>
           </Button>
           <Button asChild variant="secondary">
             <Link href="/carrier/post">Post another trip</Link>

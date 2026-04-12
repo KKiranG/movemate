@@ -1,675 +1,1307 @@
 # moverrr — Active Backlog
 
-> Last refreshed: `2026-04-09` — backlog reconciled against the current local codebase and PR 21 verification pass
-> Format governed by `TASK-RULES.md`. Work top-to-bottom within each priority level.
-> Move completed items to `completed.md` — never mark done in this file.
+> Last refreshed: `2026-04-12` — rebuilt against `/Users/kiranghimire/Documents/moverrr/claude-moverrr-governing-product-blueprint.md`
+> Format governed by `TASK-RULES.md`. Move completed work to `completed.md` and never mark items done here.
+> This backlog is a blueprint realignment pass. Preserve only work that strengthens the need-first, match-ranked, trust-structured spare-capacity marketplace.
 
 ---
 
-## Product Guardrails (Read Before Touching Any Item)
+## Blueprint Locks
 
-- moverrr is a **need-first, match-ranked spare-capacity marketplace**. Not browse-first inventory, not dispatch, not removalist booking, not AI matching.
-- Commission math in `src/lib/pricing/breakdown.ts` is frozen unless explicitly discussed.
-- Mobile-first rules are non-negotiable: `min-h-[44px]`, `active:` alongside every `hover:`, `capture="environment"` on proof inputs, safe-area insets on fixed elements.
-- Trust beats cleverness. Supply speed beats polish.
+- moverrr is a **need-first, match-ranked spare-capacity marketplace**. It is not a browse-first inventory product, quote board, bidding loop, dispatch layer, or removalist suite.
+- The customer declares a move need first. The system returns a ranked answer set with deterministic total pricing, fit labels, trust signals, and a mandatory "Why this matches" explanation.
+- The carrier experience is state-aware and action-led. Home is a work queue, not an analytics dashboard.
+- Alert the Network replaces dead-end zero-result flows. Founder concierge is part of MVP but must route through system entities.
+- Payment flow target: authorize on request submission, capture on acceptance, hold through fulfilment, release on customer confirmation or `72` hours after valid proof if no dispute exists.
+
+## Working Assumptions
+
+- `TASK-RULES.md` format takes precedence for every task item.
+- `completed.md` stays untouched during this backlog rewrite.
+- When the governing blueprint conflicts with older code, docs, or planning notes, the blueprint wins.
+- The pricing direction is locked to **platform fee + GST in the customer total**. The old flat `$5` booking fee model is treated as superseded.
+- Detour handling remains partially ambiguous in the blueprint. This backlog assumes detour estimation is allowed for eligibility, ranking, and explanation, but automatic detour-cost pricing needs an explicit founder decision before implementation.
+
+## Coverage Notes
+
+- Sections `1` through `17` of the governing blueprint are represented in active or deferred work below.
+- P0 and P1 focus on product-shape correction and core model restructuring before polish or optimization work.
+- P4 keeps later-phase work isolated so it does not leak back into the MVP queue.
 
 ---
 
 ## 🔴 P0 — Production Blocking
 
+### Product / Scope Corrections
+
+- [ ] **B07** — Demote public carrier storefront discovery as a primary customer path
+  - **File(s):** `src/app/(customer)/carrier/[id]/page.tsx`, `src/app/page.tsx`, `src/components/trip/trip-card.tsx`
+  - **What:** Remove or demote public carrier-profile loops that encourage browsing carriers outside a declared move need.
+  - **Why:** The blueprint allows trust context, but not profile storefronts as the primary discovery model.
+  - **Done when:** Carrier profile pages no longer act as a top-level discovery surface and are reached only from contextual trust flows.
+
+### Data Model and Backend Logic
+
+- [ ] **D01** — Add `MoveRequest` as a first-class persisted entity
+  - **File(s):** `new file: supabase/migrations/017_move_requests_and_offers.sql`, `src/types/database.ts`, `new file: src/types/move-request.ts`
+  - **What:** Introduce a structured `MoveRequest` table and TypeScript model that stores route, item, timing, access, and photo data before matching.
+  - **Why:** The blueprint’s need-first flow depends on move requests existing independently of trips and bookings.
+  - **Done when:** Schema and types support creating, reading, and validating move requests without going straight to bookings.
+
+- [ ] **D02** — Add `Offer` as the ranked match output entity
+  - **File(s):** `new file: supabase/migrations/017_move_requests_and_offers.sql`, `src/types/database.ts`, `src/lib/data/mappers.ts`
+  - **What:** Persist matched offers with match class, explanation, fit confidence, detour estimate, and full price breakdown.
+  - **Why:** The blueprint’s answer-set model needs an explicit offer layer between move requests and booking requests.
+  - **Done when:** Offer records exist and can be assembled into Top Matches, Possible Matches, and Nearby Dates result groups.
+
+- [ ] **D03** — Add `BookingRequest` and request-group support
+  - **File(s):** `new file: supabase/migrations/018_booking_requests.sql`, `src/types/database.ts`, `new file: src/types/booking-request.ts`
+  - **What:** Create the booking-request model, including `request_group_id` for Fast Match and explicit request statuses.
+  - **Why:** The blueprint separates booking requests from confirmed bookings and requires group-level Fast Match logic.
+  - **Done when:** Booking requests can be stored independently from bookings and grouped for Fast Match orchestration.
+
+- [ ] **D04** — Add `ConditionAdjustment` as a one-round structured exception entity
+  - **File(s):** `new file: supabase/migrations/019_condition_adjustments.sql`, `src/types/database.ts`, `new file: src/types/condition-adjustment.ts`
+  - **What:** Model one structured post-arrival adjustment with predefined reason, amount, and customer response state.
+  - **Why:** The blueprint permits one structured adjustment path while rejecting open negotiation.
+  - **Done when:** The schema and types support a single condition adjustment per booking with a clear accepted or rejected outcome.
+
+- [ ] **D05** — Add `UnmatchedRequest` for Alert the Network demand capture
+  - **File(s):** `new file: supabase/migrations/020_unmatched_requests.sql`, `src/types/database.ts`, `new file: src/types/alert.ts`
+  - **What:** Create a durable unmatched-demand entity that stores the need, alert state, follow-up status, and expiry.
+  - **Why:** Zero-match recovery is a core survival mechanic, not a waitlist side path.
+  - **Done when:** Unmatched requests can be created from zero-result flows and tracked through active, notified, matched, expired, and cancelled states.
+
+- [ ] **D06** — Add `ConciergeOffer` to keep founder fulfilment on-platform
+  - **File(s):** `new file: supabase/migrations/021_concierge_offers.sql`, `src/types/database.ts`, `src/lib/data/admin.ts`
+  - **What:** Introduce a concierge-offer entity that links an unmatched request to an operator-sourced carrier and proposed price.
+  - **Why:** The blueprint allows manual founder fulfilment only if it still flows through system entities and booking states.
+  - **Done when:** Concierge offers can be created, tracked, and routed into the normal acceptance flow without off-platform bookkeeping.
+
+- [ ] **D07** — Add `OperatorTask` for unmatched demand and stale-supply follow-up
+  - **File(s):** `new file: supabase/migrations/022_operator_tasks.sql`, `src/types/database.ts`, `src/lib/data/admin.ts`
+  - **What:** Create an operator-task model for unmatched requests, stale trip follow-up, and dispute/payout intervention work.
+  - **Why:** The blueprint depends on a founder/operator queue to keep sparse supply and disputes alive.
+  - **Done when:** Operator tasks can be generated, assigned, and resolved against unmatched requests and trust-critical incidents.
+
+- [ ] **D08** — Reshape `Trip` for waypoints, route polyline, detour tolerance, recurrence, and freshness
+  - **File(s):** `new file: supabase/migrations/023_trip_realignment.sql`, `src/types/trip.ts`, `src/lib/data/mappers.ts`
+  - **What:** Extend the trip model to include route polyline data, up to two waypoints, recurrence metadata, detour tolerance, and freshness check-in fields.
+  - **Why:** The current listing shape cannot fully support the blueprint’s matching, operations, and freshness rules.
+  - **Done when:** Trip records can represent the route, tolerance, recurrence, and freshness signals the blueprint requires.
+
+- [ ] **D09** — Replace booking and payment enums with the blueprint state machines
+  - **File(s):** `new file: supabase/migrations/024_booking_state_realignment.sql`, `src/types/booking.ts`, `src/lib/status-machine.ts`
+  - **What:** Introduce explicit booking, booking-request, and payment states that match the governing blueprint instead of the legacy direct-booking flow.
+  - **Why:** State discipline is a product requirement, not a backend detail, and the current enums are too shallow.
+  - **Done when:** TypeScript and database status enums align with the blueprint’s request, booking, payment, and unmatched-request transitions.
+
+- [ ] **D10** — Store ratings as individual records with future display hooks
+  - **File(s):** `new file: supabase/migrations/025_ratings_foundation.sql`, `src/types/review.ts`, `src/lib/data/feedback.ts`
+  - **What:** Preserve per-rating records and tags so trust display can remain thin at MVP while supporting later review surfaces.
+  - **Why:** The blueprint defers written-review display, but not structured trust data collection.
+  - **Done when:** Rating storage supports star scores, structured tags, and future moderation/display without aggregate-only shortcuts.
+
+- [ ] **D11** — Separate activation state from optional trust boosters
+  - **File(s):** `new file: supabase/migrations/026_verification_levels.sql`, `src/types/carrier.ts`, `src/lib/data/carriers.ts`
+  - **What:** Replace the simple `is_verified` model with explicit activation status plus optional ABN and insurance flags.
+  - **Why:** The blueprint distinguishes hard activation gates from optional trust enrichment and the code should reflect that.
+  - **Done when:** Carrier records can separately express unverified, activation started, pending review, active, suspended, ABN verified, and insurance uploaded states.
+
+- [ ] **D12** — Add alert and notification preference fields for customers and carriers
+  - **File(s):** `new file: supabase/migrations/027_alert_preferences.sql`, `src/types/customer.ts`, `src/types/carrier.ts`
+  - **What:** Add stored preferences for push, email, and in-app notifications tied to alerts, requests, and fulfilment events.
+  - **Why:** Alert the Network and request-state flows rely on notification delivery as a core product behavior.
+  - **Done when:** Preferences exist in schema and types and can gate downstream notification sends.
+
+- [ ] **D13** — Add request clarification tracking with one-round enforcement
+  - **File(s):** `new file: supabase/migrations/028_request_clarifications.sql`, `src/types/booking-request.ts`, `src/lib/data/bookings.ts`
+  - **What:** Store clarification reasons, response state, and expiry so clarification stays factual and bounded.
+  - **Why:** The blueprint permits clarification for missing facts but rejects negotiation gravity and repeated loops.
+  - **Done when:** One clarification round can be persisted and cannot loop indefinitely.
+
+- [ ] **D14** — Add trip freshness fields and suspension reasons
+  - **File(s):** `new file: supabase/migrations/030_trip_freshness.sql`, `src/types/trip.ts`, `src/lib/data/trips.ts`
+  - **What:** Add 24-hour and 2-hour check-in state, timestamps, and suspension reason storage to trips.
+  - **Why:** The blueprint makes freshness enforcement mandatory to avoid stale supply poisoning trust.
+  - **Done when:** Trip records support deprioritised and suspended freshness states with auditable reasons.
+
+- [ ] **D15** — Add carrier-home mode derivation fields or presenters
+  - **File(s):** `src/types/carrier.ts`, `src/lib/data/carriers.ts`, `src/app/(carrier)/carrier/dashboard/page.tsx`
+  - **What:** Define how carrier home mode is derived from activation, live trips, pending requests, today work, proof blockers, and payout blockers.
+  - **Why:** The blueprint treats the state-aware carrier home as a core product mechanic, not an ad hoc page heuristic.
+  - **Done when:** Carrier home mode can be derived consistently in one place and consumed by page presenters.
+
+- [ ] **D16** — Prepare compatibility types for a dual-read transition off legacy direct bookings
+  - **File(s):** `src/types/booking.ts`, `src/types/trip.ts`, `src/lib/data/mappers.ts`
+  - **What:** Introduce compatibility types that let current pages read legacy and realigned booking/trip records during migration.
+  - **Why:** The codebase cannot jump straight from listings-plus-bookings to the target model without a safe transition layer.
+  - **Done when:** Types and mappers can represent both legacy and new model states without unsafe casting or duplicated page logic.
+
+### Booking and Marketplace Logic
+
+- [ ] **A01** — Split direct booking creation into `MoveRequest -> Offer -> BookingRequest`
+  - **File(s):** `src/app/api/bookings/route.ts`, `src/lib/data/bookings.ts`, `src/lib/validation/booking.ts`
+  - **What:** Replace the direct booking write path with a staged flow that creates move requests, matches offers, and then creates booking requests.
+  - **Why:** The blueprint’s marketplace model depends on explicit request and offer layers instead of skipping straight to a booking.
+  - **Done when:** Booking creation no longer writes a confirmed booking from trip detail without a move-request and booking-request step.
+
+- [ ] **A02** — Add atomic Fast Match accept-and-revoke flow
+  - **File(s):** `new file: src/app/api/booking-requests/fast-match/route.ts`, `src/lib/data/bookings.ts`, `src/lib/status-machine.ts`
+  - **What:** Implement Fast Match so one accepted request confirms the booking and atomically revokes sibling requests in the same group.
+  - **Why:** Fast Match is a locked product mechanic and race conditions would break trust for customers and carriers.
+  - **Done when:** The first accepted Fast Match request wins, siblings revoke atomically, and both sides receive the correct outcome notifications.
+
+- [ ] **A03** — Introduce booking-request deadlines with a 12-hour default
+  - **File(s):** `new file: src/app/api/booking-requests/route.ts`, `src/lib/data/bookings.ts`, `src/types/booking-request.ts`
+  - **What:** Add explicit response deadlines that default to 12 hours and can extend to 24 hours for flexible bookings.
+  - **Why:** The blueprint replaces the current 2-hour pending-booking assumption with a request-centric response model.
+  - **Done when:** New booking requests store and enforce response deadlines that match the governing default behavior.
+
+- [ ] **A04** — Persist deterministic `match_class` values on offers
+  - **File(s):** `src/lib/data/trips.ts`, `src/lib/matching/score.ts`, `src/lib/trip-presenters.ts`
+  - **What:** Generate and store match classes like `direct`, `near_pickup`, `near_dropoff`, `nearby_date`, and `needs_approval`.
+  - **Why:** The blueprint requires deterministic explanation templates and grouped result sections built on match class.
+  - **Done when:** Every surfaced offer has a stable match class that drives explanation text and result grouping.
+
+- [ ] **A05** — Persist fit-confidence output as a first-class match result
+  - **File(s):** `src/lib/matching/score.ts`, `src/lib/trip-presenters.ts`, `src/types/trip.ts`
+  - **What:** Replace ad hoc score interpretation with explicit `likely_fits`, `review_photos`, and `needs_approval` outputs.
+  - **Why:** The customer-facing fit label is a required, explainable contract in the governing product.
+  - **Done when:** Fit-confidence values are computed, stored, and rendered consistently across results, details, and request flows.
+
+- [ ] **A06** — Replace search waitlist POST behavior with unmatched-request creation
+  - **File(s):** `src/app/api/search/route.ts`, `new file: src/app/api/unmatched-requests/route.ts`, `src/components/customer/waitlist-form.tsx`
+  - **What:** Remove the waitlist-style POST path and create an unmatched request whenever zero-match recovery is triggered.
+  - **Why:** Alert the Network is an active demand-capture flow, not a passive waitlist.
+  - **Done when:** Zero-match demand is stored as unmatched requests and no production flow writes a waitlist entry for customer recovery.
+
+- [ ] **A07** — Add Alert the Network orchestration on zero-match outcomes
+  - **File(s):** `src/lib/data/trips.ts`, `src/lib/notifications.ts`, `new file: src/lib/data/unmatched-requests.ts`
+  - **What:** Trigger carrier nudges, rematch subscriptions, and customer alerts when a move request has no viable offer set.
+  - **Why:** The blueprint makes zero-match recovery a mandatory continuation path instead of a dead end.
+  - **Done when:** A zero-match move request creates unmatched demand, notifies relevant carriers, and subscribes the customer for follow-up.
+
+- [ ] **A08** — Add concierge-offer acceptance inside the normal booking flow
+  - **File(s):** `src/lib/data/admin.ts`, `new file: src/lib/data/concierge-offers.ts`, `src/app/(admin)/admin/dashboard/page.tsx`
+  - **What:** Route operator-created concierge matches into the same booking-request and booking flow used for normal marketplace fulfilment.
+  - **Why:** Founder concierge is allowed only if it does not create shadow ops or off-platform transaction paths.
+  - **Done when:** Concierge offers can be created, accepted, and fulfilled without bypassing core payment, proof, or payout logic.
+
+- [ ] **A09** — Add a factual clarification path distinct from condition adjustment
+  - **File(s):** `src/lib/data/bookings.ts`, `new file: src/lib/validation/booking-request.ts`, `src/types/booking-request.ts`
+  - **What:** Support one clarification round for missing or contradictory facts before accept or decline, without price bargaining.
+  - **Why:** The blueprint allows factual clarification but rejects freeform message loops and negotiation gravity.
+  - **Done when:** Carriers can request clarification for predefined reasons and customers can answer once before the request resolves.
+
+- [ ] **A10** — Enforce one-round condition adjustments with predefined reason codes and amounts
+  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/status-machine.ts`, `src/types/condition-adjustment.ts`
+  - **What:** Limit condition adjustments to one structured round with controlled reasons and allowed amounts.
+  - **Why:** The blueprint allows realism for misdescribed conditions without opening counterproposal loops.
+  - **Done when:** The product blocks a second adjustment round and only allows platform-defined adjustment reasons and amounts.
+
+- [ ] **A11** — Reshape payment lifecycle around authorization, capture, hold, release, and paid states
+  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/stripe/payment-actions.ts`, `src/types/booking.ts`
+  - **What:** Replace the simplified payment model with blueprint-aligned request authorization, capture on accept, held funds, pending confirmation, release, and paid states.
+  - **Why:** The current payment state model is too shallow to express the trust and payout mechanics the blueprint depends on.
+  - **Done when:** Payment state transitions map cleanly to the request, proof, dispute, and payout lifecycle in code and persisted records.
+
+- [ ] **A12** — Reshape payout release around valid proof plus a 72-hour dispute window
+  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/status-machine.ts`, `src/components/booking/confirm-receipt-button.tsx`
+  - **What:** Update payout eligibility, auto-release timing, and blocked-state handling to match the 72-hour post-proof window in the governing blueprint.
+  - **Why:** The codebase still mixes older payout timing assumptions and needs one consistent trust contract.
+  - **Done when:** Payout release waits for customer confirmation or 72 hours after valid proof with no dispute, and blocks correctly on disputes.
+
+### Pricing / Negotiation / Quoting
+
+- [ ] **A13** — Replace the flat booking-fee pricing invariant with the blueprint pricing contract
+  - **File(s):** `src/lib/pricing/breakdown.ts`, `src/lib/__tests__/breakdown.test.ts`, `.agent-skills/PRICING.md`
+  - **What:** Rewrite pricing helpers and tests so customer totals are built from base price, structured add-ons, platform fee, and GST instead of a flat `$5` fee.
+  - **Why:** The governing blueprint supersedes the older booking-fee model and the backlog must treat that as a hard correction.
+  - **Done when:** Pricing code, tests, and local guidance all describe the same blueprint-aligned customer total and carrier payout math.
+
+- [ ] **A14** — Flag detour-pricing ambiguity and block automatic detour-cost implementation pending founder decision
+  - **File(s):** `src/lib/pricing/breakdown.ts`, `.agent-skills/PRICING.md`, `README.md`
+  - **What:** Add an explicit backlog and code-contract guard that allows detour estimation for matching but prevents silent rollout of automatic detour pricing.
+  - **Why:** The blueprint is internally inconsistent on detour pricing and this needs an explicit decision instead of accidental implementation drift.
+  - **Done when:** Pricing code paths and docs treat detour pricing as blocked behind an explicit founder decision rather than assumed behavior.
+
+- [ ] **A15** — Enforce total all-in pricing on every offer card
+  - **File(s):** `src/components/trip/trip-card.tsx`, `src/components/trip/trip-detail-summary.tsx`, `src/components/booking/price-breakdown.tsx`
+  - **What:** Make offer cards, detail pages, and request confirmation surfaces render the same total customer price contract, including required fees and GST.
+  - **Why:** Price transparency on first impression is a non-negotiable product rule in the blueprint.
+  - **Done when:** Offer cards, detail pages, and confirmation steps all render the same total price without "starting from" or base-only shortcuts.
+
+- [ ] **A16** — Separate hard activation gates from optional trust boosters in trust displays
+  - **File(s):** `src/app/(carrier)/carrier/onboarding/page.tsx`, `src/components/carrier/carrier-trust-panel.tsx`, `src/types/carrier.ts`
+  - **What:** Ensure trust displays distinguish mandatory activation completion from optional ABN and insurance badges.
+  - **Why:** The blueprint treats identity, vehicle, rules, and payout as gates while leaving ABN and insurance as optional enrichment.
+  - **Done when:** Carrier trust and gating UI never imply optional trust boosters are required to go live.
+
+- [ ] **A17** — Block publication and acceptance using activation status rather than a single `is_verified` flag
+  - **File(s):** `src/lib/data/carriers.ts`, `src/app/api/trips/route.ts`, `src/app/api/booking-requests/[id]/route.ts`
+  - **What:** Move publication and acceptance guards onto explicit activation status instead of the legacy boolean verification shortcut.
+  - **Why:** The governing product needs more precise gating semantics than a single flag can express.
+  - **Done when:** Trip publishing and request acceptance are denied unless the carrier is in the active activation state.
+
+### Carrier Experience
+
+- [ ] **B11** — Add a dedicated carrier Requests route
+  - **File(s):** `new file: src/app/(carrier)/carrier/requests/page.tsx`, `src/components/layout/site-header.tsx`, `src/components/layout/mobile-nav.tsx`
+  - **What:** Create a first-class Requests page for pending booking decisions and clarification actions.
+  - **Why:** The blueprint calls Requests a separate high-urgency tab, not a hidden fragment of Home.
+  - **Done when:** Carriers can open a dedicated Requests page from primary navigation and see pending decisions there.
+
+- [ ] **B12** — Remove the carrier stats page from primary MVP IA
+  - **File(s):** `src/components/layout/site-header.tsx`, `src/components/layout/mobile-nav.tsx`, `src/app/(carrier)/carrier/stats/page.tsx`
+  - **What:** Remove Stats from primary carrier navigation and demote the page behind deferred or admin-only access.
+  - **Why:** The blueprint explicitly rejects analytics-first carrier navigation in MVP.
+  - **Done when:** Carrier primary navigation no longer includes Stats and the page is not used as a core workflow.
+
+- [ ] **B13** — Rebuild carrier home hero priority around urgent action states
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/lib/data/bookings.ts`, `src/components/carrier/live-bookings-list.tsx`
+  - **What:** Restructure carrier home so the hero always chooses between pending request, today work, proof needed, or payout blocked in that order.
+  - **Why:** The governing blueprint defines the carrier home as a work queue disguised as a dashboard.
+  - **Done when:** Carrier home surfaces the highest-priority action item first and de-emphasizes summary analytics.
+
+- [ ] **B14** — Add a customer Alerts route to replace Saved searches
+  - **File(s):** `new file: src/app/(customer)/alerts/page.tsx`, `src/components/layout/site-header.tsx`, `src/components/layout/mobile-nav.tsx`
+  - **What:** Create an Alerts page for unmatched demand, matched alerts, and expired alert history.
+  - **Why:** The blueprint’s no-match model is alert-driven and needs a first-class customer destination.
+  - **Done when:** Customers have an Alerts page in primary navigation and no primary nav item says Saved searches.
+
+### Admin / Operator Tooling
+
+- [ ] **A18** — Add an operator queue for unmatched demand and stale-supply follow-up
+  - **File(s):** `src/lib/data/admin.ts`, `new file: src/lib/data/operator-tasks.ts`, `new file: src/app/(admin)/admin/alerts/page.tsx`
+  - **What:** Create admin queries and a dedicated view for unmatched requests, stale trips, and manual follow-up actions.
+  - **Why:** Sparse-supply MVP depends on founder/operator intervention being visible, structured, and auditable.
+  - **Done when:** Admin can view and act on unmatched demand and stale-supply tasks in one operator queue.
+
+- [ ] **A19** — Enforce trip freshness suspension in matching eligibility
+  - **File(s):** `src/lib/data/trips.ts`, `src/lib/matching/filter.ts`, `src/app/api/search/route.ts`
+  - **What:** Exclude or deprioritise trips that miss freshness check-ins based on the 24-hour and 2-hour blueprint rules.
+  - **Why:** Stale supply is a trust-breaking failure mode that the product must handle upstream.
+  - **Done when:** Unconfirmed trips are deprioritised and 2-hour no-response trips are suspended before they can surface in results.
+
 ---
 
 ## 🟠 P1 — User-Facing Bugs
+
+### Customer Experience
+
+- [ ] **B15** — Build the four-step need-declaration wizard on the home surface
+  - **File(s):** `src/app/page.tsx`, `src/components/search/search-bar.tsx`, `src/lib/validation/booking.ts`
+  - **What:** Replace the current generic search form with a four-step route, item, timing, and access wizard.
+  - **Why:** The blueprint makes structured need declaration the first customer action and the foundation of quality matching.
+  - **Done when:** Customers can declare route, item, timing, and access in a linear wizard before any results are shown.
+
+- [ ] **B16** — Persist move-request draft state across wizard steps and returns
+  - **File(s):** `src/components/search/search-bar.tsx`, `new file: src/hooks/useMoveRequestDraft.ts`, `src/app/page.tsx`
+  - **What:** Save and restore partially completed move-request inputs so the customer can resume a need declaration without re-entry.
+  - **Why:** Sparse-supply validation depends on not losing intent during a longer, more structured intake flow.
+  - **Done when:** Moving between steps, leaving the page, and returning restores the in-progress move request safely.
+
+- [ ] **B17** — Require structured place selection for both route endpoints
+  - **File(s):** `src/components/search/search-bar.tsx`, `src/components/shared/google-autocomplete-input.tsx`, `src/lib/validation/booking.ts`
+  - **What:** Require resolvable pickup and drop-off place data instead of loose suburb text before matching proceeds.
+  - **Why:** The matching pipeline in the blueprint depends on real endpoint data, not approximate text-only guesses.
+  - **Done when:** The wizard blocks progression until both route endpoints resolve to structured place data.
+
+- [ ] **B18** — Replace item free-text-first entry with category, variant, and quantity selection
+  - **File(s):** `src/components/search/search-bar.tsx`, `src/components/booking/booking-form.tsx`, `src/types/trip.ts`
+  - **What:** Add structured item category, variant, and quantity entry as the main item-declaration path.
+  - **Why:** The blueprint rejects free-text-first item capture because it weakens fit confidence and pricing trust.
+  - **Done when:** Customers choose a structured category and variant before any optional free-text notes appear.
+
+- [ ] **B19** — Make bulky-item photo upload mandatory before request submission
+  - **File(s):** `src/components/booking/booking-form.tsx`, `src/app/api/upload/route.ts`, `src/lib/validation/booking.ts`
+  - **What:** Enforce required photo upload for bulky categories during the request flow rather than leaving it optional.
+  - **Why:** Photo-backed truth is a core guardrail against fit failures and day-of-job disputes.
+  - **Done when:** Large Furniture, Appliances, Sporting / Outdoor, Mattress / Bed, and Other cannot submit without the required photo evidence.
+
+- [ ] **B20** — Move structured access questions ahead of results and make them mandatory
+  - **File(s):** `src/components/search/search-bar.tsx`, `src/lib/validation/booking.ts`, `src/app/(customer)/search/page.tsx`
+  - **What:** Collect stairs, lift, helper, and parking state before the results request is made.
+  - **Why:** The blueprint makes access truth part of matching eligibility, not a booking afterthought.
+  - **Done when:** Results cannot load until the access step is complete and the request payload includes structured access facts.
+
+- [ ] **B21** — Group search results into Top Matches, Possible Matches, and Nearby Dates
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/lib/data/trips.ts`, `src/components/trip/trip-card.tsx`
+  - **What:** Replace the flat result list with blueprint-defined grouped sections based on match class and timing offset.
+  - **Why:** The product should return an answer set, not a generic listing archive.
+  - **Done when:** Search results render grouped sections with the correct offer membership and empty-state fallbacks.
+
+- [ ] **B22** — Collapse Possible Matches and Nearby Dates by default
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/components/trip/trip-card.tsx`, `src/components/search/search-results-skeleton.tsx`
+  - **What:** Keep weaker or offset offers collapsed until the customer expands them intentionally.
+  - **Why:** The blueprint wants the strongest recommendations to lead without overwhelming customers with weaker supply.
+  - **Done when:** Possible Matches and Nearby Dates render collapsed-by-default expansion rows on first load.
+
+- [ ] **B23** — Generate and render "Why this matches" on every offer card
+  - **File(s):** `src/components/trip/trip-card.tsx`, `src/lib/trip-presenters.ts`, `src/lib/data/trips.ts`
+  - **What:** Add the deterministic explanation line to every surfaced offer card and remove cards that cannot explain themselves.
+  - **Why:** Match explanation is a non-negotiable product rule and key trust mechanic.
+  - **Done when:** Every result card contains a plain-language explanation derived from the offer’s match class and timing fit.
+
+- [ ] **B24** — Replace current fit labels with the blueprint confidence language
+  - **File(s):** `src/components/trip/trip-card.tsx`, `src/lib/matching/score.ts`, `src/lib/trip-presenters.ts`
+  - **What:** Replace score-style or loose route-fit labels with `Likely fits`, `Review photos`, and `Needs approval`.
+  - **Why:** The governing product chooses human fit confidence over opaque score-driven wording.
+  - **Done when:** Result and detail surfaces use only the blueprint fit-confidence labels.
+
+- [ ] **B25** — Hard-set Best fit ordering and remove browse-archive affordances
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/components/search/search-bar.tsx`, `src/lib/trip-presenters.ts`
+  - **What:** Remove customer-facing ordering controls and archive-like affordances that imply self-service browsing.
+  - **Why:** The blueprint says the system, not the user, should do the ranking work.
+  - **Done when:** Search results behave as a ranked answer set with no exposed sorting or archive framing.
+
+- [ ] **B26** — Replace "general furniture inventory" fallback with blueprint recovery actions
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/components/search/save-search-form.tsx`, `src/components/customer/waitlist-form.tsx`
+  - **What:** Replace general-inventory fallbacks with broaden dates, view near matches, and Alert the Network actions.
+  - **Why:** General inventory fallback reintroduces browse-first logic exactly where the product should capture need and keep intent alive.
+  - **Done when:** Zero-match recovery no longer suggests broad inventory browsing and instead routes through blueprint recovery options.
+
+- [ ] **B27** — Replace save-search empty state with Alert the Network capture
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/components/search/save-search-form.tsx`, `src/app/api/search/route.ts`
+  - **What:** Turn the current save-search panel into an explicit alert capture flow tied to unmatched demand and rematch notifications.
+  - **Why:** The blueprint defines zero-match capture as an alert system, not a passive saved query.
+  - **Done when:** The no-match panel creates or updates an alert-backed unmatched request instead of a saved search.
+
+- [ ] **B28** — Rework trip detail around trust, route context, pricing, and policy
+  - **File(s):** `src/app/(customer)/trip/[id]/page.tsx`, `src/components/trip/trip-detail-summary.tsx`, `src/components/booking/booking-checkout-panel.tsx`
+  - **What:** Rebuild trip detail so it answers why this option is safe and sensible, instead of reading like a live inventory brochure.
+  - **Why:** The blueprint uses detail pages to strengthen decision confidence, not deepen browsing behavior.
+  - **Done when:** Trip detail leads with trust, route context, price breakdown, restrictions, and request CTAs in the blueprint order.
+
+- [ ] **B29** — Replace trip detail CTAs with Request-to-Book and Fast Match actions
+  - **File(s):** `src/app/(customer)/trip/[id]/page.tsx`, `src/components/booking/sticky-booking-cta.tsx`, `src/components/booking/booking-checkout-panel.tsx`
+  - **What:** Change primary and secondary actions so the detail page leads into single-carrier requests or Fast Match selection.
+  - **Why:** "Book into this trip" preserves the old direct-booking model instead of the blueprint request flow.
+  - **Done when:** Detail-page CTAs create booking-request flows rather than direct bookings.
+
+- [ ] **B30** — Convert the booking form into a staged confirmation flow
+  - **File(s):** `src/components/booking/booking-form.tsx`, `src/app/api/bookings/route.ts`, `src/lib/validation/booking.ts`
+  - **What:** Restructure booking confirmation into item, access, price, payment, and request-submitted stages with blueprint-aligned validations.
+  - **Why:** The current long-form booking flow is listing-first and does not mirror the need-first request flow.
+  - **Done when:** Customers move through staged confirmation screens that prefill from the move request and end in request submission.
+
+- [ ] **B31** — Update the customer booking timeline to the blueprint booking states
+  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/components/booking/booking-status-stepper.tsx`, `src/types/booking.ts`
+  - **What:** Change the customer timeline to reflect request accepted, pickup due, delivered pending confirmation, completed, and disputed states.
+  - **Why:** The current timeline is too close to legacy booking states and does not express request-to-book and payout timing properly.
+  - **Done when:** Customer booking detail shows a blueprint-aligned status timeline that matches backend states.
+
+- [ ] **B32** — Remove direct carrier-contact panels from customer booking detail
+  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/lib/data/bookings.ts`, `src/types/booking.ts`
+  - **What:** Remove or replace the direct carrier contact panel with structured coordination history and on-platform status tools.
+  - **Why:** The blueprint keeps communication on-platform at MVP to protect trust, disputes, and payment integrity.
+  - **Done when:** Customer booking detail no longer renders direct carrier contact as a standard fulfilment tool.
+
+### Carrier Experience
+
+- [ ] **B33** — Split carrier onboarding into three blueprint steps
+  - **File(s):** `src/app/(carrier)/carrier/onboarding/page.tsx`, `src/components/carrier/carrier-onboarding-form.tsx`, `src/app/(carrier)/carrier/onboarding/actions.ts`
+  - **What:** Rebuild onboarding into Identity & Business, Vehicle & Capacity, and Payout & Documents steps with saved progress.
+  - **Why:** The blueprint rejects the current single-form onboarding shape as too loose and not explicit enough about the activation gate.
+  - **Done when:** Onboarding progress is step-based and each step maps to the governing blueprint sections.
+
+- [ ] **B34** — Add activation progress and resume-later behavior to carrier home mode 1
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/components/carrier/carrier-onboarding-form.tsx`, `src/lib/data/carriers.ts`
+  - **What:** Surface activation progress, dominant blocker, and resume setup actions on carrier home for incomplete carriers.
+  - **Why:** The blueprint says mode 1 should feel like a focused unlock flow, not a half-empty dashboard.
+  - **Done when:** Unactivated carriers land on a resume-setup home with progress and next-action guidance.
+
+- [ ] **B35** — Add blurred teaser demand for unactivated carriers based on real data
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/lib/data/admin.ts`, `src/lib/data/carriers.ts`
+  - **What:** Show corridor-level demand cues derived from real unmatched demand without exposing actionable jobs before activation.
+  - **Why:** The blueprint uses teaser demand to motivate activation without weakening trust gates.
+  - **Done when:** Unactivated carriers see real blurred demand counts and a CTA to complete setup to unlock them.
+
+- [ ] **B36** — Rework carrier home mode 2 around posting the next route
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/components/carrier/quick-post-templates.tsx`, `src/lib/data/templates.ts`
+  - **What:** Make the verified-no-live-trips home mode about one dominant post-trip action and quick repost from templates.
+  - **Why:** The blueprint treats verified idle carriers as posting-ready, not analytics-ready.
+  - **Done when:** Verified carriers with no active trips see a posting-led home with quick repost actions and corridor demand cues.
+
+- [ ] **B37** — Replace analytics cards on carrier home mode 3 with urgent action cards
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/components/carrier/live-bookings-list.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Remove summary metric emphasis and lead with pending requests, today work, proof blockers, and payout blockers.
+  - **Why:** The blueprint explicitly rejects analytics-first carrier homes during MVP.
+  - **Done when:** Carrier home mode 3 foregrounds urgent actions and relegates summary metrics out of the hero zone.
+
+- [ ] **B38** — Build the carrier Requests page around decision cards
+  - **File(s):** `new file: src/app/(carrier)/carrier/requests/page.tsx`, `src/components/carrier/pending-bookings-alert.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Create a dedicated Requests page that lists booking-request decision cards with accept, decline, and clarification actions.
+  - **Why:** Pending requests are the carrier’s highest-urgency workflow and need their own home.
+  - **Done when:** Carriers can review all open requests in one requests-specific view with actionable cards.
+
+- [ ] **B39** — Put payout amount, access complexity, and deadline on every decision card
+  - **File(s):** `src/components/carrier/pending-bookings-alert.tsx`, `src/lib/data/bookings.ts`, `src/types/booking-request.ts`
+  - **What:** Expand request cards so they show route fit, access summary, payout after fees, response deadline, and item photos.
+  - **Why:** The blueprint packages carrier decisions into fast, trustworthy cards instead of sparse rows.
+  - **Done when:** Every request card includes payout, access flags, route fit, item context, and a live response deadline.
+
+- [ ] **B40** — Replace generic confirm/decline on pending items with Accept / Decline / Request Clarification
+  - **File(s):** `src/components/carrier/pending-bookings-alert.tsx`, `src/lib/status-machine.ts`, `src/app/api/bookings/[id]/route.ts`
+  - **What:** Change carrier actions on pending work to match the blueprint’s request actions and request-state semantics.
+  - **Why:** "Confirm booking" preserves direct-booking language and hides the bounded clarification mechanic.
+  - **Done when:** Pending carrier actions use Accept, Decline, and Request Clarification with correct state writes.
+
+- [ ] **B41** — Rebuild Today into a runsheet-first trip-day view
+  - **File(s):** `src/app/(carrier)/carrier/today/page.tsx`, `src/lib/data/bookings.ts`, `src/components/carrier/live-bookings-list.tsx`
+  - **What:** Rework Today around next stop, stop order, status actions, proof prompts, and navigation links.
+  - **Why:** The blueprint says trip-day behavior should effectively switch the app into runsheet mode.
+  - **Done when:** Carrier Today view leads with stop-by-stop operational actions instead of trip health summaries.
+
+- [ ] **B42** — Surface proof and payout blockers inline during trip-day operations
+  - **File(s):** `src/app/(carrier)/carrier/today/page.tsx`, `src/app/(carrier)/carrier/payouts/page.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Show proof-required and payout-blocked states inside Today and Payouts with direct fix actions.
+  - **Why:** The blueprint treats payout predictability as a carrier trust requirement, especially on run day.
+  - **Done when:** Carriers can see and resolve proof and payout blockers from Today and Payouts without hunting through unrelated surfaces.
+
+- [ ] **B43** — Replace trip-list labels from inventory language to operational state language
+  - **File(s):** `src/app/(carrier)/carrier/trips/page.tsx`, `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/components/carrier/trip-list-skeleton.tsx`
+  - **What:** Rename list groupings and empty states to Needs Action, Today, Upcoming, Drafts, Past, and Templates.
+  - **Why:** The blueprint rejects flat inventory-led trip management and defines an operational state model instead.
+  - **Done when:** Carrier trips are organized and labeled using the blueprint’s operational state buckets.
+
+- [ ] **B44** — Add one-tap repost prompts from completed trips into templates
+  - **File(s):** `src/components/carrier/save-trip-template-action.tsx`, `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/lib/data/templates.ts`
+  - **What:** Prompt carriers to repost a completed route quickly and save or refresh the underlying template automatically.
+  - **Why:** The blueprint treats quick repost and repeat corridors as growth infrastructure, not a side enhancement.
+  - **Done when:** Completed trips surface a one-tap repost path that reuses the route as a template.
+
+### Trust / Verification / Risk Controls
+
+- [ ] **B45** — Replace vague trust copy with evidence-led statements across customer surfaces
+  - **File(s):** `src/app/(customer)/trip/[id]/page.tsx`, `src/app/(marketing)/trust/page.tsx`, `src/components/trip/trip-detail-summary.tsx`
+  - **What:** Rewrite customer trust messaging to reference verification, proof, held funds, payout rules, and dispute handling concretely.
+  - **Why:** The blueprint says trust must come from structure, not copywriting gloss.
+  - **Done when:** Customer-facing trust copy references real safeguards and removes vague promise language.
+
+- [ ] **B46** — Replace carrier profile trust badges with blueprint signals
+  - **File(s):** `src/app/(customer)/carrier/[id]/page.tsx`, `src/components/carrier/carrier-trust-panel.tsx`, `src/lib/trip-presenters.ts`
+  - **What:** Align trust badges to verified, new but verified, trip count, optional ABN, optional insurance, and proof-backed job signals.
+  - **Why:** Current trust surfaces still mix storefront and generic badge logic with weak alignment to the governing model.
+  - **Done when:** Carrier profiles and trust panels show the exact trust signals supported by the blueprint and current data model.
+
+- [ ] **B47** — Hide public written reviews until rating volume meets blueprint thresholds
+  - **File(s):** `src/app/(customer)/carrier/[id]/page.tsx`, `src/lib/data/feedback.ts`, `src/types/review.ts`
+  - **What:** Stop showing public written reviews until a carrier has the minimum rating volume required by the blueprint.
+  - **Why:** The blueprint prefers "new but verified" over thin, misleading public review surfaces in MVP.
+  - **Done when:** Public review display respects the minimum ratings threshold and falls back to verified/new trust messaging when needed.
+
+- [ ] **B48** — Add structured included, not included, and add-on rules to trip detail
+  - **File(s):** `src/components/trip/trip-detail-summary.tsx`, `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/validation/trip.ts`
+  - **What:** Render carrier constraints and supported extras as explicit included / not included / add-on blocks rather than mixed prose.
+  - **Why:** Clear service boundaries reduce disputes and are part of the product’s trust structure.
+  - **Done when:** Trip detail shows structured service rules derived from carrier-configured constraints and add-ons.
+
+- [ ] **B49** — Rewrite cancellation and misdescription policy blocks to match blueprint rules
+  - **File(s):** `src/components/trip/trip-detail-summary.tsx`, `src/components/booking/booking-form.tsx`, `src/app/(marketing)/terms/page.tsx`
+  - **What:** Align cancellation, misdescription, and dispute-policy copy to the bounded condition-adjustment and trust model in the governing blueprint.
+  - **Why:** Policy copy is part of the product contract and must not describe superseded booking behavior.
+  - **Done when:** Customer and carrier policy surfaces describe the same cancellation and misdescription rules as the blueprint.
+
+- [ ] **B50** — Add structured parking difficulty handling to matching and trip rules
+  - **File(s):** `src/lib/validation/booking.ts`, `src/components/search/search-bar.tsx`, `src/components/carrier/carrier-trip-wizard.tsx`
+  - **What:** Promote parking difficulty from loose notes into structured request and carrier-rule inputs.
+  - **Why:** Parking difficulty is a blueprint-defined access input that can affect fit and operational burden.
+  - **Done when:** Customers declare parking difficulty structurally and carriers can express parking-related constraints or clarification needs.
+
+### Frontend Architecture and State
+
+- [ ] **B51** — Split customer navigation state around Home, Bookings, Alerts, and Account
+  - **File(s):** `src/components/layout/site-header.tsx`, `src/components/layout/mobile-nav.tsx`, `src/app/layout.tsx`
+  - **What:** Refactor the customer nav state and routes so they reflect the governing information architecture instead of browse and saved-search concepts.
+  - **Why:** The wrong top-level IA keeps dragging the experience back toward the wrong product shape.
+  - **Done when:** Customer nav state, badges, and route highlighting align to the four blueprint destinations.
+
+- [ ] **B52** — Split carrier navigation state around Home, Requests, Trips, Payouts, and Account
+  - **File(s):** `src/components/layout/site-header.tsx`, `src/components/layout/mobile-nav.tsx`, `src/app/layout.tsx`
+  - **What:** Update carrier nav state to support the five blueprint destinations and remove stat/dashboard bias.
+  - **Why:** Carrier IA is a core product decision, not a secondary polish issue.
+  - **Done when:** Carrier nav renders the five blueprint destinations with correct active state and badge behavior.
+
+- [ ] **B56** — Stop linking homepage and search results into public carrier storefront loops
+  - **File(s):** `src/app/page.tsx`, `src/app/(customer)/search/page.tsx`, `src/app/(customer)/carrier/[id]/page.tsx`
+  - **What:** Remove or demote carrier-profile deep links that take customers out of the need-first selection flow too early.
+  - **Why:** Public profile loops encourage browsing people instead of solving the move problem.
+  - **Done when:** Search and home flows no longer promote public carrier browsing ahead of move-request progression.
+
+### API and Integration Changes
+
+- [ ] **A20** — Add `POST /api/move-requests` with need-first validation
+  - **File(s):** `new file: src/app/api/move-requests/route.ts`, `new file: src/lib/validation/move-request.ts`, `src/lib/data/bookings.ts`
+  - **What:** Create the authenticated API for move-request submission with route, item, timing, access, and photo validation.
+  - **Why:** The new data model and home wizard need a stable entrypoint before offers are generated.
+  - **Done when:** The app can persist move requests through a dedicated API that enforces the blueprint-required fields.
+
+- [ ] **A21** — Add `GET /api/offers` keyed by move request
+  - **File(s):** `new file: src/app/api/offers/route.ts`, `src/lib/data/trips.ts`, `src/lib/matching/score.ts`
+  - **What:** Expose a dedicated offers API that assembles ranked offers from a stored move request.
+  - **Why:** Results should be driven by move requests and offers, not by direct listing search alone.
+  - **Done when:** The customer results surface can fetch offer groups for a move request through a dedicated API.
+
+- [ ] **A22** — Add `POST /api/booking-requests` for Request-to-Book
+  - **File(s):** `new file: src/app/api/booking-requests/route.ts`, `src/lib/data/bookings.ts`, `src/types/booking-request.ts`
+  - **What:** Create the single-carrier request endpoint that authorizes payment and persists a booking request against a chosen offer.
+  - **Why:** The blueprint requires request submission before acceptance and payment capture.
+  - **Done when:** Request-to-Book submits through a dedicated booking-request API rather than direct booking creation.
+
+- [ ] **A23** — Add `POST /api/booking-requests/fast-match` for capped multi-carrier requests
+  - **File(s):** `new file: src/app/api/booking-requests/fast-match/route.ts`, `src/lib/data/bookings.ts`, `src/types/booking-request.ts`
+  - **What:** Create the capped Fast Match API that creates up to three sibling booking requests in one group.
+  - **Why:** Fast Match is a first-class sparse-supply mechanic and needs a dedicated write path.
+  - **Done when:** Fast Match request groups can be created through a dedicated endpoint with all blueprint constraints enforced.
+
+- [ ] **A24** — Add `PATCH /api/booking-requests/[id]` for accept, decline, and clarify actions
+  - **File(s):** `new file: src/app/api/booking-requests/[id]/route.ts`, `src/lib/status-machine.ts`, `src/lib/data/bookings.ts`
+  - **What:** Create carrier-side request mutation endpoints for accepting, declining, or requesting clarification on booking requests.
+  - **Why:** Carrier decisions should mutate booking requests first, not legacy bookings directly.
+  - **Done when:** Carrier request actions update booking-request records and produce the correct follow-on booking or notification behavior.
+
+- [ ] **A25** — Add `POST /api/unmatched-requests` for zero-match capture
+  - **File(s):** `new file: src/app/api/unmatched-requests/route.ts`, `new file: src/lib/validation/unmatched-request.ts`, `new file: src/lib/data/unmatched-requests.ts`
+  - **What:** Add the authenticated API that creates or updates unmatched requests from zero-match customer flows.
+  - **Why:** Alert the Network should create real unmatched-demand records with consistent validation and auditability.
+  - **Done when:** Zero-match recovery submits through a dedicated unmatched-request API with the correct stored fields.
+
+- [ ] **A26** — Add `POST /api/concierge-offers` for founder-initiated supply recovery
+  - **File(s):** `new file: src/app/api/concierge-offers/route.ts`, `new file: src/lib/data/concierge-offers.ts`, `src/lib/data/admin.ts`
+  - **What:** Add the operator-only API for creating concierge offers against unmatched requests.
+  - **Why:** Founder manual fulfilment must stay visible and on-platform during MVP.
+  - **Done when:** Operators can create concierge offers through a dedicated admin API backed by explicit schema and audit writes.
+
+- [ ] **A27** — Add `PATCH /api/condition-adjustments/[id]` for customer accept or reject
+  - **File(s):** `new file: src/app/api/condition-adjustments/[id]/route.ts`, `src/lib/data/bookings.ts`, `src/types/condition-adjustment.ts`
+  - **What:** Create the customer response API for structured adjustments so the flow remains bounded and audited.
+  - **Why:** Condition adjustments are a controlled exception path and need explicit state transitions.
+  - **Done when:** Customers can accept or reject one adjustment through a dedicated API and the booking updates correctly.
+
+- [ ] **A28** — Add event hooks for requests, alerts, proof, payout, and trip-freshness notifications
+  - **File(s):** `src/lib/notifications.ts`, `src/lib/data/bookings.ts`, `src/lib/data/trips.ts`
+  - **What:** Wire blueprint-required events into the notification layer instead of the older booking-only triggers.
+  - **Why:** Notifications are core product behavior for request handling, alerts, and stale-supply protection.
+  - **Done when:** The notification layer is event-complete for requests, alerts, proof, payout, and freshness failures.
+
+- [ ] **A29** — Replace `/api/search` POST waitlist semantics with unmatched-demand semantics
+  - **File(s):** `src/app/api/search/route.ts`, `src/components/customer/waitlist-form.tsx`, `src/lib/data/unmatched-requests.ts`
+  - **What:** Remove waitlist-specific validation, writes, and success messaging from the search POST handler.
+  - **Why:** The governing product no longer uses waitlist capture as the main zero-match mechanic.
+  - **Done when:** `/api/search` no longer writes waitlist entries or returns waitlist-oriented success behavior.
+
+- [ ] **A30** — Notify non-winning Fast Match carriers when another carrier accepts first
+  - **File(s):** `src/lib/notifications.ts`, `src/lib/data/bookings.ts`, `new file: src/app/api/booking-requests/fast-match/route.ts`
+  - **What:** Send explicit revocation outcomes to sibling Fast Match carriers when another carrier wins the request.
+  - **Why:** Fast Match needs clean closure for all parties to avoid ghost requests and trust erosion.
+  - **Done when:** Losing Fast Match carriers receive revocation notices tied to the winning acceptance event.
+
+### Simplification / Removals
+
+- [ ] **B58** — Remove Waitlist form usage from customer zero-match flows
+  - **File(s):** `src/components/customer/waitlist-form.tsx`, `src/app/(customer)/search/page.tsx`, `src/app/api/search/route.ts`
+  - **What:** Retire the waitlist form from customer recovery surfaces so it cannot be mistaken for the active marketplace demand flow.
+  - **Why:** Waitlist semantics conflict with Alert the Network and founder concierge language.
+  - **Done when:** No customer-facing no-match path renders or posts the waitlist form.
+
+- [ ] **B64** — Add Alerts page sections for Active, Matched, and Expired demand
+  - **File(s):** `new file: src/app/(customer)/alerts/page.tsx`, `new file: src/components/search/alerts-manager.tsx`, `new file: src/lib/data/unmatched-requests.ts`
+  - **What:** Organize customer alerts into operational states so demand capture feels alive and understandable.
+  - **Why:** Alert history needs explicit states if it is going to replace saved searches cleanly.
+  - **Done when:** Customers can view active, matched, and expired alert items from a dedicated alerts manager.
+
+- [ ] **B65** — Add Requests badge count to carrier nav and home
+  - **File(s):** `src/components/layout/site-header.tsx`, `src/components/layout/mobile-nav.tsx`, `src/app/(carrier)/carrier/dashboard/page.tsx`
+  - **What:** Surface pending-request counts where carriers decide their next action, not only inside deep pages.
+  - **Why:** Requests are the highest-urgency carrier workflow and need explicit nav visibility.
+  - **Done when:** Pending request counts render in carrier nav and home states with correct live or refreshed values.
+
+- [ ] **B66** — Split live-bookings copy into pending requests versus active bookings
+  - **File(s):** `src/components/carrier/live-bookings-list.tsx`, `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Separate pending requests from accepted fulfilment work instead of calling both "incoming jobs" or bookings.
+  - **Why:** The blueprint draws a clean line between booking requests and accepted bookings.
+  - **Done when:** Carrier surfaces label pending decisions and active fulfilment work separately and correctly.
 
 ---
 
 ## 🟡 P2 — UX & Conversion
 
+### Customer Experience
+
+- [ ] **B69** — Add example job presets on the homepage
+  - **File(s):** `src/app/page.tsx`, `src/components/search/search-bar.tsx`, `src/lib/constants.ts`
+  - **What:** Add example move presets like sofa pickup, appliance move, and awkward-item runs that prefill the need declaration flow.
+  - **Why:** The blueprint uses example jobs to teach the product mental model quickly without browse shelves.
+  - **Done when:** The homepage shows tappable example jobs that prefill the wizard and reinforce the spare-capacity use case.
+
+- [ ] **B70** — Add a desktop-compressed wizard card while preserving mobile one-question-per-screen flow
+  - **File(s):** `src/app/page.tsx`, `src/components/search/search-bar.tsx`, `src/app/globals.css`
+  - **What:** Present the same need declaration on desktop in a tighter card while keeping the mobile step flow intact.
+  - **Why:** The blueprint allows a compressed desktop input card but keeps the mobile-first interaction order fixed.
+  - **Done when:** Desktop shows a compact but equivalent wizard entry and mobile still renders one primary decision per screen.
+
+- [ ] **B71** — Add visible progress indicators across the wizard and request-confirmation flow
+  - **File(s):** `src/components/search/search-bar.tsx`, `src/components/booking/booking-form.tsx`, `src/app/globals.css`
+  - **What:** Add progress indicators so customers know how many steps remain in the need declaration and request confirmation flow.
+  - **Why:** A more structured flow needs clear progress cues to reduce abandonment and keep trust high.
+  - **Done when:** Wizard and request-confirmation screens show a consistent step progress pattern.
+
+- [ ] **B72** — Add real corridor-activity cues to zero-match recovery
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/lib/data/unmatched-requests.ts`, `src/lib/data/admin.ts`
+  - **What:** Show credible corridor activity counts or route cadence where real data exists during Alert the Network capture.
+  - **Why:** The blueprint allows trust-building route activity cues only when they are grounded in real data.
+  - **Done when:** Zero-match recovery can show corridor activity cues without fabricating supply or route density.
+
+- [ ] **B73** — Add nearby-date expansion with plain-language timing offsets
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/lib/trip-presenters.ts`, `src/lib/data/trips.ts`
+  - **What:** Present nearby-date alternatives using language like "2 days after your preferred date" instead of date-only lists.
+  - **Why:** The blueprint wants timing meaning, not extra calendar math, on the results surface.
+  - **Done when:** Nearby-date offers explain their timing offset in customer language on results and detail surfaces.
+
+- [ ] **B74** — Add "Review photos" explanation on borderline-fit offers
+  - **File(s):** `src/components/trip/trip-card.tsx`, `src/components/trip/trip-detail-summary.tsx`, `src/lib/trip-presenters.ts`
+  - **What:** Explain why a borderline offer needs photo review and what will happen next if selected.
+  - **Why:** Fit-confidence labels need practical meaning if they are going to reduce uncertainty rather than add it.
+  - **Done when:** Borderline-fit offers show a short explanation of the photo-review expectation before request submission.
+
+- [ ] **B75** — Add a small explanatory route map on detail pages only
+  - **File(s):** `src/components/trip/trip-detail-summary.tsx`, `src/lib/maps/directions.ts`, `src/app/(customer)/trip/[id]/page.tsx`
+  - **What:** Add a route-context map to detail pages that explains fit and detour context without becoming a primary discovery tool.
+  - **Why:** The blueprint allows maps to explain fit after selection, but not to lead the flow.
+  - **Done when:** Detail pages can render a secondary map context block and the home/results surfaces still remain map-light.
+
+- [ ] **B76** — Add a lightweight Request-to-Book versus Fast Match explainer at selection time
+  - **File(s):** `src/app/(customer)/trip/[id]/page.tsx`, `src/components/booking/sticky-booking-cta.tsx`, `src/components/booking/booking-checkout-panel.tsx`
+  - **What:** Explain when a customer should choose a single request versus Fast Match without turning the choice into a dense branching flow.
+  - **Why:** Fast Match is explicit, capped, and optional in the governing model, so customers need just enough framing to choose well.
+  - **Done when:** Customers see a concise explainer before choosing between single request and Fast Match.
+
+- [ ] **B77** — Add next-best recovery CTA after a single request declines or expires
+  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/lib/data/trips.ts`, `src/lib/notifications.ts`
+  - **What:** Route customers to the next-best viable offer or alert capture when a single request fails.
+  - **Why:** Sequential request flow should feel recoverable without dumping the customer back into a cold archive.
+  - **Done when:** Declined or expired single requests surface a next-best action that preserves move intent.
+
+- [ ] **B78** — Add matched-alert deep links back into the exact move request
+  - **File(s):** `new file: src/app/(customer)/alerts/page.tsx`, `src/lib/notifications.ts`, `new file: src/lib/data/unmatched-requests.ts`
+  - **What:** Make matched alerts open the recovered move request and its newly viable offers instead of generic search results.
+  - **Why:** Alert recovery should feel like continuation of the same need, not a new browsing session.
+  - **Done when:** Matched-alert notifications land customers on the original move request with the relevant recovered offers.
+
+- [ ] **B79** — Add payment-method management entry from the request-confirmation flow
+  - **File(s):** `src/components/booking/booking-form.tsx`, `src/app/(customer)/account/page.tsx`, `src/lib/stripe/client.ts`
+  - **What:** Give customers a clear way to manage payment methods without losing their move request during confirmation.
+  - **Why:** The request flow now authorizes payment before acceptance and should not strand customers during payment setup.
+  - **Done when:** Customers can add or update payment methods from the request-confirmation flow and return safely to submission.
+
+- [ ] **B80** — Add support and dispute entry points to Account and booking detail
+  - **File(s):** `src/app/(customer)/account/page.tsx`, `src/app/(customer)/bookings/[id]/page.tsx`, `src/components/booking/dispute-form.tsx`
+  - **What:** Add clearly labeled support, dispute, and policy entry points that fit the new booking and payout lifecycle.
+  - **Why:** Structured trust includes visible help and dispute paths, not just backend states.
+  - **Done when:** Customers can reach support and dispute tools from Account and booking detail without searching through unrelated pages.
+
+- [ ] **B81** — Add a request-summary surface to customer Home after first use
+  - **File(s):** `src/app/page.tsx`, `new file: src/components/customer/recent-move-requests.tsx`, `new file: src/lib/data/move-requests.ts`
+  - **What:** Show recent move requests and a "Start a new move" CTA on Home after a customer has used the flow once.
+  - **Why:** The blueprint says Home can evolve into recent searches and new search entry after first use.
+  - **Done when:** Returning customers see recent move requests on Home instead of a blank first-time state.
+
+- [ ] **B82** — Add matched and expired sections to customer Alerts with clear state language
+  - **File(s):** `new file: src/app/(customer)/alerts/page.tsx`, `new file: src/components/search/alerts-manager.tsx`, `new file: src/lib/data/unmatched-requests.ts`
+  - **What:** Organize alert history into matched and expired sections with clear explanations of what each state means.
+  - **Why:** Alert history needs operational clarity to replace the current saved-search mindset.
+  - **Done when:** The Alerts page clearly separates active, matched, and expired demand with state-specific copy.
+
+### Carrier Experience
+
+- [ ] **B83** — Add a true under-30-second quick-post path
+  - **File(s):** `src/components/carrier/quick-post-templates.tsx`, `src/components/carrier/carrier-post-prefill.tsx`, `src/app/(carrier)/carrier/post/page.tsx`
+  - **What:** Make quick post require only the minimum route, date, time, vehicle, capacity, and pricing confirmations when posting from a template.
+  - **Why:** The blueprint treats fast repost as the carrier retention engine and sets an aggressive speed target.
+  - **Done when:** A template-based repost can be completed in a handful of taps without reopening the full advanced wizard.
+
+- [ ] **B84** — Add advanced-post support for up to two waypoints and return-trip creation
+  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/types/trip.ts`, `src/lib/data/trips.ts`
+  - **What:** Extend advanced posting to support two optional waypoints and explicit return-trip generation.
+  - **Why:** The blueprint allows limited multi-leg realism without turning the product into route optimization software.
+  - **Done when:** Advanced posting can define up to two waypoints and optionally create a linked reverse-direction trip.
+
+- [ ] **B85** — Add limited recurring-run creation up to four weeks ahead
+  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/components/carrier/template-library.tsx`, `src/lib/data/trips.ts`
+  - **What:** Support weekly, fortnightly, or selected-day repeat runs that auto-generate near-term future trips.
+  - **Why:** Repeat corridors are a key supply pattern in the blueprint and need light recurring support.
+  - **Done when:** Carriers can create recurring trips that generate up to four weeks of future trip records.
+
+- [ ] **B86** — Add structured detour-tolerance controls with carrier-friendly presets
+  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/validation/trip.ts`, `src/types/trip.ts`
+  - **What:** Add strict, standard, and flexible detour-tolerance presets plus bounded custom values for advanced posting.
+  - **Why:** The matching engine needs explicit tolerance inputs and carriers need a simple way to set them.
+  - **Done when:** Carriers can set detour tolerance with presets or bounded custom values during posting.
+
+- [ ] **B87** — Add accepted-category-specific pricing tables to posting
+  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/validation/trip.ts`, `src/types/trip.ts`
+  - **What:** Replace single base-price entry with structured pricing per accepted category or tier.
+  - **Why:** The blueprint prices by item category or tier and does not rely on one generic listing price.
+  - **Done when:** Posting requires carriers to set rates for every accepted category or tier they publish.
+
+- [ ] **B88** — Add structured stairs and helper policy builders with predefined amounts
+  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/validation/trip.ts`, `src/lib/pricing/breakdown.ts`
+  - **What:** Build structured add-on inputs for stairs and helper rules without freeform pricing.
+  - **Why:** Deterministic pricing depends on structured add-ons, not optional notes or ad hoc side pricing.
+  - **Done when:** Posting can store and validate structured stairs and helper rules with platform-supported amounts.
+
+- [ ] **B89** — Add publish blockers for missing photo, categories, pricing, or constraints
+  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/validation/trip.ts`, `src/app/api/trips/route.ts`
+  - **What:** Convert current soft quality warnings into hard publish blockers where the blueprint requires them.
+  - **Why:** Supply-quality enforcement is a first-order marketplace rule in the governing product.
+  - **Done when:** Trips cannot publish unless required route, vehicle, category, pricing, and constraint fields are complete.
+
+- [ ] **B90** — Add request-clarification reason picker to carrier request actions
+  - **File(s):** `src/components/carrier/pending-bookings-alert.tsx`, `new file: src/components/carrier/request-clarification-sheet.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Provide a structured UI for clarification reasons so carriers do not fall back to ad hoc notes or hidden decline behavior.
+  - **Why:** Clarification is part of the blueprint’s bounded request flow and needs explicit UI support.
+  - **Done when:** Carriers can request clarification using predefined reason codes from the request card.
+
+- [ ] **B91** — Add per-stop one-tap status buttons to Today
+  - **File(s):** `src/app/(carrier)/carrier/today/page.tsx`, `src/components/booking/status-update-actions.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Put on-my-way, arrived, loaded, and delivered actions directly in the trip-day stop list.
+  - **Why:** The blueprint optimizes trip-day use for minimal typing and fast operational updates.
+  - **Done when:** Every trip-day stop in Today exposes the relevant one-tap status actions inline.
+
+- [ ] **B92** — Add same-day payout blocker explanations to Home and Payouts
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/app/(carrier)/carrier/payouts/page.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Show exactly why payout is blocked and what action clears it on the main carrier operational surfaces.
+  - **Why:** Payout predictability is one of the carrier truths the blueprint optimizes around.
+  - **Done when:** Carriers can see payout blockers and next actions without leaving Home or Payouts.
+
+### Admin / Operator Tooling
+
+- [ ] **A31** — Create operator tasks when unmatched demand crosses SLA
+  - **File(s):** `new file: src/lib/data/operator-tasks.ts`, `src/lib/data/unmatched-requests.ts`, `src/lib/notifications.ts`
+  - **What:** Generate operator tasks when unmatched requests receive no carrier response within the configured SLA.
+  - **Why:** Sparse-supply MVP depends on founder follow-up when demand would otherwise go cold.
+  - **Done when:** SLA breaches on unmatched demand automatically produce operator tasks tied to the original request.
+
+- [ ] **A32** — Add an admin view for unmatched demand by status and corridor
+  - **File(s):** `new file: src/app/(admin)/admin/alerts/page.tsx`, `src/lib/data/admin.ts`, `src/lib/data/unmatched-requests.ts`
+  - **What:** Provide a dedicated admin page for active, notified, matched, and expired unmatched requests grouped by corridor.
+  - **Why:** Admin needs a clear view of demand capture if Alert the Network is a core operating loop.
+  - **Done when:** Admin can review unmatched demand by state, corridor, and urgency from a dedicated page.
+
+- [ ] **A33** — Add concierge-offer creation UI from unmatched demand
+  - **File(s):** `new file: src/app/(admin)/admin/alerts/page.tsx`, `new file: src/components/admin/concierge-offer-form.tsx`, `src/lib/data/admin.ts`
+  - **What:** Let operators create a concierge offer directly from an unmatched-demand item.
+  - **Why:** Founder manual fulfilment only works cleanly if the operator path is part of the product system.
+  - **Done when:** Admin can create a concierge offer from an unmatched request without off-platform notes or ad hoc DB edits.
+
+- [ ] **A34** — Add a stale-trip review surface for unconfirmed and auto-suspended supply
+  - **File(s):** `src/app/(admin)/admin/dashboard/page.tsx`, `src/lib/data/admin.ts`, `src/lib/data/trips.ts`
+  - **What:** Surface trips that missed 24-hour or 2-hour freshness checks and need admin review or carrier follow-up.
+  - **Why:** Freshness enforcement needs visible operational follow-up to preserve trust.
+  - **Done when:** Admin has a surface that lists stale or suspended trips with direct follow-up actions.
+
+- [ ] **A35** — Add a founder dispute review surface keyed to proof, timeline, and payment state
+  - **File(s):** `src/app/(admin)/admin/disputes/page.tsx`, `src/components/admin/resolve-dispute-actions.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Align dispute review with proof records, structured events, and payout-block states instead of legacy booking summaries.
+  - **Why:** Founder-adjudicated disputes are part of MVP trust and need the right evidence model.
+  - **Done when:** Dispute review surfaces show the full request, proof, timeline, and payment context needed for a founder decision.
+
+- [ ] **A36** — Add an activation review checklist aligned to the blueprint gate
+  - **File(s):** `src/app/(admin)/admin/verification/page.tsx`, `src/components/admin/verification-queue.tsx`, `src/lib/data/carriers.ts`
+  - **What:** Replace generic verification review with an explicit gate checklist for identity, vehicle, rules, and payout readiness.
+  - **Why:** Verification is a hard gate in the blueprint and needs checklist-level enforcement rather than generic approval behavior.
+  - **Done when:** Admin verification review reflects the exact go-live gate fields required by the blueprint.
+
+- [ ] **A37** — Add audit events for concierge, suspension, dispute, and activation interventions
+  - **File(s):** `src/lib/data/admin.ts`, `new file: src/lib/data/operator-tasks.ts`, `src/types/admin.ts`
+  - **What:** Record structured admin actions for concierge fulfilment, trip suspensions, dispute decisions, and activation outcomes.
+  - **Why:** Founder-led manual operations need durable audit trails to keep product truth and ops history aligned.
+  - **Done when:** Key operator interventions write explicit admin audit events tied to the relevant entities.
+
+- [ ] **A38** — Add matched-alert notification logs for customer and carrier follow-up
+  - **File(s):** `src/lib/notifications.ts`, `src/lib/data/unmatched-requests.ts`, `src/lib/data/admin.ts`
+  - **What:** Persist notification-send state for alert-matched events so follow-up and dedupe work reliably.
+  - **Why:** Demand capture only works if matched alerts are delivered once and tracked cleanly.
+  - **Done when:** Alert-match sends can be audited, deduped, and reviewed from stored notification logs.
+
+### Design System / UX Consistency
+
+- [ ] **V01** — Normalize result-card hierarchy around fit, price, timing, trust, and explanation
+  - **File(s):** `src/components/trip/trip-card.tsx`, `src/components/ui/card.tsx`, `src/app/globals.css`
+  - **What:** Establish one card hierarchy that puts fit, price, timing, trust, and explanation in a consistent visual order.
+  - **Why:** Ranked-answer cards need a stable decision pattern so customers can compare without browsing fatigue.
+  - **Done when:** Offer cards use one hierarchy that emphasizes fit, total price, timing, trust, and explanation consistently.
+
+- [ ] **V02** — Create a shared state-card pattern for request submitted, no match, alert matched, and payout blocked
+  - **File(s):** `src/components/ui/card.tsx`, `new file: src/components/shared/state-card.tsx`, `src/app/globals.css`
+  - **What:** Add a reusable state-card component for high-signal marketplace states that need clear actions and explanations.
+  - **Why:** Blueprint flows depend on a handful of recurring high-importance states and should not re-solve them page by page.
+  - **Done when:** Core state surfaces reuse a shared pattern for layout, emphasis, and CTA placement.
+
+- [ ] **V03** — Reduce section-label overuse on customer and carrier operational pages
+  - **File(s):** `src/app/globals.css`, `src/app/(customer)/search/page.tsx`, `src/app/(carrier)/carrier/dashboard/page.tsx`
+  - **What:** Cut repetitive eyebrow labels so headings and state changes regain visual meaning.
+  - **Why:** Overusing section labels flattens information hierarchy on already dense operational pages.
+  - **Done when:** Primary operational screens use section labels sparingly and reserve them for real section changes.
+
+- [ ] **V04** — Create consistent trust-badge tokens for required and optional trust signals
+  - **File(s):** `src/components/ui/badge.tsx`, `src/components/carrier/carrier-trust-panel.tsx`, `src/app/(customer)/carrier/[id]/page.tsx`
+  - **What:** Standardize badge styling for verified, new but verified, ABN verified, insured, and proof-backed trust states.
+  - **Why:** Trust surfaces need a coherent visual language if structure is going to do the reassurance work.
+  - **Done when:** Trust signals across customer and carrier surfaces use a shared badge system with distinct meanings.
+
+- [ ] **V05** — Create warning-tone tokens for access complexity, freshness risk, and payout blocks
+  - **File(s):** `src/app/globals.css`, `src/components/ui/badge.tsx`, `src/app/(carrier)/carrier/today/page.tsx`
+  - **What:** Define and apply warning tones for access-heavy jobs, stale-supply risk, and payout blockers.
+  - **Why:** Risk states need fast scannability without reading long explanatory paragraphs.
+  - **Done when:** Access, freshness, and payout-risk states render with a consistent warning tone across the product.
+
+- [ ] **V06** — Create a consistent CTA stack for primary versus secondary marketplace actions
+  - **File(s):** `src/components/ui/button.tsx`, `src/app/(customer)/trip/[id]/page.tsx`, `src/app/(carrier)/carrier/dashboard/page.tsx`
+  - **What:** Standardize how primary and secondary CTAs stack on mobile across request, alert, proof, and payout surfaces.
+  - **Why:** The blueprint depends on one dominant action per screen and CTA order should reinforce that.
+  - **Done when:** Mobile CTA ordering is consistent across core customer and carrier flows.
+
+- [ ] **V07** — Add skeletons for wizard, results, requests, and alerts that preserve layout meaning
+  - **File(s):** `src/components/search/search-results-skeleton.tsx`, `src/components/carrier/trip-list-skeleton.tsx`, `new file: src/components/search/alerts-skeleton.tsx`
+  - **What:** Replace generic loading placeholders with skeletons that mirror the eventual ranked-answer and work-queue layouts.
+  - **Why:** Loading states should support the product model instead of feeling like generic browsing chrome.
+  - **Done when:** Wizard, results, requests, and alerts all have layout-preserving skeleton states.
+
+- [ ] **V08** — Audit sticky CTA bars and nav for safe-area compliance in the realigned flows
+  - **File(s):** `src/app/globals.css`, `src/components/booking/sticky-booking-cta.tsx`, `src/components/layout/mobile-nav.tsx`
+  - **What:** Ensure sticky CTAs, bottom nav, and sheets still respect iPhone safe areas after the flow realignment.
+  - **Why:** Mobile-first trust and conversion fall apart fast when sticky controls overlap the home indicator or action bars.
+  - **Done when:** Sticky controls across customer and carrier flows clear safe areas on a `375px` viewport.
+
+### Hardening / Edge Cases
+
+- [ ] **A39** — Handle move-request expiry and reactivation without losing alert history
+  - **File(s):** `new file: src/lib/data/move-requests.ts`, `new file: src/lib/data/unmatched-requests.ts`, `src/types/move-request.ts`
+  - **What:** Define how stale move requests expire, reactivate, or clone into new requests without dropping their alert and match history.
+  - **Why:** Need persistence and recovery are central to sparse-supply behavior and cannot rely on ephemeral form state.
+  - **Done when:** Expired move requests can be reactivated or duplicated in a controlled way without corrupting alert state.
+
+- [ ] **A40** — Handle all-Fast-Match-declined outcomes by routing into alert capture
+  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/notifications.ts`, `new file: src/lib/data/unmatched-requests.ts`
+  - **What:** Define the post-failure path when all Fast Match requests decline or expire so the customer lands in alert recovery instead of a dead end.
+  - **Why:** Fast Match exists to reduce latency, but it still needs a clear sparse-supply fallback.
+  - **Done when:** Failed Fast Match groups automatically transition customers into the correct recovery flow.
+
+- [ ] **A41** — Handle clarification expiry when the customer never responds
+  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/status-machine.ts`, `src/types/booking-request.ts`
+  - **What:** Add explicit expiry and follow-on behavior for clarification requests that receive no customer response.
+  - **Why:** Clarification is bounded in the blueprint and cannot become an indefinite limbo state.
+  - **Done when:** Clarification requests expire cleanly and move the request into the correct follow-up outcome.
+
+- [ ] **A42** — Recompute offer pricing previews when access facts change before submission
+  - **File(s):** `src/components/booking/booking-form.tsx`, `src/lib/pricing/breakdown.ts`, `src/lib/data/trips.ts`
+  - **What:** Update offer and confirmation pricing previews whenever the customer changes structured access facts during confirmation.
+  - **Why:** The blueprint promises deterministic pricing from structured inputs and requires real-time recalculation before commitment.
+  - **Done when:** Editing access facts in confirmation updates the total and breakdown before the request is submitted.
+
+- [ ] **A43** — Block request creation when required bulky-item photos are missing
+  - **File(s):** `src/components/booking/booking-form.tsx`, `src/app/api/upload/route.ts`, `src/lib/validation/move-request.ts`
+  - **What:** Add explicit blocking validation and UI treatment for missing required photos on bulky-item flows.
+  - **Why:** Photo truth is a core trust and fit control and should fail loudly before request creation.
+  - **Done when:** Missing required bulky-item photos produce a blocking validation state with a clear next action.
+
+- [ ] **A44** — Add structured decline reasons without turning declines into free-text support work
+  - **File(s):** `src/components/carrier/pending-bookings-alert.tsx`, `src/lib/data/bookings.ts`, `src/types/booking-request.ts`
+  - **What:** Add predefined carrier decline reasons and avoid free-text decline paths as the default response mode.
+  - **Why:** The blueprint values operational clarity and low typing burden over message-heavy decline explanations.
+  - **Done when:** Carrier declines can capture bounded reasons without requiring long-form text entry.
+
+- [ ] **A45** — Notify affected customers when a trip auto-suspends on failed freshness check
+  - **File(s):** `src/lib/notifications.ts`, `src/lib/data/trips.ts`, `src/lib/data/bookings.ts`
+  - **What:** Send customer-facing suspension notifications and next actions when a trip misses the 2-hour check-in and is removed from fulfilment.
+  - **Why:** Auto-suspension protects trust only if customers learn about the change quickly and clearly.
+  - **Done when:** Affected customers receive suspension notifications with the correct recovery path when their trip loses freshness.
+
+- [ ] **A46** — Invalidate stale offers when a trip changes after results were shown
+  - **File(s):** `src/lib/data/trips.ts`, `new file: src/lib/data/offers.ts`, `src/app/(customer)/search/page.tsx`
+  - **What:** Expire or regenerate offers when the underlying trip route, pricing, capacity, or constraints change materially.
+  - **Why:** Offer truth must remain trustworthy if carriers edit or lose availability after a customer has already seen a match.
+  - **Done when:** Stale offers cannot be requested without a refresh and the customer receives a clear reload path.
+
+### Technical Debt / Cleanup
+
+- [ ] **A47** — Replace ad hoc result-breakdown structures with a single offer presenter contract
+  - **File(s):** `src/lib/data/trips.ts`, `src/lib/trip-presenters.ts`, `src/types/trip.ts`
+  - **What:** Consolidate how route fit, detour, pricing preview, and trust data are prepared for customer offer rendering.
+  - **Why:** Realigned results logic will sprawl quickly if presenters and API responses diverge by surface.
+  - **Done when:** Result, detail, and alert surfaces consume one offer-presentation contract.
+
+- [ ] **A48** — Replace listing-first terminology in presenter utilities and constants
+  - **File(s):** `src/lib/trip-presenters.ts`, `src/lib/constants.ts`, `src/lib/data/mappers.ts`
+  - **What:** Rename helpers and constants that still encode listing-first or inventory-first semantics.
+  - **Why:** Internal terminology guides future implementation choices and should reflect the blueprint model.
+  - **Done when:** Core presenter and constant names prefer trip, offer, move request, and alert language over inventory language.
+
+- [ ] **A49** — Replace saved-search-specific notification naming with alert naming
+  - **File(s):** `src/lib/notifications.ts`, `src/lib/data/saved-searches.ts`, `src/lib/email/index.ts`
+  - **What:** Rename notification templates, event names, and helpers so alert capture replaces saved-search semantics in the codebase.
+  - **Why:** Notification naming should describe the active no-match loop the product actually uses.
+  - **Done when:** Notification helpers and template names reference alerts and unmatched demand instead of saved searches.
+
+- [ ] **A50** — Remove browse-first analytics events that no longer map to the product model
+  - **File(s):** `src/lib/analytics.ts`, `src/app/api/search/route.ts`, `src/app/api/bookings/route.ts`
+  - **What:** Remove or rename analytics events that assume browse-first inventory, direct booking, or saved-search semantics.
+  - **Why:** Measurement should reflect the governing product funnel or later data interpretation will drift.
+  - **Done when:** Core analytics events map to move request, offers, booking requests, alerts, and fulfilment rather than browse-first shortcuts.
+
+- [ ] **A51** — Consolidate customer draft state around `MoveRequest`
+  - **File(s):** `src/components/search/search-bar.tsx`, `src/components/booking/booking-form.tsx`, `new file: src/hooks/useMoveRequestDraft.ts`
+  - **What:** Collapse duplicated draft logic into a shared move-request draft layer used by home, results, and confirmation flows.
+  - **Why:** The current search-draft and booking-draft split does not fit the need-first request model.
+  - **Done when:** Customer draft state is managed through one move-request-oriented abstraction rather than separate search and booking drafts.
+
+- [ ] **A52** — Consolidate carrier action derivation for Home, Requests, Trips, and Today
+  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/data/carriers.ts`, `src/app/(carrier)/carrier/dashboard/page.tsx`
+  - **What:** Centralize how carrier next actions are derived so multiple pages do not compute urgency and state differently.
+  - **Why:** The state-aware carrier experience will drift fast if each page invents its own action logic.
+  - **Done when:** Carrier next-action derivation lives in one reusable layer consumed across operational surfaces.
+
 ---
 
 ## 🟢 P3 — Enhancements
 
-### ES — Supply-Side Enhancements
+### Frontend Architecture and State
 
-### ED — Demand-Side Enhancements
+- [ ] **B93** — Add recent move-request summaries to Home for returning customers
+  - **File(s):** `src/app/page.tsx`, `new file: src/components/customer/recent-move-requests.tsx`, `new file: src/lib/data/move-requests.ts`
+  - **What:** Show recent move requests and their latest state on Home after the customer has used the flow before.
+  - **Why:** Home should become a lightweight command surface for repeat customers rather than a fixed first-time-only page.
+  - **Done when:** Returning customers can see their recent move requests and start a new one from Home.
 
-- [ ] **ED4** — Booking-confirmed customer notification still needs end-to-end verification
-  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/notifications.ts`
-  - **What:** The confirmed-booking email flow exists in code, but it still needs a full booking → carrier confirm → email verification run against real env wiring.
-  - **Why:** Booking confirmation is the top trust moment in the customer journey. Silence after authorization feels like failure.
-  - **Done when:** Manual booking flow confirms the customer receives the confirmed-booking email with booking reference, route, date, price, and next steps.
+- [ ] **B94** — Add matched-alert badges to customer nav and account surfaces
+  - **File(s):** `src/components/layout/site-header.tsx`, `src/components/layout/mobile-nav.tsx`, `src/app/(customer)/account/page.tsx`
+  - **What:** Surface matched-alert counts in navigation and account views so recovered demand is hard to miss.
+  - **Why:** Alert recovery only works if customers notice when a match becomes available later.
+  - **Done when:** Customers can see matched-alert counts from nav and account without opening the Alerts page first.
 
-- [ ] **ED6** — Web push notifications for booking updates
-  - **File(s):** `src/lib/notifications.ts`, `new file: public/service-worker.js`, `new file: src/hooks/usePushNotifications.ts`
-  - **What:** Add opt-in web push for booking confirmed, trip-day reminder, and delivery-confirmed milestones.
-  - **Why:** Same-day logistics needs faster-than-email notification loops before the native iOS app exists.
-  - **Done when:** Opted-in customers and carriers receive push notifications for key booking milestones and VAPID env vars are wired.
+- [ ] **B95** — Add differentiated carrier-home empty states for no templates versus no live trips
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/components/carrier/quick-post-templates.tsx`, `src/lib/data/templates.ts`
+  - **What:** Tailor carrier home messaging based on whether the carrier lacks templates, lacks live trips, or has both.
+  - **Why:** Empty-state specificity helps carriers recover faster and encourages repeat posting behavior.
+  - **Done when:** Carrier home empty states explain the next best action for no-template and no-live-trip cases separately.
 
-### EP — Platform and Infrastructure Enhancements
+- [ ] **B96** — Add per-trip health reasons to operational views without reviving stats-first design
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/app/(carrier)/carrier/today/page.tsx`, `src/lib/data/bookings.ts`
+  - **What:** Keep useful operational health reasons visible in Home and Today without reintroducing metrics-led stats panels.
+  - **Why:** Carrier ops still need quality signals, but the blueprint wants them subordinate to work-queue actions.
+  - **Done when:** Carriers can see specific health reasons tied to active work inside Home and Today.
 
-- [ ] **EP9** — Input sanitization audit is still incomplete on non-trip/booking write paths
-  - **File(s):** `src/lib/utils.ts`, `src/app/api/**`, `src/lib/data/carriers.ts`
-  - **What:** Review the remaining carrier/admin freetext write paths that were not covered by the latest audit pass. Feedback-response sanitization is now in place, but the broader carrier/admin profile and notes sweep still needs a source-of-truth checklist.
-  - **Why:** One missed admin-facing or public-profile field is enough to leave a stored-XSS hole in the trust and ops surfaces.
-  - **Done when:** The remaining carrier/admin freetext mutations are enumerated, sanitized before persistence, and verified with `npm run check`.
+- [ ] **B97** — Add delivered-pending-confirmation reminders to customer and carrier surfaces
+  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/app/(carrier)/carrier/payouts/page.tsx`, `src/lib/notifications.ts`
+  - **What:** Surface reminders when a booking is delivered and waiting on customer confirmation or auto-release.
+  - **Why:** The 72-hour dispute and auto-release window should stay legible to both sides after delivery.
+  - **Done when:** Customer and carrier surfaces show pending-confirmation reminders with the correct timing and outcome expectations.
 
-- [ ] **EP10** — Offline-first proof upload with service worker queue
-  - **File(s):** `new file: public/service-worker.js`, `new file: src/hooks/useOfflineUpload.ts`, proof upload components under `src/components/booking/`
-  - **What:** Queue proof-photo uploads for retry when a carrier is on poor mobile data instead of failing immediately.
-  - **Why:** Trip-day proof capture happens in the least reliable network conditions; queued retry is safer than manual re-upload.
-  - **Done when:** Offline proof uploads show a queued state and auto-retry when connectivity returns.
+- [ ] **B98** — Add notification deep links to exact request cards and alert items
+  - **File(s):** `src/lib/notifications.ts`, `new file: src/app/(carrier)/carrier/requests/page.tsx`, `new file: src/app/(customer)/alerts/page.tsx`
+  - **What:** Ensure notifications open the exact request or alert context instead of generic list pages.
+  - **Why:** Direct deep links make the action-led product feel much faster and cleaner on mobile.
+  - **Done when:** Request and alert notifications navigate directly to the relevant card or record state.
 
-### EA — Admin and Ops Enhancements
+### API and Integration Changes
 
-### EQ — Code Quality and Test Coverage
+- [ ] **A53** — Add event-driven notification fanout for request, booking, alert, and freshness events
+  - **File(s):** `src/lib/notifications.ts`, `src/lib/data/bookings.ts`, `src/lib/data/trips.ts`
+  - **What:** Expand notification fanout so request, alert, proof, payout, and freshness events share one event-driven model.
+  - **Why:** The realigned product introduces more stateful events and needs a predictable notification layer.
+  - **Done when:** The notification layer can fan out the full blueprint event set from one event-driven contract.
 
-- [ ] **EQ5** — WCAG 2.1 AA audit and remediation
-  - **File(s):** `src/components/**`, `src/app/**`
-  - **What:** Run an automated accessibility audit and remediate Level AA issues across browse, booking, and carrier posting flows.
-  - **Why:** Accessibility gaps are user-experience gaps on iPhone too, and they compound quickly once more UI ships.
-  - **Done when:** Automated audit reports zero AA violations on the search, booking, and carrier-posting flows.
+- [ ] **A54** — Add email templates for request accepted, request declined, alert matched, trip suspended, and payout released
+  - **File(s):** `src/lib/email/index.ts`, `src/lib/notifications.ts`, `src/lib/data/bookings.ts`
+  - **What:** Create missing lifecycle templates for the new request, alert, and freshness events.
+  - **Why:** The blueprint relies on clear lifecycle communication, especially when supply is sparse or state changes are delayed.
+  - **Done when:** Email templates exist for the core realigned lifecycle events and are wired to notification sends.
 
-- [ ] **EQ7** — `booking-form.tsx` and `carrier-trip-wizard.tsx` form state tests
-  - **File(s):** `new file: src/components/booking/__tests__/booking-form.test.tsx`, `new file: src/components/carrier/__tests__/carrier-trip-wizard.test.tsx`
-  - **What:** Add unit tests covering: draft persistence/restoration, payment retry state, file upload with WebP/HEIC, form disable during submission, step validation blocking, and options-adjusted price updates.
-  - **Why:** Both forms are the highest-traffic, highest-impact components and have zero test coverage today.
-  - **Done when:** Tests pass and cover all states enumerated above, with `npm run check` clean.
+- [ ] **A55** — Add push-notification preference toggles with fallback channels
+  - **File(s):** `src/lib/notifications.ts`, `src/app/(customer)/account/page.tsx`, `src/app/(carrier)/carrier/account/page.tsx`
+  - **What:** Add push toggles and fallback channel logic for customers and carriers as alerts and request events expand.
+  - **Why:** Blueprint flows assume push is important, but the product still needs graceful fallback behavior.
+  - **Done when:** Users can manage push preferences and the system can fall back to email or in-app when push is unavailable.
 
-### EV — Visual / Design System
+- [ ] **A56** — Add operator audit events for concierge, suspension, dispute, and verification actions
+  - **File(s):** `src/lib/data/admin.ts`, `new file: src/lib/data/operator-tasks.ts`, `src/types/admin.ts`
+  - **What:** Persist structured admin event records for the main manual interventions used in MVP.
+  - **Why:** Admin and founder actions are part of product truth during MVP and should be auditable.
+  - **Done when:** Manual concierge, suspension, dispute, and verification actions write durable operator audit events.
 
-- [ ] **V1** — Consistent card border radius and shadow system
-  - **File(s):** `tailwind.config.ts`, `src/components/ui/card.tsx`, `src/components/trip/trip-card.tsx`
-  - **What:** Define one shared card token for radius, shadow, and hover/active lift, then apply it everywhere cards appear.
-  - **Why:** A cleaner, repeatable card system reduces visual drift as more ops and marketplace surfaces ship.
-  - **Done when:** Major card surfaces use one shared token and visual audit at 375px reads as a single system.
+- [ ] **A57** — Add reusable geospatial helpers for corridor overlap and partial-route labels
+  - **File(s):** `src/lib/maps/directions.ts`, `src/lib/maps/distance.ts`, `src/lib/data/trips.ts`
+  - **What:** Create shared helpers for corridor overlap, partial-route percentage, and route-fit labeling instead of ad hoc calculations.
+  - **Why:** Matching logic will need consistent geospatial semantics across offers, alerts, and admin surfaces.
+  - **Done when:** Corridor overlap and partial-route helpers are reusable and power customer-facing match labels consistently.
 
-- [ ] **V2** — Typography scale constrained on mobile
-  - **File(s):** `tailwind.config.ts`, `src/app/globals.css`, major page components
-  - **What:** Normalize mobile pages onto a three-size semantic typography scale.
-  - **Why:** Too many font sizes make the iPhone layouts feel noisy and less trustworthy.
-  - **Done when:** Mobile pages use three or fewer text sizes per page without losing hierarchy.
+- [ ] **A58** — Add cached detour estimation for top candidates only
+  - **File(s):** `src/lib/maps/directions.ts`, `src/lib/data/trips.ts`, `src/lib/matching/score.ts`
+  - **What:** Add cached detour estimation so the system can explain top candidates without turning every search into a full routing burst.
+  - **Why:** The blueprint allows lightweight detour estimation but does not want a heavy route-optimization engine.
+  - **Done when:** Detour estimates are cached for surfaced candidates and not recomputed wastefully on every request.
 
-- [ ] **V3** — `section-label` eyebrow text is overused — appears on 10+ cards per page
-  - **File(s):** `src/app/globals.css`, all page components
-  - **What:** Every card on the carrier dashboard, booking detail, and trip detail uses `.section-label` as an eyebrow. The pattern loses meaning when it appears 15 times on one page. Reserve it for primary section headers only.
-  - **Why:** Overuse of eyebrow labels makes every section feel equally important — nothing is highlighted as primary.
-  - **Done when:** `section-label` is used ≤3 times per page, and secondary card content uses `subtle-text` or plain `text-sm text-text-secondary` instead.
+### Hardening / Edge Cases
 
-- [ ] **V4** — Loading state standardization (spinner to skeleton)
-  - **File(s):** components using spinner-based loading under `src/components/**`
-  - **What:** Replace remaining spinner-only loading states with skeletons or structured Suspense fallbacks.
-  - **Why:** Skeletons preserve layout and feel faster on mobile than floating spinners.
-  - **Done when:** Spinner-only loading states are removed from shared components in favor of skeleton or Suspense patterns.
+- [ ] **D17** — Add RLS policies for new move-request, offer, booking-request, alert, and operator tables
+  - **File(s):** `new file: supabase/migrations/031_realignment_rls.sql`, `src/types/database.ts`, `supabase/migrations/004_create_rls_policies.sql`
+  - **What:** Apply row-level security for every new realignment table and align access with customer, carrier, admin, and service-role boundaries.
+  - **Why:** Every new trust-critical table needs RLS, especially when founder concierge and notifications are involved.
+  - **Done when:** All new tables have explicit RLS policies and policy coverage matches the realigned roles.
 
-- [ ] **V6** — Safe-area CSS audit for all sticky elements
-  - **File(s):** `src/app/globals.css`, sticky/fixed UI components under `src/components/**`
-  - **What:** Finish the audit so every sticky header, footer, CTA bar, and sheet clears the iPhone home indicator and notch areas.
-  - **Why:** One missed sticky element can make the app feel broken on the exact devices MVP users are testing on.
-  - **Done when:** All sticky elements respect safe-area insets on iPhone 14/15 class viewports.
+- [ ] **D18** — Add GIST indexes for new geography columns and route polylines
+  - **File(s):** `new file: supabase/migrations/032_realignment_geo_indexes.sql`, `src/types/database.ts`, `supabase/migrations/005_create_indexes.sql`
+  - **What:** Add the required geospatial indexes for move-request points, unmatched requests, and realigned trip route geometry.
+  - **Why:** The matching and alert system cannot scale or stay correct without the right spatial indexes.
+  - **Done when:** All new geography and line geometry columns have the required GIST indexes.
 
-- [ ] **V7** — Hover-only state sweep across all components
-  - **File(s):** `src/components/**`
-  - **What:** Complete the touch-feedback audit so every `hover:` treatment has an `active:` counterpart.
-  - **Why:** Hover-only feedback is invisible on iOS and makes taps feel unresponsive.
-  - **Done when:** Interactive components no longer rely on hover-only feedback and `npm run check` passes.
+- [ ] **D19** — Correct migration sequencing before adding realignment migrations
+  - **File(s):** `supabase/migrations/010_capacity_recalculation.sql`, `supabase/migrations/010_saved_searches.sql`, `new file: supabase/migrations/033_fix_migration_sequence.sql`
+  - **What:** Resolve the duplicate `010` migration numbering so future realignment migrations can apply predictably.
+  - **Why:** Sequential migration integrity is a repository rule and the current duplicate numbering is a latent deployment risk.
+  - **Done when:** Migration ordering is unambiguous and future realignment migrations can be added without sequence collisions.
 
-- [ ] **V8** — Dark mode: `bg-surface` and `bg-background` contrast insufficient in dark theme
-  - **File(s):** `tailwind.config.ts`, `src/app/globals.css`
-  - **What:** Dark mode is enabled via `dark:` Tailwind variants throughout the codebase, but the contrast ratio between `bg-surface` (card background) and `bg-background` (page background) in dark mode may be below WCAG AA ratio of 4.5:1 for text and insufficient card differentiation.
-  - **Why:** Carriers using the app on trip day in low-light (van interior, car park) rely on dark mode for readability. Insufficient contrast in dark mode is an accessibility and safety concern.
-  - **Done when:** Dark mode color pairs pass contrast checking for all text-on-background combinations, verified with a tool like `axe` or Chrome DevTools contrast checker.
+- [ ] **D20** — Add a backfill plan for migrating live listing and booking data into request-based entities
+  - **File(s):** `new file: supabase/migrations/034_backfill_request_entities.sql`, `src/lib/data/mappers.ts`, `src/lib/data/bookings.ts`
+  - **What:** Define how legacy listings and bookings are backfilled into move requests, offers, and booking requests without losing continuity.
+  - **Why:** The model realignment needs a path from existing data to new entities or rollout will stall.
+  - **Done when:** A backfill migration or scripted path exists for core historical data needed by the new model.
 
-### EX — External / Infrastructure
+- [ ] **D21** — Add a dual-read compatibility layer during the legacy-to-realigned transition
+  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/data/trips.ts`, `src/lib/data/mappers.ts`
+  - **What:** Allow read paths to serve legacy and new model records during the transition period.
+  - **Why:** A cold switch would break live screens before the new model is fully rolled out.
+  - **Done when:** Core read paths can tolerate legacy and realigned records until cutover is complete.
 
-- [ ] **X1** — Vercel environment variable audit
-  - **File(s):** `.env.example`, Vercel project settings
-  - **What:** Verify production and preview environments contain every required runtime variable documented in the repo.
-  - **Why:** Missing deployment env vars are the fastest path to "works locally, fails in production" incidents.
-  - **Done when:** `.env.example` is current and Vercel production/preview env sets are confirmed against it.
+- [ ] **A59** — Add feature flags for home, results, request-flow, and alert switchover
+  - **File(s):** `src/lib/env.ts`, `next.config.js`, `src/app/page.tsx`
+  - **What:** Gate the main flow transitions behind explicit feature flags so rollout can happen in bounded slices.
+  - **Why:** A large product-shape realignment needs controlled rollout points to reduce blast radius.
+  - **Done when:** Home, results, request flow, and alerts can be toggled independently through config or env flags.
 
-- [ ] **X2** — Live Sentry source-map verification after repo wiring
-  - **File(s):** `src/lib/sentry.ts`, `next.config.js`, `sentry.server.config.ts`, `sentry.client.config.ts`
-  - **What:** The repo-side `@sentry/nextjs` wiring and source-map upload config now exist. The remaining step is a real build/deploy verification against a configured Sentry org/project so uploaded source maps and readable stack traces are proven in production or preview.
-  - **Why:** Local config is not the same as an actually readable production stack trace.
-  - **Done when:** A deployed test error resolves to readable application stack traces in Sentry with the configured release metadata.
+- [ ] **A60** — Add a shadow-write path for new request entities before legacy write removal
+  - **File(s):** `src/lib/data/bookings.ts`, `new file: src/lib/data/move-requests.ts`, `new file: src/lib/data/offers.ts`
+  - **What:** Write new move-request and offer records alongside the legacy flow before cutting legacy writes entirely.
+  - **Why:** Shadow writes let the team validate the new model without breaking live screens immediately.
+  - **Done when:** Legacy booking creation can optionally shadow-write the new entities for validation and comparison.
 
-- [ ] **X3** — Resend domain verification and production sender
-  - **File(s):** `.env.example`, `src/lib/notifications.ts`, Resend dashboard, DNS provider
-  - **What:** Verify the sending domain and switch lifecycle email to a branded production sender address.
-  - **Why:** Branded deliverability matters for booking confirmations and dispute communication trust.
-  - **Done when:** SPF/DKIM pass and lifecycle emails arrive from the branded sender in inboxes.
+- [ ] **A61** — Add a guard so legacy search fallback cannot regress to a dead-end waitlist
+  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/app/api/search/route.ts`, `src/lib/data/unmatched-requests.ts`
+  - **What:** Block any path that would drop a customer into a dead-end empty state or legacy waitlist behavior during the transition.
+  - **Why:** Zero-match continuation is one of the most important product corrections in the realignment.
+  - **Done when:** Search fallback always routes into near matches, nearby dates, or alert capture even during mixed-model rollout.
 
-- [ ] **X4** — Health endpoint exists, but external degraded-state monitoring is not wired
-  - **File(s):** `src/app/api/health/route.ts`, monitoring config outside repo
-  - **What:** `/api/health` now returns structured component status for env, Supabase, Stripe, and Redis. The remaining gap is wiring an external monitor that alerts when the response reports a degraded dependency.
-  - **Why:** Component-level health is only useful if someone gets paged before users notice the outage.
-  - **Done when:** A monitoring tool polls `/api/health`, alerts on `"overall":"degraded"`, and is documented alongside the endpoint contract.
+- [ ] **A62** — Validate proof records for GPS and timestamp before payout-pending state
+  - **File(s):** `src/lib/data/bookings.ts`, `src/types/booking.ts`, `src/components/booking/private-proof-tile.tsx`
+  - **What:** Enforce proof metadata requirements before the system can move into payout-pending confirmation.
+  - **Why:** The blueprint’s trust model depends on valid proof, not just uploaded images.
+  - **Done when:** Proof uploads must contain required metadata before they can unlock the payout-pending state.
 
-- [ ] **X6** — Deployment preview URLs for PRs
-  - **File(s):** `.github/workflows/ci.yml`, Vercel project settings
-  - **What:** Confirm each PR gets a live Vercel preview URL surfaced back into GitHub for review.
-  - **Why:** Mobile-first UI review is materially faster with a live preview than a code-only pass.
-  - **Done when:** Every PR against `main` shows a working Vercel preview URL in GitHub checks.
+- [ ] **A63** — Add the payout auto-release scheduler with dispute-window enforcement
+  - **File(s):** `new file: src/app/api/cron/payout-auto-release/route.ts`, `src/lib/data/bookings.ts`, `vercel.json`
+  - **What:** Schedule auto-release of payouts after valid proof and 72 hours without dispute.
+  - **Why:** The product’s payout promise is incomplete unless the auto-release path runs automatically and predictably.
+  - **Done when:** Auto-release runs on schedule, respects disputes, and updates payout state without manual intervention.
 
----
+- [ ] **A64** — Add 24-hour and 2-hour trip-freshness schedulers
+  - **File(s):** `new file: src/app/api/cron/trip-freshness-checks/route.ts`, `src/lib/data/trips.ts`, `vercel.json`
+  - **What:** Schedule freshness reminders, deprioritisation, and suspension actions around the blueprint check-in rules.
+  - **Why:** Freshness enforcement is mandatory and cannot depend on page loads or manual review alone.
+  - **Done when:** The platform sends check-ins and applies deprioritisation or suspension based on missed responses.
 
-### EL — Listing Quality & Carrier Posting UX
-- [ ] **EL3** — Listing quality gate: soft warning before publishing incomplete listings
-  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/validation/trip.ts`
-  - **What:** Publish-quality warnings now cover vague timing, missing handling notes, and weak rule clarity. The remaining follow-up is to extend that warning system once vehicle media exists so listing completeness can include photo-backed trust without inventing a nonexistent field now.
-  - **Why:** Incomplete listings harm browse quality for all customers. A soft gate reduces poor inventory reaching search without blocking motivated carriers.
-  - **Done when:** Vehicle media exists in the posting model and the publish-warning system can flag missing photos without blocking publish.
+### Technical Debt / Cleanup
 
-- [ ] **EL4** — Post-publish first-trip onboarding checklist for new carriers
-  - **File(s):** `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/components/carrier/`
-  - **What:** After a carrier publishes their first trip ever, show a one-time checklist: Verify payout setup → Complete carrier profile → Add vehicle photo → Review proof checklist → Respond within 2h to bookings. Each item links directly to the relevant settings page.
-  - **Why:** New carriers who publish but don't complete payout setup or profile miss bookings or cannot receive money. The checklist catches the most common post-publish activation gaps.
-  - **Done when:** First-trip success state shows checklist once with working links. Re-visiting the page does not re-show the checklist.
+- [ ] **A65** — Remove legacy waitlist writes once `UnmatchedRequest` is live
+  - **File(s):** `src/app/api/search/route.ts`, `src/components/customer/waitlist-form.tsx`, `supabase/migrations/006_extend_marketplace_infra.sql`
+  - **What:** Delete legacy waitlist write paths after unmatched-demand flow is fully available.
+  - **Why:** Keeping two zero-match persistence models alive will create product and reporting drift.
+  - **Done when:** No production code writes waitlist entries for customer demand capture.
 
-### ET — Trust, Copy & Customer Clarity
+- [ ] **A66** — Remove legacy saved-search matcher once alerts cover rematch behavior
+  - **File(s):** `src/lib/data/saved-searches.ts`, `src/app/api/saved-searches/route.ts`, `src/app/api/saved-searches/[id]/route.ts`
+  - **What:** Retire saved-search-specific rematch behavior after alerts and unmatched-demand rematching replace it.
+  - **Why:** Two rematch systems will compete conceptually and operationally if they remain live together.
+  - **Done when:** Alert-based rematching is the only live rematch path and saved-search-specific matching code is removed.
 
-- [ ] **ET4** — Compact trust signals row on browse cards
-  - **File(s):** `src/components/trip/trip-card.tsx`, `src/lib/data/trips.ts`
-  - **What:** Search cards now carry a compact trust row for verification, payout readiness, and review signals. The remaining delta is surfacing a truthful completed-jobs count in that same row once listing queries expose a stable completed-job metric.
-  - **Why:** Trust must be legible before the user taps through. One compact trust signal on the card improves click quality and sets correct expectations.
-  - **Done when:** Cards show verification/review signals plus a real completed-jobs count when that metric is available in the browse query.
+- [ ] **A67** — Remove flat booking-fee helpers after the pricing contract is replaced
+  - **File(s):** `src/lib/pricing/breakdown.ts`, `src/lib/trip-presenters.ts`, `src/components/trip/trip-detail-summary.tsx`
+  - **What:** Delete helper names, presenter logic, and UI copy that depend on the flat booking-fee model once the new pricing model lands.
+  - **Why:** Leaving the old pricing primitives in place will cause drift and accidental reintroduction later.
+  - **Done when:** The codebase no longer carries flat booking-fee helper names or customer-facing references.
 
-- [ ] **ET5** — Carrier profile: layered trust badges (ID checked, payout ready, proof history)
-  - **File(s):** `src/app/(customer)/carrier/[id]/page.tsx`, `src/components/carrier/carrier-profile-card.tsx`
-  - **What:** Split the single "verified" indicator into layered specific badges: ID verified, Business details added, Payout setup complete, Insurance on file, Completed X bookings with proof. Each badge has a short tooltip explaining what it means.
-  - **Why:** A single "Verified" badge is too vague to build trust. Specific badges show what was actually checked and when.
-  - **Done when:** Carrier profile page shows granular trust badges. Tooltips explain each badge. No badges shown for uncompleted checks. `npm run check` passes.
+- [ ] **A68** — Remove direct customer-to-carrier phone fields from customer presenters
+  - **File(s):** `src/lib/data/bookings.ts`, `src/types/booking.ts`, `src/app/(customer)/bookings/[id]/page.tsx`
+  - **What:** Stop mapping carrier phone fields into customer-facing presenter data for MVP flows.
+  - **Why:** The blueprint’s on-platform communication rule should be reflected in data-presenter boundaries too.
+  - **Done when:** Customer presenter payloads no longer include carrier phone data by default.
 
-- [ ] **ET7** — Trip detail: what's included vs not included structured block
-  - **File(s):** `src/app/(customer)/trip/[id]/page.tsx`, `src/components/trip/trip-detail-summary.tsx`, carrier posting wizard
-  - **What:** Add a structured included/not-included block from listing rules: Included — loading, blankets, transit. Not included — disassembly, stair buildings, items over 100kg. Carriers populate this during trip creation.
-  - **Why:** Most move disputes come from unstated assumptions. Explicit inclusions/exclusions before booking reduce trip-day surprises.
-  - **Done when:** Trip detail shows the block. Carriers can control content via listing fields. `npm run check` passes.
+- [ ] **A69** — Remove public carrier listing shelves that bypass need-first entry
+  - **File(s):** `src/app/(customer)/carrier/[id]/page.tsx`, `src/app/page.tsx`, `src/lib/data/trips.ts`
+  - **What:** Remove or hide trip shelves whose main purpose is browsing a carrier’s public inventory.
+  - **Why:** Inventory shelves on profile-like pages preserve a browse-first loop the blueprint rejects.
+  - **Done when:** Public carrier surfaces no longer function as alternative browsing entry points to live supply.
 
-- [ ] **ET11** — Booking price breakdown consistency across all views
-  - **File(s):** `src/components/booking/booking-checkout-panel.tsx`, `src/app/(customer)/bookings/[id]/page.tsx`, `src/app/(admin)/admin/bookings/[id]/page.tsx`, `src/components/trip/trip-card.tsx`
-  - **What:** Ensure every surface uses the same breakdown function from `src/lib/pricing/breakdown.ts`. Audit and replace any inline pricing math on any surface with a call to the canonical function.
-  - **Why:** Inconsistent pricing across views creates confusion and support tickets. One canonical source eliminates drift.
-  - **Done when:** All surfaces produce identical breakdowns for the same booking. No surface has inline pricing math. `npm run check` passes.
+- [ ] **A70** — Remove percentage-capacity copy helpers from customer presenters
+  - **File(s):** `src/lib/trip-presenters.ts`, `src/components/trip/trip-card.tsx`, `src/components/trip/trip-detail-summary.tsx`
+  - **What:** Delete presenter helpers that convert raw remaining-capacity percentages directly into customer-facing copy.
+  - **Why:** The blueprint wants human fit language, not percentage-led capacity explanations.
+  - **Done when:** Customer-facing presenter helpers no longer expose percentage-capacity phrasing directly.
 
-- [ ] **ET13** — Audit and rewrite vague trust copy to evidence-led language sitewide
-  - **File(s):** marketing pages, `src/app/(customer)/trip/[id]/page.tsx`, checkout copy, site header copy
-  - **What:** `/trust` now exists and the touched booking/search surfaces use more concrete payment and dispute language. The remaining work is a full sweep across untouched marketing and customer pages to replace generic trust claims with specific evidence-led copy.
-  - **Why:** Vague corporate trust claims read as marketing noise. Specific, factual statements build real confidence — especially for first-time users.
-  - **Done when:** No customer-facing page uses generic trust claims without concrete backing. Copy changes are documented.
+- [ ] **A71** — Rename listing-centric modules toward trip, offer, request, and alert language
+  - **File(s):** `src/lib/data/listings.ts`, `src/lib/data/trips.ts`, `src/lib/data/mappers.ts`
+  - **What:** Rename modules and helper boundaries that still encode listings as the primary product concept.
+  - **Why:** Internal architecture should describe the realigned model so future work follows the right abstractions.
+  - **Done when:** Core module names reflect trips, offers, booking requests, move requests, and alerts instead of generic listings.
 
----
-
-## ⚪ After MVP / Deferred
-
-*Explicitly out of the MVP queue. Keep these one-line, separated from launch work, and do not pull them into active delivery without a fresh prioritization pass.*
-
-- [ ] **P4-01** — LLM item classification from customer photo or description
-- [ ] **P4-02** — Fixed price per item category (sofa, fridge, etc.) instead of carrier-set price
-- [ ] **P4-03** — Percentage-based booking fee (3%) replacing the flat $5 — review after 50+ jobs
-- [ ] **P4-04** — In-app messaging between carrier and customer
-- [ ] **P4-05** — Interactive map view of active listings (pins on a map)
-- [ ] **P4-06** — Live GPS tracking of carrier on trip day
-- [ ] **P4-07** — Bounded counter-offer flow for spare-capacity bookings
-- [ ] **P4-08** — Surge pricing on high-demand routes or dates
-- [ ] **P4-09** — Native iOS app (Swift / React Native) — web is for testing only at MVP
-- [ ] **P4-10** — Native Android app
-- [ ] **P4-11** — Multi-stop trip support (more than one pickup or dropoff)
-- [ ] **P4-12** — Corporate/B2B accounts for business relocations
-- [ ] **P4-13** — Carrier insurance-verification API integration (auto-check expiry)
-- [ ] **P4-14** — Automated payout release via Stripe Connect scheduled transfers
-- [ ] **P4-15** — Customer loyalty / repeat-booking discount
-- [ ] **P4-16** — Carrier referral program ("refer another carrier, earn $50")
-- [ ] **P4-17** — Freight broker / 3PL integration for large-volume shippers
-- [ ] **P4-18** — National expansion beyond Sydney metro
-- [ ] **P4-19** — Two-way carrier verification via government API (digital licence check)
-- [ ] **P4-20** — Embedded insurance option for customer items
-- [ ] **P4-21** — Customer item storage (short-term warehousing via carrier network)
-- [ ] **P4-22** — Route optimization suggestions for carriers with multiple bookings
-- [ ] **P4-24** — Carrier earnings export as CSV for tax/accounting
-- [ ] **P4-25** — Customer booking history PDF export
-- [ ] **P4-26** — Review system: double-blind (hold both reviews until both parties submit or window expires)
-- [ ] **P4-27** — Review system: structured sub-ratings (communication, item care, punctuality, proof quality, listing accuracy)
-- [ ] **P4-28** — Review system: one public carrier reply per review (bounded, factual response only)
-- [ ] **P4-29** — Review system: moderation policy examples published for categories of removable reviews
-- [ ] **P4-30** — In-app messaging: thread header showing current booking status and next required action
-- [ ] **P4-31** — In-app messaging: structured prompt chips (confirm dimensions, ask about stairs, share access photo)
-- [ ] **P4-32** — In-app messaging: carrier quick replies for common access and dimension questions
-- [ ] **P4-33** — In-app messaging: visible response deadline per thread for critical booking states
-- [ ] **P4-34** — In-app messaging: image upload labels (item photo, pickup area, delivery proof, damage evidence)
-- [ ] **P4-35** — Search: route corridor featured shelves (Eastern Suburbs pickups, Inner West → City, etc.)
-- [ ] **P4-36** — Search: support-risk aware ranking (blend trust, completeness, response rate into ordering)
-- [ ] **P4-37** — Trip detail: comparison drawer to view two or three listings side by side
-- [ ] **P4-38** — Posting flow: live preview of how the listing card will look in search while creating
-- [ ] **P4-39** — Posting flow: route frequency tracker (shows carrier how often their route type historically converts)
-- [ ] **P4-40** — Carrier profile: route expertise section (repeated corridors, common item types handled, completion history)
-- [ ] **P4-41** — Carrier profile: response speed and booking reliability shown in customer-friendly format
-- [ ] **P4-42** — Scam reporting button on listings, carrier profiles, and suspicious in-app notifications
-- [ ] **P4-43** — Carrier reliability streaks (positive reinforcement for completed job streaks with clean proof and fast responses)
-- [ ] **P4-44** — Saved trip templates for repeat customers (save recurring move details for quick rebooking)
-- [ ] **P4-45** — Carrier departure safety checklist before trip day (load restraint, secure packing, visibility check)
-- [ ] **P4-46** — Proof quality coaching after upload (flag blurry, incomplete, or missing-angle proof photos)
-- [ ] **P4-47** — Route performance analytics for carriers (which routes convert, which item types book most)
-- [ ] **P4-48** — Experiment review ritual: monthly review of near-miss experiments and pending keep/discard decisions
-- [ ] **P4-49** — Weekly operating review ritual with documented format (instruction quality, verification debt, trust incidents)
-- [ ] **P4-50** — Cross-project operating system template (distill best moverrr agent/rule/skill patterns for future repos)
-- [ ] **P4-51** — Carrier badge freshness: show when verification was last confirmed and highlight documents needing renewal
-- [ ] **P4-52** — Carrier profile proof gallery: show selected before/after, pickup, and delivery proof examples from past work
-- [ ] **P4-53** — Day-of-move urgent direct contact mode: unlock tap-to-call only after booking confirmed and trip is same-day
-- [ ] **P4-54** — Message risk detection: flag off-platform payment prompts or suspicious patterns in threads for admin review
-- [ ] **P4-55** — Dispute center: centralize disputes with structured reason codes, evidence upload, and deadline tracking
-- [ ] **P4-56** — Cancellation policy matrix: define outcomes for each cancellation scenario (pre-confirm, post-confirm, carrier cancel, failed access)
-- [ ] **P4-57** — Partial refund rules tied to evidence, timeline, and completed portion of the job
-- [ ] **P4-58** — Rebook from completed trip: let customers rebook a trusted carrier on a similar corridor in one tap
+- [ ] **A72** — Replace dashboard and stats language with command-centre and work-queue language
+  - **File(s):** `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/app/(carrier)/carrier/stats/page.tsx`, `src/components/layout/page-intro.tsx`
+  - **What:** Remove dashboard and stats language from carrier-facing operational surfaces and replace it with work-queue language.
+  - **Why:** Product language should reinforce action-led carrier behavior, not deferred analytics ambitions.
+  - **Done when:** Carrier operational pages no longer describe themselves primarily through dashboard or stats framing.
 
 ---
 
----
-
-## Moverrr — MVP Critical Blockers and Product Gaps
-
-> Added: `2026-04-08` — based on deep repo review. These items reflect what the code actually shows vs what needs to exist for a working MVP. These are the real gaps, not wishlist items.
-> Format: each item answers who it affects, what exactly needs to exist, where the code is, and what done looks like.
-> Work these before anything in the P3/P4 backlog and before agentic infrastructure. Product truth first.
-
----
-
-### Stripe Connect Express onboarding now exists, but still needs real-env verification
-
-- **Priority:** P0
-- **Stage:** Now
-- **Type:** Product / Payments
-- **Why this matters:** The repo now has Express account creation/resume, return handling, carrier CTAs, and `account.updated` syncing. The remaining risk is environment truth: Connect capability, return URLs, and webhook delivery all need a real preview/production verification pass before payouts are trusted operationally.
-- **What exactly needs to be done:** Run a real carrier through `/api/carrier/stripe/connect-start`, complete Stripe onboarding, confirm the return route updates `stripe_onboarding_complete`, confirm `account.updated` webhook delivery, and verify the already-landed admin payment capture flow still matches the connected-account payout policy for MVP.
-- **Likely areas affected:** `src/app/api/carrier/stripe/` (new files), `src/app/(carrier)/carrier/payouts/page.tsx`, `src/app/(carrier)/carrier/onboarding/page.tsx`, `src/lib/stripe/` (new connect helpers), `src/app/api/payments/webhook/route.ts` (add account.updated handler), `supabase/migrations/` (no schema change needed, columns exist)
-- **Dependencies / open questions:** STRIPE_SECRET_KEY plus Connect capabilities must be enabled in the target env, and the webhook endpoint must actually receive Connect account events.
-- **Edge cases / failure modes:** Carrier abandons onboarding and resumes later, Stripe restricts an already-created account, or the return path succeeds but webhook delivery lags and temporarily shows stale status.
-- **Acceptance criteria:** A real carrier can complete the hosted Stripe Connect flow end-to-end and the payout dashboard reflects the completed setup without manual DB intervention.
-
----
-
-### No automated mechanism expires pending bookings after 2 hours
-
-- **Priority:** P0
-- **Stage:** Now
-- **Type:** Product / Ops
-- **Why this matters:** `cancelExpiredPendingBookings()` exists in `src/lib/data/bookings.ts` and correctly cancels bookings past `pending_expires_at` (2 hours). But this function is never called automatically. Pending bookings issued on Friday will still be "pending" on Monday unless a manual call or page load triggers expiry. The Stripe payment intent is also authorized but not cancelled during manual non-expiry. Stuck pending bookings: (1) hold listing capacity hostage preventing new bookings, (2) leave authorized card holds on customer credit cards, (3) create phantom "pending" entries in the carrier's dashboard.
-- **What exactly needs to be done:** Set up a scheduled mechanism to call `cancelExpiredPendingBookings()` every 15–30 minutes. Options in order of preference for this stack: (1) Vercel Cron Job — add a `vercel.json` with cron configuration and create `GET /api/cron/expire-pending-bookings` protected by a `CRON_SECRET` header check. Simplest, works with existing Next.js/Vercel setup. (2) Supabase Edge Function on a cron schedule. The API route approach is preferred because the cancellation logic is already in TypeScript and tests exist. Protect the endpoint so only the Vercel cron caller (via secret header) can trigger it.
-- **Likely areas affected:** New file `src/app/api/cron/expire-pending-bookings/route.ts`, new file `vercel.json`, `src/lib/data/bookings.ts` (function already exists), `.env.example` (add `CRON_SECRET`)
-- **Dependencies / open questions:** Vercel Pro plan required for cron jobs (or use free tier with longer intervals). Must ensure the function is idempotent — multiple concurrent calls must not double-cancel. The existing `cancelExpiredPendingBookings` should be checked for idempotency.
-- **Edge cases / failure modes:** Cron fires during a high-load moment and times out partway through — partially expired batch. A booking has `pending_expires_at` in the past but the stripe cancellation fails — booking cancelled in DB but Stripe hold still active. Cron fires twice simultaneously and both pick up the same expired booking.
-- **Acceptance criteria:** A booking created with `pending_expires_at` in the past is automatically cancelled within 30 minutes. The Stripe payment intent authorization is cancelled. The listing capacity is recalculated. The customer and carrier receive the expired-booking email. No manual intervention required.
-
----
-
-### Carrier has no UI to accept or reject an individual booking — pending state is opaque
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Product / Supply
-- **Why this matters:** When a customer books a trip, the booking enters `pending` state. The carrier must confirm it (transition to `confirmed`) or cancel it (transition to `cancelled`). The status machine supports this. `canActorTransitionBooking` allows carriers to move to `confirmed`, `picked_up`, `in_transit`, `delivered`. But the carrier needs to explicitly see the pending booking and take action. The `PendingBookingsAlert` component exists on the carrier dashboard. The `status-update-actions.tsx` component handles status transitions. However, it's unclear if the carrier has a clear "Accept booking" / "Decline booking" experience per individual pending booking. The 2-hour window creates urgency. If the carrier misses it, the booking auto-cancels (once AG-H2 / the cron job is set up). This needs a clear mobile-first carrier-facing experience.
-- **What exactly needs to be done:** Verify that the carrier booking detail page (`/carrier/trips/[id]`) or the today page has explicit "Accept" and "Decline" buttons for `pending` bookings with: (1) the customer's item description, category, dimensions, weight, and photo; (2) pickup and dropoff addresses (not just suburb); (3) the exact amount the carrier will earn; (4) a countdown showing how much of the 2-hour window remains; (5) an "Accept" button that transitions to `confirmed`; (6) a "Decline" button (with a required reason from the `BOOKING_CANCELLATION_REASONS` list) that transitions to `cancelled`. If this UX is incomplete or missing on mobile, implement it. Make the pending bookings alert on the carrier dashboard deep-link directly to the booking needing a decision.
-- **Likely areas affected:** `src/components/booking/status-update-actions.tsx`, `src/components/booking/pending-expiry-countdown.tsx`, `src/app/(carrier)/carrier/trips/[id]/page.tsx`, `src/app/(carrier)/carrier/today/page.tsx`, `src/components/carrier/pending-bookings-alert.tsx`
-- **Dependencies / open questions:** Does the status-update-actions already handle the `pending → confirmed` transition for carriers? Does it show the cancellation reason field when declining? Verify before building.
-- **Edge cases / failure modes:** Carrier clicks "Accept" at the exact moment the 2-hour window expires and the cron job also runs — concurrent accept + expire. The existing atomic booking function + status machine should prevent double-processing but needs verification. Carrier declines without selecting a reason — reject the form submission.
-- **Acceptance criteria:** A carrier can view a pending booking's full details, see the countdown, and click Accept or Decline. Accepting moves the booking to `confirmed` and fires the confirmation email. Declining moves it to `cancelled` with a stored reason and fires the cancellation email. All of this works on a 375px iPhone viewport with 44px tap targets.
-
----
-
-### Email templates are upgraded, but live inbox QA still remains
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Product / Trust
-- **Why this matters:** The shared branded template layer is now in place and the booking/admin/dispute flows no longer rely on bare inline HTML. The remaining risk is client rendering quality and live deliverability, not repo-side template structure.
-- **What exactly needs to be done:** Send the new branded templates through real Gmail/Apple Mail inboxes, verify previews and CTA rendering, and tighten any client-specific spacing or clipping defects that only show up in real inboxes.
-- **Likely areas affected:** New dir `src/lib/email/`, `src/lib/data/bookings.ts` (update calls), `src/lib/data/admin.ts` (update calls), `src/lib/data/feedback.ts` (update calls)
-- **Dependencies / open questions:** No external dependency needed — pure function returning HTML string is enough for MVP. Resend domain must be verified first (X3 in existing backlog). Decide: should each status transition have a different subject line and body? Current code has a `subjectByStatus` map — what's in it? Verify which statuses get emails.
-- **Edge cases / failure modes:** HTML renders differently across email clients (Gmail, Apple Mail, Outlook). Avoid complex CSS. Test with a tool like Litmus or by sending real test emails. The `to` address may be null if env is not configured — already handled by graceful degradation.
-- **Acceptance criteria:** Real inbox checks confirm the branded templates render cleanly on mobile clients without clipping, broken CTA buttons, or unreadable copy.
-
----
-
-### Lifecycle email gaps are narrower, but scheduled reminders still need wiring
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Product / Trust
-- **Why this matters:** Verification approved/rejected emails, review-request emails, and customer delivery-confirmed emails now exist. The remaining gap is scheduled reminder infrastructure rather than zero lifecycle coverage.
-- **What exactly needs to be done:** Wire trip-day and delivery reminder scheduling to the chosen cron/runtime path, dedupe reminder sends, and verify the reminder copy against real booking timelines.
-- **Likely areas affected:** `src/app/api/admin/carriers/[id]/verify/route.ts`, `src/lib/data/bookings.ts` (status update handler), new file `src/app/api/cron/trip-day-reminders/route.ts`, `src/lib/email/` (new templates for each type), `vercel.json` (add cron entry for daily reminders)
-- **Dependencies / open questions:** Trip-day reminders require the cron infrastructure (depends on the expired-bookings cron item above). Email domain must be verified (X3). Do we send review requests to both customer and carrier or just customer?
-- **Edge cases / failure modes:** Booking confirmed → delivered → carrier doesn't trigger completed → no review request fires. Cover this by also sending the review request when `completed_at` is set (not just on the status transition). A carrier with multiple bookings on trip day gets one reminder per booking — is that too many emails? For MVP, one per booking is fine. Rate limit the daily reminder cron to not resend if already sent within 12 hours.
-- **Acceptance criteria:** Daily reminders send automatically for eligible bookings without duplicate reminder spam, while the already-landed verification/review/delivery emails continue to dedupe correctly.
-
----
-
-### Admin carrier detail is now live, but verification-history depth can still improve
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Ops / Trust
-- **Why this matters:** The admin detail page, document links, internal notes/tags, required rejection reason, and queue deep-links now exist. The remaining gap is richer historical context rather than blind verification.
-- **What exactly needs to be done:** Extend the detail page with deeper verification-history records and any document-renewal warnings that ops decides are still missing after live usage.
-- **Likely areas affected:** New page `src/app/(admin)/admin/carriers/[id]/page.tsx`, new API route `src/app/api/admin/carriers/[id]/route.ts` (likely needs to be created as a page route, not API), `src/components/admin/` (new carrier detail components), `src/lib/data/carriers.ts` (add `getAdminCarrierById` function), update `src/components/admin/verification-queue.tsx` to link to detail page
-- **Dependencies / open questions:** Private storage bucket access — the admin must be able to see the carrier's document photos. The existing storage RLS policy allows admin to read any object. Verify the signed URL generation works for admin views.
-- **Edge cases / failure modes:** Admin approves a carrier whose insurance has expired (licence_expiry_date < today). Should the approve button warn about expired documents? Yes — add a visual warning on the approve button when documents are near-expiry or expired.
-- **Acceptance criteria:** Ops can audit the full verification timeline, not just the current document/state snapshot.
-
----
-
-### No scheduled job sends trip-day or saved-search match notifications
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Product / Notifications
-- **Why this matters:** The `saved_searches` table exists and users can save search queries. When a new trip is posted that matches a saved search, there is no mechanism to notify the interested customer. This is the primary demand-activation tool in a supply-first marketplace. Without match notifications, customers who searched "Bondi to CBD" in October have no reason to come back in November when a matching trip appears. Also: delivery reminders at 2 hours before the time window (`DELIVERY_REMINDER_HOURS = [2, 24]` in constants) are defined but never sent.
-- **What exactly needs to be done:** Implement two cron jobs: (1) **Saved search match notifier** — runs every hour or after each new trip is posted (`PostToolUse`-style trigger or cron). For each newly active `capacity_listing`, find all `saved_searches` where the saved `from` and `to` suburbs spatially match the listing's origin/destination within the listing's `detour_radius_km`. Send a `saved_search_match` email to each user who has that saved search, with the listing details and a direct link to the trip page. Deduplication: do not send the same match email twice for the same (saved_search_id, listing_id) pair. This requires either a `saved_search_notifications_sent` table or a `last_notified_listing_id` on saved_searches. (2) **Delivery reminder** — for bookings in `confirmed` status where `trip_date = today` and the time window starts in 2 or 24 hours, send a delivery reminder to both carrier and customer.
-- **Likely areas affected:** New migration for `saved_search_notifications` table (dedupe), new `src/app/api/cron/saved-search-notify/route.ts`, new `src/app/api/cron/delivery-reminders/route.ts`, `vercel.json` (cron schedule), `src/lib/email/` (new templates), `src/lib/data/trips.ts` (spatial query for matching saved searches)
-- **Dependencies / open questions:** The `saved_searches` table stores `from_suburb`, `to_suburb`, and `category`. The spatial matching needs to be PostGIS-based or Google Maps geocoded. For MVP, suburb text matching is acceptable for saved search notifications. The geocoding upgrade (EP1 in existing backlog) improves match quality later. Founder decision: should the customer opt-in explicitly to email notifications for saved searches? Or is saving the search implicit consent?
-- **Edge cases / failure modes:** A popular route triggers 500 saved search matches simultaneously — email sending rate limit. Use Resend's batch endpoint or queue with delays. A customer saves a search and immediately gets flooded with every existing matching listing. On first match-check, only notify about listings posted AFTER the saved search was created.
-- **Acceptance criteria:** When a carrier posts a Bondi to CBD trip, all customers with a saved "Bondi → CBD" search receive an email within 1 hour. The email includes route, date, price, carrier name, and a link. Each customer receives at most one email per matching listing (deduplication). Customers who saved the search before the cron was deployed are not retroactively flooded.
-
----
-
-### Carrier cannot mark a booking as "accepted by third-party contact" at pickup — no contact delegation flow
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / UX
-- **Why this matters:** The booking schema has `pickup_contact_name` and `pickup_contact_phone` fields. The customer can specify that someone else will be at the pickup address (e.g. "My flatmate Alex, 0412 000 000"). But the carrier's proof flow requires `handoffConfirmed: true` in `pickupProofSchema`. If the carrier picks up from a third-party contact (not the customer), the "handoff confirmed" field is technically accurate but the UX doesn't reflect this. More importantly, the carrier currently has no way to call or contact the pickup person from within the app — they'd need to copy the number and switch apps. On a tight same-day schedule this is friction.
-- **What exactly needs to be done:** (1) On the carrier's booking detail for a `confirmed` or `pending` booking, display the pickup contact details prominently with a tap-to-call link (`tel:` href) for the pickup contact and dropoff contact phone numbers. (2) On the proof capture screen, if `pickup_contact_name` is set, update the label from "Handoff confirmed" to "Handoff confirmed with [pickup_contact_name]" so the carrier knows who they're confirming handoff with. (3) Same for delivery: if `dropoff_contact_name` is set, label it "Delivered to [dropoff_contact_name]."
-- **Likely areas affected:** `src/components/booking/status-update-actions.tsx`, carrier booking detail page, `src/components/booking/booking-checkout-panel.tsx`
-- **Dependencies / open questions:** None — this is a pure UI enhancement using data already captured.
-- **Edge cases / failure modes:** `pickup_contact_phone` may be null or empty. Handle gracefully — don't show the tap-to-call link if no phone number.
-- **Acceptance criteria:** The carrier sees a tap-to-call link for pickup and dropoff contacts on their booking view. The proof capture labels reference the contact name when one is provided. No new data capture required.
-
----
-
-### Search cards now explain route fit, but fallback consistency still needs QA
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Customer trust
-- **Why this matters:** Browse cards now show plain-language route-fit labels and real distance cues when spatial data exists. The remaining product risk is inconsistency on fallback or low-signal searches where those cues are absent, making some result sets feel richer than others.
-- **What exactly needs to be done:** QA the browse card across spatial, fallback, and flexible-date result sets. Add a graceful fallback explanation when exact pickup/dropoff distances are unavailable so cards never regress into feeling opaque again.
-- **Likely areas affected:** `src/components/trip/trip-card.tsx`, `src/types/trip.ts` (TripSearchResult already has matchScore + scoreBreakdown), `src/app/(customer)/search/page.tsx`
-- **Dependencies / open questions:** The current card suppresses distance cues when the fallback path cannot produce truthful kilometre values. Decide whether that should remain silent or be replaced by a softer route-fit explanation.
-- **Edge cases / failure modes:** Flexible-date grouped results may mix cards with exact spatial cues and cards with only route-fit labels, which can feel uneven if the copy hierarchy is not deliberate.
-- **Acceptance criteria:** Result cards remain legible and trustworthy across both spatial and fallback searches, and mobile QA confirms the fit cue still reads clearly at `375px`.
-
----
-
-### Capacity model is opaque — "remaining_capacity_pct" is not explained to customers or carriers
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / UX
-- **Why this matters:** The `capacity_listings.remaining_capacity_pct` drives whether a listing is bookable and how much space is left. But this percentage is not explained to customers in human terms. A carrier who has "60% remaining" doesn't know if that means one sofa or three boxes fit. The `estimate_booking_capacity_pct()` function in the DB estimates capacity based on dimensions and category, but items rarely have exact dimensions (customers type "medium-sized fridge" not "W70cm D80cm H160cm"). The result is that capacity decisions happen behind the scenes without either party understanding them.
-- **What exactly needs to be done:** (1) On the trip detail page, replace or supplement "remaining_capacity_pct" with a human translation: for a listing with `space_size = 'L'` at 60% capacity, show something like "~40% taken — roughly one large item or several boxes still fit." Map `space_size` + `remaining_capacity_pct` to human descriptions using the `SPACE_SIZE_DESCRIPTIONS` constants already defined. (2) On the carrier dashboard, when a trip is `booked_partial`, show the number of accepted bookings and remaining capacity in human terms ("2 bookings confirmed, roughly half the truck is taken"). (3) For customers, on the booking form, show a small note like "Based on your item description, the carrier has space for your booking" when the item fits.
-- **Likely areas affected:** `src/app/(customer)/trip/[id]/page.tsx`, `src/components/trip/trip-detail-summary.tsx`, `src/app/(carrier)/carrier/trips/page.tsx`, `src/lib/constants.ts` (SPACE_SIZE_DESCRIPTIONS already exists)
-- **Dependencies / open questions:** The `estimate_booking_capacity_pct` DB function uses `item_dimensions`, `item_weight_kg`, and `item_category` — which the customer fills in during booking, not before. The pre-booking trip page can only show remaining capacity percentage, not a per-item fit check. Use coarse heuristics (S item takes ~15%, M takes ~30%, L takes ~50%) for the human description.
-- **Edge cases / failure modes:** `remaining_capacity_pct` could be 0 on a trip but `status = 'booked_partial'` (race condition or estimation error). Always show the authoritative "bookable or not" status, not just the percentage.
-- **Acceptance criteria:** The trip detail page shows remaining capacity in human terms, not just a percentage. The carrier dashboard shows booked-partial trips with a human-readable capacity summary. The copy does not use percentage numbers exposed raw to customers.
-
----
-
-### Price guidance is maps-backed now, but live-corridor quality still needs QA
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Carrier experience
-- **Why this matters:** The guidance path now uses maps-backed corridor proximity and an intercity price floor instead of suburb-name heuristics, but the remaining risk is market-truth quality: thin samples, weak launch corridors, or missing maps env can still produce less-helpful guidance than the strongest routes.
-- **What exactly needs to be done:** Run route-level QA on the launch corridors, confirm the carrier posting wizard keeps showing sensible ranges when maps env is present, and tighten fallback messaging when sample size is too weak to anchor pricing confidently.
-- **Likely areas affected:** `src/app/api/trips/price-guidance/route.ts`, `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/data/listings.ts`
-- **Dependencies / open questions:** Launch-corridor density and real production sample size still determine how useful the guidance feels in practice.
-- **Acceptance criteria:** The pricing step shows believable guidance on the launch corridors, weak-sample routes degrade cleanly, and no misleading pseudo-precision is shown when maps-backed evidence is thin.
-
----
-
-## Moverrr — Founder Decisions and Open Product Questions
-
-> These items are not implementable without a founder decision. They have real codebase implications. Implement nothing here until each question is answered. Once answered, the decision becomes a reference in CLAUDE.md or the relevant .agent-skills/ file.
-
----
-
-### FD-01: Can a customer book more than one item on a single trip listing?
-
-- **Priority:** P0
-- **Stage:** Now
-- **Type:** Founder Decision
-- **Why this matters:** The current schema has one booking per (customer, listing) pair by design. But a customer moving house might want to send a sofa AND a washing machine on the same trip. The booking model captures one `item_category`, one `item_description`, one `item_dimensions`, one `item_photo_urls` array. The capacity estimation function (`estimate_booking_capacity_pct`) handles one item. If a customer books twice on the same listing, are they allowed? Does the system prevent it?
-- **What exactly needs to be done:** Founder must decide: (A) one item per booking, customer must make two separate bookings (simple, matches current model); (B) multi-item booking with a quantity and category list (requires schema change, more complex UX); (C) one booking with a single "item bundle" description and a human-entered total weight/size. Option A is safest for MVP. If A, document explicitly. If B or C, plan the schema change.
-- **Likely areas affected:** `supabase/migrations/` (if B or C), `src/lib/data/bookings.ts`, `src/components/booking/booking-form.tsx`, capacity estimation logic
-- **Dependencies / open questions:** None — this is a pure founder decision.
-- **Acceptance criteria:** A written decision is recorded in `.agent-skills/CUSTOMER-FLOW.md` and `CLAUDE.md` (if it changes a core invariant).
-
----
-
-### FD-02: Who can cancel a confirmed booking, and what are the financial consequences?
-
-- **Priority:** P0
-- **Stage:** Now
-- **Type:** Founder Decision
-- **Why this matters:** The MVP code path now assumes a simple policy: cancellations void uncaptured authorizations or refund captured payments in full. The remaining founder question is whether moverrr wants anything stricter than that once the launch trust loop is proven.
-- **What exactly needs to be done:** Confirm the current MVP policy in writing: full void or full refund, no cancellation fees, no carrier compensation before a more mature policy exists. If the founder wants late-cancellation fees or partial refunds later, define the exact matrix and move that work into a separate post-MVP implementation item instead of leaving the MVP policy ambiguous.
-- **Likely areas affected:** `src/lib/data/bookings.ts` (cancellation path), `src/lib/email/` (cancellation copy), `src/components/booking/booking-checkout-panel.tsx` (cancellation policy copy)
-- **Dependencies / open questions:** None — founder decision.
-- **Acceptance criteria:** The written MVP policy is recorded in `.agent-skills/PAYMENTS.md`, and any future late-cancellation penalties are explicitly deferred instead of implied.
-
----
-
-### FD-03: What is the carrier response time requirement for pending bookings?
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Founder Decision
-- **Why this matters:** `PENDING_BOOKING_HOLD_MS = 7,200,000` (2 hours) is the current timeout. This is correct for day-of same-day bookings. But if a customer books 3 days in advance, the carrier has 2 hours to respond regardless. Is 2 hours the right window for all advance bookings? A carrier who posts a Friday trip on Tuesday might not check the app until Thursday. Should advance bookings have a 48-hour response window? Should the window shrink as the trip date approaches?
-- **What exactly needs to be done:** Decide: (A) flat 2-hour window for all bookings (simple, currently implemented); (B) dynamic window based on days-until-trip (e.g. if trip is >72h away, allow 24h response; if trip is <24h away, allow 1h response). Option A is correct for MVP and should stay unless carriers report missing bookings.
-- **Likely areas affected:** `supabase/migrations/011_booking_safety_p0.sql` (`pending_expires_at` default), `src/lib/constants.ts` (PENDING_BOOKING_HOLD_MS), cron job logic
-- **Acceptance criteria:** Decision documented in `.agent-skills/CARRIER-FLOW.md`.
-
----
-
-### FD-04: What does carrier quality/verification actually require?
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Founder Decision
-- **Why this matters:** The admin verification queue shows carrier documents but there is no defined checklist of what makes a carrier "approved." The admin currently eyeballs licence and insurance photos and clicks approve. For trust: what exactly must be verified? (1) Valid NSW driver's licence with expiry date? (2) Comprehensive goods-in-transit insurance or just CTP? (3) ABN / business registration? (4) Vehicle registration document? (5) Clean background (how would admin know)? Without a defined standard, different admins approve different quality carriers.
-- **What exactly needs to be done:** Founder defines a written carrier quality checklist. This becomes the admin verification guide. Minimum viable version: (A) valid driver's licence visible and readable, (B) insurance certificate with minimum $X cover for goods in transit, (C) vehicle photo clearly shows the vehicle type matches what was declared. This checklist should appear on the admin carrier detail page (FD-01 depends on this being built). Consider adding a `verification_checklist_completed` field or similar to track which checks were confirmed.
-- **Likely areas affected:** Admin carrier detail page (to be built), `src/app/api/admin/carriers/[id]/verify/route.ts`, `.agent-skills/VERIFICATION.md`
-- **Acceptance criteria:** A written checklist exists. The admin carrier detail page displays it during verification. Verification_notes must reference the checklist on rejection.
-
----
-
-### FD-05: What is the savings story and how is it calculated?
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Founder Decision / Product
-- **Why this matters:** `dedicatedEstimateCents` appears in the trip detail page code: `const savingsCents = Math.max(0, trip.dedicatedEstimateCents - trip.priceCents)`. But where does `dedicatedEstimateCents` come from? If it's hardcoded or estimated poorly, the savings claim is dishonest. The savings story ("You saved $80 vs a dedicated move") is the primary customer value proposition. If it's inaccurate, the trust damage is significant.
-- **What exactly needs to be done:** (1) Find where `dedicatedEstimateCents` is computed (in `toTrip` mapper or elsewhere). (2) Verify the estimation methodology is defensible (not just `price * 2.5`). (3) Decide: do we show the savings claim at all if the estimate is rough? Options: (A) show "Up to $X cheaper than a dedicated move — based on typical full-truck rates" with a clear disclaimer; (B) only show savings when the estimate is grounded in real market data; (C) show the savings claim only when the carrier's price is significantly below the estimate. For MVP, a conservative estimate with a clear "typical full-truck rate" disclaimer is honest.
-- **Likely areas affected:** `src/lib/data/mappers.ts` (toTrip function), `src/app/(customer)/trip/[id]/page.tsx`, `src/components/trip/trip-detail-summary.tsx`
-- **Acceptance criteria:** The savings claim is grounded in a documented methodology. If the estimate is rough, the copy uses hedged language ("typically", "up to"). The methodology is documented in `.agent-skills/PRICING.md`.
-
----
-
-### FD-06: What is the launch corridor and first supply target?
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Founder Decision / Growth
-- **Why this matters:** The app works for "Sydney" broadly but a sparse marketplace with 3 carriers spread across all of Sydney is less useful than 10 carriers dominating Bondi-to-CBD and similar high-frequency routes. A launch corridor strategy (focus on 2-3 specific routes first) concentrates supply, makes early customers much more likely to find a match, and creates faster signal on what's working. No route targeting or supply density analytics exist in the admin.
-- **What exactly needs to be done:** Founder defines: (1) the 2-3 specific launch corridors (e.g. "Eastern Suburbs → Sydney CBD, Inner West → CBD, Northern Beaches → CBD"); (2) the target number of active listings on each corridor for launch; (3) how admin will monitor corridor density. This decision drives carrier acquisition targeting and how admin analytics should be built.
-- **Likely areas affected:** Admin dashboard (add corridor density view), carrier onboarding copy, launch outreach strategy
-- **Acceptance criteria:** A launch corridor document exists (can be a single `.md` file). Admin can see how many active listings exist per corridor today.
-
----
-
-## Moverrr — Carrier Supply System
-
-> Items specific to building out strong, reliable carrier supply. Supply is the primary flywheel.
-
----
-
-### Carrier document expiry warnings are not surfaced to the carrier or admin
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Trust
-- **Why this matters:** `licence_expiry_date` and `insurance_expiry_date` columns exist on carriers. The constants file defines `DOCUMENT_EXPIRY_REMINDER_DAYS = [30, 7]`. But no code currently: (1) sends expiry reminder emails to carriers, (2) warns admin during verification that a carrier's licence expires in 15 days, (3) shows a banner on the carrier dashboard if their licence is expiring. An expired-licence carrier posting trips is a liability issue.
-- **What exactly needs to be done:** (1) Add a cron job that runs daily, finds carriers with `licence_expiry_date` or `insurance_expiry_date` within 30 and 7 days, and sends expiry reminder emails. (2) On the carrier onboarding page and carrier dashboard, show a yellow/red banner when documents are expiring soon. (3) When admin views a carrier for verification, show a badge next to document dates: "Expires in 12 days" or "EXPIRED" in red if past due. (4) When a carrier's insurance expires and `is_verified = true`, consider a flag or auto-de-verification policy (founder decision FD-04 related).
-- **Likely areas affected:** New cron `src/app/api/cron/document-expiry-reminders/route.ts`, `src/app/(carrier)/carrier/onboarding/page.tsx`, `src/app/(carrier)/carrier/dashboard/page.tsx`, admin carrier detail page, `src/lib/email/` (expiry reminder template)
-- **Dependencies / open questions:** Cron infrastructure must be set up first. Founder decision: does an expired licence auto-suspend the carrier or just flag them?
-- **Acceptance criteria:** A carrier receives an email 30 days and 7 days before document expiry. The carrier dashboard shows an expiry warning when within 30 days. Admin sees expiry status badges on the carrier detail page.
-
----
-
-### Return trip / backload search is poorly discoverable — no carrier-facing explanation exists
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Supply
-- **Why this matters:** `is_return_trip = true` exists on `capacity_listings`. The search API supports `isReturnTrip` filter. Customers can filter for return trips. But: (1) carriers posting a trip have no UI explanation of what "is this a return trip?" means or why to mark it — there's no copy explaining "backloads." (2) The customer search has a "backload" filter button but it may not be labeled clearly enough to drive adoption. (3) The value of return trip inventory — lower cost than a fresh trip — is not surfaced in the savings story for return trips.
-- **What exactly needs to be done:** (1) In the carrier trip posting wizard, add a clear "Is this a return trip?" toggle with copy: "Mark this as a return trip if you're already heading back empty. Customers looking for cheaper backload moves will find this first." (2) In search results, when `isReturnTrip = true` for a listing, add a "Return trip" badge to the TripCard with a tooltip: "The carrier is already heading this way — prices may be lower." (3) In the trip detail, mention "This carrier is on their return leg — you may benefit from a lower price." (4) In the savings story copy, specifically call out return trips as an explanation for the price difference.
-- **Likely areas affected:** `src/components/carrier/carrier-trip-wizard.tsx`, `src/components/trip/trip-card.tsx`, `src/app/(customer)/trip/[id]/page.tsx`, search page
-- **Acceptance criteria:** Carriers are clearly prompted about return trip status during posting. Return trip listings are visually distinguished in search results. The value proposition of return trips is communicated to customers.
-
----
-
-### No post-booking feedback loop tells the carrier which listings perform well
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Supply
-- **Why this matters:** `getCarrierLaneInsights()` is called on the carrier dashboard. This function exists but the content of its output is unknown from the review. If it returns meaningful route performance data, it may already partially address this. If not: carriers who post 10 trips but get few bookings don't know why. Is it the price? The route? The timing? Without feedback, carriers can't improve their listings, leading to supply quality degradation over time.
-- **What exactly needs to be done:** (1) Inspect `getCarrierLaneInsights()` in `src/lib/data/bookings.ts` — what does it return? (2) If insufficient: compute for each carrier listing: view count (from analytics_events where event_name = 'trip_viewed'), booking conversion rate (bookings / views), average booking price relative to listing price, and average customer rating per route. (3) Show this on the carrier dashboard per active listing: "3 views, 1 booking (33% conversion), ⭐4.8 on this route." (4) Add a specific "weak listing" indicator on listings with high views but low bookings, suggesting a price or rules change.
-- **Likely areas affected:** `src/lib/data/bookings.ts` (`getCarrierLaneInsights` — inspect first), `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/app/(carrier)/carrier/stats/page.tsx`
-- **Dependencies / open questions:** View tracking via analytics_events requires that `trip_viewed` events are being recorded when customers view trip pages. Verify this.
-- **Acceptance criteria:** The carrier dashboard or stats page shows, per active listing, the number of views and bookings. Weak-performing listings are visually flagged with an actionable suggestion.
-
----
-
-## Moverrr — Customer Demand and Booking Flow
-
-> Items specific to the customer experience — the demand side of the marketplace.
-
----
-
-### No-result search recovery is stronger, but adjacent-route suggestions still need work
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Demand
-- **Why this matters:** The search page now explains the gap, keeps save-search as the primary recovery CTA, and offers nearby-date or broader-corridor escape hatches. The missing piece is better adjacent-route recovery when there is no exact or nearby-date supply.
-- **What exactly needs to be done:** Add a secondary recovery query that can suggest close corridor alternatives, not just nearby dates or broader item-category results, and verify the hierarchy still keeps save-search as the main action.
-- **Likely areas affected:** `src/app/(customer)/search/page.tsx`, `src/components/search/save-search-form.tsx`, `src/components/customer/waitlist-form.tsx`
-- **Dependencies / open questions:** Decide whether “nearby” should bias origin suburb, destination suburb, or a corridor-level match once route density improves.
-- **Acceptance criteria:** No-result search still prioritizes save-search, and when exact matches are missing it can suggest at least one useful adjacent-route recovery path without cluttering the mobile layout.
-
----
-
-### Booking reference now appears immediately, but cross-surface consistency still needs a QA sweep
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Trust
-- **Why this matters:** The booking form now exposes the reference before redirecting. The remaining work is QA consistency across success state, detail page, and delivered emails in real user journeys.
-- **What exactly needs to be done:** Verify the same reference format stays visible and identical across checkout success, booking detail, and the branded email templates in a live booking run.
-- **Likely areas affected:** `src/components/booking/booking-checkout-panel.tsx`, `src/app/(customer)/bookings/[id]/page.tsx`
-- **Acceptance criteria:** The same booking reference is immediately visible at checkout success and matches the detail page plus email record for the same booking.
-
----
-
-## Moverrr — Trust, Payments, and Operations
-
-> Items that protect the money flow, build trust, and ensure ops clarity during MVP.
-
----
-
-## Moverrr — Marketplace Logic and Search
-
-> Items that improve the core matching and browse experience.
-
----
-
-### Maps-first search is live, but degraded fallback coverage still needs expansion
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Search
-- **Why this matters:** Google Maps is now the production source of truth for suburb resolution and route relevance, which closes the worst `ilike` mismatch class. The remaining risk sits in degraded mode: missing-env/local fallback still depends on the curated Sydney suburb map, so suburbs outside the launch corridors can degrade less gracefully than the strongest routes.
-- **What exactly needs to be done:** Expand the curated suburb coordinate map, add regression cases for near-name suburbs and adjacent corridors, and document exactly which degraded fallback paths are still coordinate-backed versus heuristic.
-- **Likely areas affected:** `src/lib/data/trips.ts`, `src/lib/maps/sydney-suburb-coords.ts`, search-ranking tests
-- **Acceptance criteria:** The degraded fallback covers the launch corridors plus common adjacent Sydney suburbs, and regression tests catch false-equivalence cases such as similarly named suburbs.
-
----
-
-## Agentic Development System — Infrastructure Backlog
-
-> Most of this lane shipped on `2026-04-09`. Only intentionally deferred runtime-team work remains active below.
-
-> Added: `2026-04-08` — based on review of Claude Code best practices (subagents, skills, hooks, agent teams, session management, context discipline).
-> These items upgrade how AI agents are configured, equipped, and constrained in this repo. They are NOT product features — they are operating system improvements.
-> Each item is written with enough precision that an AI agent can implement it without needing further clarification.
-> Work these in order within each category, as later items often depend on earlier foundations.
-
----
-
-### AG-T — Agent Teams Configuration
-*Still intentionally deferred until the runtime semantics are proven locally.*
-
-- [ ] **AG-T1** — Enable experimental agent teams in project settings
-  - **File(s):** `.claude/settings.json`, `.claude/agents.md`
-  - **What:** Add the project env flag and document when teams beat simple subagents.
-  - **Why:** The repo role map could support teams, but earlier PRs deliberately avoided enabling unverified runtime features.
-  - **Done when:** Agent teams are locally verified and documented.
-
-- [ ] **AG-T2** — Add agent-team quality hooks
-  - **File(s):** `.claude/settings.json`, new scripts under `.claude/scripts/`
-  - **What:** Add teammate-idle and task-completed quality gates once team events are available locally.
-  - **Why:** Team review quality should be structural, not ceremonial.
-  - **Done when:** Low-evidence team outputs are blocked automatically.
-
-## Agent Operating System — Rule Files, Docs & OS Meta-Tasks
-
-> Remaining meta-work after the 2026-04-09 operating-system cleanup. Shipped rule files, the experiment ledger, and the capability index were removed from active backlog because they already exist in the repo.
-
----
-
-### EO — Operating System Tasks
-
-No active EO items remain after the 2026-04-09 docs, hooks, and verification-template sweep.
-
-## Moverrr — Critical Gaps Found in Deep Repo Review
-
-> Added: `2026-04-08` — findings from a full codebase survey that go beyond what was already in the backlog. Each item below was verified by reading the actual code, not inferred. These are not wishlist items — they are holes in the current implementation.
-
----
-
-### Degraded fallback ranking still needs formula parity with the RPC path
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Search
-- **Why this matters:** Production search is now maps-first, which removes the worst ranking drift from real user traffic. The remaining gap lives in degraded mode: local or missing-env fallback still relies on a TypeScript scoring path that is not guaranteed to match the RPC formula exactly.
-- **What exactly needs to be done:** Make the RPC formula the documented source of truth, align `score.ts` numerically with it, and add a parity test so degraded fallback ranking cannot silently drift away from the production path again.
-- **Likely areas affected:** `src/lib/matching/score.ts` (update price formula), `src/lib/__tests__/score.test.ts` (add formula-parity test), `supabase/migrations/013_p3_enhancements.sql` (note: read-only reference for the SQL formula), `src/lib/matching/rank.ts` (`estimateDistanceKm` replacement)
-- **Dependencies / open questions:** The EP1 item (suburb coordinate lookup) is a dependency for fixing the text-fallback path. The score formula fix in TypeScript can be done independently of EP1. Verify: what is `score.ts` currently producing for the price component? Is it `Math.max(0, (1 - priceCents / 30000) * 10)` exactly? Read the file to confirm before writing the fix.
-- **Acceptance criteria:** A unit test asserts that the degraded `score.ts` path produces the same numeric result as the RPC formula for the same inputs, and the fallback ranking path is documented as a degraded mirror of the production search contract.
-
----
-
-### Duplicate migration sequence number 010 — two migrations share the same number
-
-- **Priority:** P1
-- **Stage:** Now
-- **Type:** Ops / Infrastructure
-- **Why this matters:** Both `010_capacity_recalculation.sql` and `010_saved_searches.sql` carry sequence number `010`. Supabase CLI applies migrations in alphabetical filename order. Since both start with `010_`, alphabetical order determines which runs first: `010_capacity_recalculation.sql` (c < s) runs before `010_saved_searches.sql`. This is currently not causing visible errors because the two migrations don't conflict — but: (1) it violates the sequential numbering convention used by every other migration; (2) if a future migration depends on the ordering of these two, the assumption could break; (3) if the migration ledger is ever replayed from scratch (new environment setup), the duplicate number creates confusion and potential for ordering mistakes; (4) `supabase db status` may show confusing output.
-- **What exactly needs to be done:** Rename `010_saved_searches.sql` to `014_saved_searches.sql` (or whichever is the next available number after `013_p3_enhancements.sql`). Check: does any other migration reference `010_saved_searches` by name? If the migration has already been applied to the production database (likely yes), Supabase tracks applied migrations by filename — renaming will cause Supabase to treat it as a new migration and attempt to re-apply it. To avoid this: (1) create a new migration `014_rename_saved_searches_tracking.sql` that does nothing except document the rename; (2) in the Supabase `schema_migrations` table, manually update the record from `010_saved_searches` to `014_saved_searches` OR just document that the rename was done post-hoc and skip the DB record update since the tables already exist and the migration is idempotent. Check with `supabase migration status` before and after to confirm.
-- **Likely areas affected:** `supabase/migrations/010_saved_searches.sql` (rename), `supabase/migrations/` (numbering audit), Supabase `schema_migrations` table (may need a manual update in production)
-- **Dependencies / open questions:** This MUST be done carefully in production — renaming an applied migration filename can cause `supabase migration repair` to be needed. Do a dry run locally first: `supabase db reset` and confirm both migrations apply cleanly after the rename. Coordinate with any pending migration work that uses number `014` or beyond.
-- **Acceptance criteria:** `supabase/migrations/` has no duplicate sequence numbers. `supabase migration status` shows all migrations as applied with no gaps or duplicates. `supabase db reset` in local dev applies all migrations cleanly in order.
-
----
+## ⚪ P4 — Post-MVP / Deferred
+
+### Deferred Later-Phase Items
+
+- [ ] **E01** — Add a secondary corridor browse layer after liquidity supports it
+  - **File(s):** `new file: src/app/(customer)/explore/page.tsx`, `src/app/page.tsx`, `src/lib/data/trips.ts`
+  - **What:** Build a secondary corridor-explore surface only after the need-first flow proves out and supply density supports browsing.
+  - **Why:** The blueprint allows a later browse layer but explicitly rejects it as the MVP primary model.
+  - **Done when:** A deferred explore surface can be enabled without replacing the need-first home flow.
+
+- [ ] **E02** — Add richer public carrier storefront features after the core flow stabilizes
+  - **File(s):** `src/app/(customer)/carrier/[id]/page.tsx`, `src/lib/data/feedback.ts`, `src/lib/trip-presenters.ts`
+  - **What:** Consider richer carrier public profiles only after need-first matching, trust, and fulfilment loops are stable.
+  - **Why:** Public storefront depth is not part of the MVP product shape and should not compete with request-led discovery.
+  - **Done when:** Any expanded carrier profile work is explicitly built as a secondary trust surface, not a discovery path.
+
+- [ ] **E03** — Add public written-review display after moderation policy and rating volume mature
+  - **File(s):** `src/app/(customer)/carrier/[id]/page.tsx`, `src/lib/data/feedback.ts`, `src/types/review.ts`
+  - **What:** Display written review text only after moderation policy, thresholds, and trust signals are robust enough.
+  - **Why:** The blueprint defers written-review display while still collecting review data.
+  - **Done when:** Public written reviews can be shown without undermining new-but-verified trust states.
+
+- [ ] **E04** — Add double-blind review release for customer and carrier feedback
+  - **File(s):** `src/lib/data/feedback.ts`, `src/components/booking/review-form.tsx`, `src/types/review.ts`
+  - **What:** Introduce a delayed review-reveal model where reviews publish after both parties submit or the review window expires.
+  - **Why:** This is a later trust enhancement and not required for MVP learning loops.
+  - **Done when:** Review release can be configured to hold until both sides respond or the review window closes.
+
+- [ ] **E05** — Add phone masking if on-platform coordination proves insufficient
+  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/lib/notifications.ts`, `src/types/booking.ts`
+  - **What:** Introduce masked calling or relay contact if same-day coordination needs outgrow on-platform messaging.
+  - **Why:** The blueprint defers telephony because it is costly and not core to the MVP model.
+  - **Done when:** Phone masking can be enabled as a bounded coordination layer without exposing raw numbers.
+
+- [ ] **E06** — Add live trip-day tracking with explicit privacy rules
+  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/app/(carrier)/carrier/today/page.tsx`, `src/lib/notifications.ts`
+  - **What:** Consider live location tracking only after core request, proof, and payout mechanics are stable.
+  - **Why:** The blueprint defers live tracking and does not want it to become the centerpiece feature.
+  - **Done when:** Live tracking exists only as an explicit, bounded post-MVP add-on with clear privacy controls.
+
+- [ ] **E07** — Add richer in-app messaging with structured chips and images
+  - **File(s):** `new file: src/app/(customer)/messages/page.tsx`, `new file: src/app/(carrier)/carrier/messages/page.tsx`, `src/lib/notifications.ts`
+  - **What:** Expand in-app messaging after the structured status-update model proves insufficient.
+  - **Why:** The blueprint defers messaging depth and prefers structured coordination during MVP.
+  - **Done when:** Messaging can support richer threads without replacing the structured coordination defaults.
+
+- [ ] **E08** — Add carrier calendar sync for recurring runs
+  - **File(s):** `src/components/carrier/carrier-trip-wizard.tsx`, `src/lib/data/trips.ts`, `src/app/(carrier)/carrier/account/page.tsx`
+  - **What:** Integrate recurring trips with external calendar sync only after the core repeat-route loop is stable.
+  - **Why:** Calendar integration is useful but not part of the MVP retention mechanic itself.
+  - **Done when:** Carriers can optionally sync recurring runs with supported calendars.
+
+- [ ] **E09** — Add richer carrier reliability analytics outside the operational home
+  - **File(s):** `src/app/(carrier)/carrier/stats/page.tsx`, `src/lib/data/bookings.ts`, `src/lib/analytics.ts`
+  - **What:** Reintroduce deeper acceptance, completion, and route-performance analytics after the action-led carrier home is stable.
+  - **Why:** The blueprint defers deep analytics and keeps carrier focus on posting and fulfilment first.
+  - **Done when:** A non-primary analytics surface can be enabled without distorting the carrier home model.
+
+- [ ] **E10** — Add SMB account mode and customer business workflows
+  - **File(s):** `src/types/customer.ts`, `src/app/(customer)/account/page.tsx`, `src/lib/data/move-requests.ts`
+  - **What:** Add small-business account affordances and repeat-business workflows after the consumer wedge proves out.
+  - **Why:** SMB-specific UI is explicitly deferred in the blueprint.
+  - **Done when:** Business-mode workflows are additive and do not distort the core awkward-middle customer flow.
+
+- [ ] **E11** — Add multi-user business and fleet accounts
+  - **File(s):** `src/types/carrier.ts`, `src/types/customer.ts`, `new file: src/app/(carrier)/carrier/team/page.tsx`
+  - **What:** Support teams, permissions, and shared operational ownership for carrier or business accounts.
+  - **Why:** Team and fleet logic are out of MVP scope and would overcomplicate the current trust and state model.
+  - **Done when:** Team accounts can be enabled without changing the single-operator default assumptions baked into MVP.
+
+- [ ] **E12** — Add advanced multi-stop optimization beyond two waypoints
+  - **File(s):** `src/types/trip.ts`, `src/lib/maps/directions.ts`, `src/components/carrier/carrier-trip-wizard.tsx`
+  - **What:** Extend route planning and matching beyond the limited two-waypoint support reserved for MVP realism.
+  - **Why:** The blueprint explicitly rejects route-optimization depth during the first phase.
+  - **Done when:** Carriers can manage richer multi-stop patterns without converting the product into a dispatch planner.
+
+- [ ] **E13** — Add historical-data-driven pricing guidance
+  - **File(s):** `src/lib/pricing/suggest.ts`, `src/lib/data/bookings.ts`, `src/components/carrier/carrier-trip-wizard.tsx`
+  - **What:** Replace seed-based pricing guidance with historical transaction models when enough data exists.
+  - **Why:** Pricing guidance is helpful, but the blueprint treats it as advisory and secondary to carrier-set rates.
+  - **Done when:** Pricing guidance can use real corridor and category history without becoming automatic pricing.
+
+- [ ] **E14** — Add automated detour pricing only after an explicit founder decision
+  - **File(s):** `src/lib/pricing/breakdown.ts`, `src/lib/maps/directions.ts`, `src/components/carrier/carrier-trip-wizard.tsx`
+  - **What:** Implement automated detour pricing only if the detour ambiguity is resolved in favor of it and product-shape risks are accepted.
+  - **Why:** The blueprint is internally inconsistent here and the MVP default should remain estimation-only until decided.
+  - **Done when:** Detour pricing ships only behind an explicit founder decision and documented product guardrails.
+
+- [ ] **E15** — Add a funded insurance or coverage product with defined policy terms
+  - **File(s):** `src/app/(marketing)/trust/page.tsx`, `src/types/booking.ts`, `src/lib/data/bookings.ts`
+  - **What:** Build an actual coverage product only after policy funding, limits, and operational handling are real.
+  - **Why:** The blueprint rejects vague guarantee language without real operational backing.
+  - **Done when:** Coverage can be marketed only because a defined, funded policy exists.
+
+- [ ] **E16** — Add a self-serve dispute center after founder-led policy stabilizes
+  - **File(s):** `src/app/(customer)/account/page.tsx`, `src/app/(carrier)/carrier/account/page.tsx`, `src/components/booking/dispute-form.tsx`
+  - **What:** Expand dispute tooling into a richer self-serve centre after founder adjudication patterns settle.
+  - **Why:** MVP disputes are intentionally founder-led and should not become a large product subsystem too early.
+  - **Done when:** A richer dispute center can be layered on without weakening the simple MVP trust model.
+
+- [ ] **E17** — Add a map-assisted explore layer as a secondary explanatory surface
+  - **File(s):** `new file: src/app/(customer)/explore-map/page.tsx`, `src/lib/maps/directions.ts`, `src/lib/data/trips.ts`
+  - **What:** Add a secondary explore-map surface only once enough supply exists to justify it.
+  - **Why:** Maps explain but do not lead in the blueprint and should stay secondary even later.
+  - **Done when:** Any map-led browsing is clearly secondary to the need-first flow and gated behind sufficient supply density.
+
+- [ ] **E18** — Add enterprise reporting and export surfaces
+  - **File(s):** `src/app/(admin)/admin/dashboard/page.tsx`, `src/app/(carrier)/carrier/payouts/page.tsx`, `src/lib/data/admin.ts`
+  - **What:** Build export and reporting surfaces for larger-scale operators or business customers only after MVP workflows are proven.
+  - **Why:** Enterprise reporting is explicitly deferred and should not compete with core marketplace execution now.
+  - **Done when:** Reporting exports exist as a later-phase add-on rather than a current MVP deliverable.
+
+- [ ] **E19** — Add national corridor expansion tooling beyond the launch region
+  - **File(s):** `src/lib/maps/sydney-suburb-coords.ts`, `src/lib/data/trips.ts`, `src/app/page.tsx`
+  - **What:** Expand location, corridor, and launch tooling beyond the initial operating region after the local wedge proves out.
+  - **Why:** Geographic expansion is later-phase work and should not distract from the launch corridor strategy.
+  - **Done when:** Corridor and location tooling can support broader geography without changing the core product model.
+
+- [ ] **E20** — Add a cross-role account switcher for dual customer and carrier users
+  - **File(s):** `src/types/customer.ts`, `src/types/carrier.ts`, `src/components/layout/site-header.tsx`
+  - **What:** Build a role switcher for users who operate as both customer and carrier after the underlying dual-role architecture stabilizes.
+  - **Why:** The blueprint wants the architecture to support dual roles but does not require the switching UI in MVP.
+  - **Done when:** Dual-role users can switch contexts without separate accounts once the underlying role model is stable.
+
+- [ ] **E21** — Add post-MVP carrier performance coaching surfaces
+  - **File(s):** `src/app/(carrier)/carrier/stats/page.tsx`, `src/lib/data/bookings.ts`, `src/lib/analytics.ts`
+  - **What:** Add coaching around acceptance, completion, route quality, and trust after the core posting and fulfilment loop is stable.
+  - **Why:** Performance coaching is helpful later, but the blueprint keeps it behind operational execution during MVP.
+  - **Done when:** Carrier coaching can be turned on without replacing Home or Requests as the main carrier focus.
+
+- [ ] **E22** — Add a native iOS app after the web MVP loops stabilize
+  - **File(s):** `README.md`, `src/app/layout.tsx`, `src/components/layout/mobile-nav.tsx`
+  - **What:** Plan and build a native iOS client only after the mobile web flow proves out for posting, requests, proof, and payouts.
+  - **Why:** The blueprint treats the web MVP as the validation surface and defers native app work.
+  - **Done when:** Native iOS work starts from a stable, blueprint-aligned web product instead of from the current transition state.
+
+- [ ] **E23** — Add a native Android app after the web MVP loops stabilize
+  - **File(s):** `README.md`, `src/app/layout.tsx`, `src/components/layout/mobile-nav.tsx`
+  - **What:** Plan and build a native Android client only after the web MVP and iOS prioritization decisions are validated.
+  - **Why:** Native platform expansion is explicitly deferred and should follow, not lead, the web MVP.
+  - **Done when:** Native Android work begins only after the web MVP model is stable and clearly worth carrying to a second client.

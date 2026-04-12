@@ -15,23 +15,26 @@ export async function SiteHeader() {
   const user = await getOptionalSessionUser();
   const carrier = user ? await getCarrierByUserId(user.id) : null;
   const isAdmin = user ? await isAdminUser(user.id, user.email) : false;
-  const carrierNavItem: NavItem = carrier
-    ? {
-        href: "/carrier/dashboard",
-        label: carrier.isVerified ? "My dashboard" : "Carrier onboarding",
-      }
-    : {
-        href: "/become-a-carrier",
-        label: "Become a carrier",
-      };
   const postTripHref = user ? (carrier ? "/carrier/post" : "/carrier/onboarding") : "/carrier/signup";
+  const postTripLabel = carrier ? "Post a trip" : "Share a trip";
 
-  const navItems: NavItem[] = [
-    { href: "/search", label: "Browse trips" },
-    ...(user ? [{ href: "/saved-searches", label: "Saved searches" }] : []),
-    carrierNavItem,
-    ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin" }] : []),
-  ];
+  const navItems: NavItem[] = carrier
+    ? [
+        { href: "/carrier/dashboard", label: "Home" },
+        { href: "/carrier/requests", label: "Requests" },
+        { href: "/carrier/trips", label: "Trips" },
+        { href: "/carrier/payouts", label: "Payouts" },
+        { href: "/carrier/account", label: "Account" },
+        ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin" }] : []),
+      ]
+    : [
+        { href: "/", label: "Home" },
+        ...(user ? [{ href: "/bookings", label: "Bookings" }] : []),
+        ...(user ? [{ href: "/alerts", label: "Alerts" }] : []),
+        ...(user ? [{ href: "/account", label: "Account" }] : [{ href: "/search", label: "Tell us your move" }]),
+        ...(!user ? [{ href: "/become-a-carrier", label: "Become a carrier" }] : []),
+        ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin" }] : []),
+      ];
 
   const authCopy = user ? user.email ?? "Signed in" : "Log in";
 
@@ -44,7 +47,7 @@ export async function SiteHeader() {
               moverrr
             </span>
             <span className="hidden text-xs text-text-secondary sm:block">
-              Spare capacity for big stuff
+              Need-first spare-capacity moves
             </span>
           </Link>
 
@@ -76,7 +79,7 @@ export async function SiteHeader() {
             </div>
 
             <Button asChild size="sm">
-              <Link href={postTripHref}>Post a trip</Link>
+              <Link href={postTripHref}>{postTripLabel}</Link>
             </Button>
           </div>
         </div>
@@ -86,6 +89,7 @@ export async function SiteHeader() {
           authCopy={authCopy}
           isLoggedIn={Boolean(user)}
           postTripHref={postTripHref}
+          postTripLabel={postTripLabel}
         />
       </div>
     </header>

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 const steps = [
   "Create your account and head straight into carrier onboarding.",
   "Upload business details, documents, and your active vehicle.",
-  "Complete payout setup and publish real routes customers can browse.",
+  "Complete payout setup and publish real routes so matching requests can flow into carrier home.",
 ];
 
 export default function CarrierSignupPage() {
@@ -38,7 +38,7 @@ export default function CarrierSignupPage() {
         <Card className="p-4">
           <h2 className="text-lg text-text">What this path is for</h2>
           <div className="mt-4 grid gap-3 text-sm text-text-secondary">
-            <p>Post routes you are already running and let customers browse into that spare capacity.</p>
+            <p>Post routes you are already running and only review the requests that fit that spare capacity.</p>
             <p>Manual verification stays in the loop so early supply quality stays high.</p>
             <p>Payout setup happens before completed jobs can be released.</p>
           </div>

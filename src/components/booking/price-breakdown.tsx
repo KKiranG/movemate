@@ -37,15 +37,15 @@ export function PriceBreakdown({
       <div className="space-y-3">
         <div>
           <p className="section-label">Full moverrr breakdown</p>
-          <h2 className="mt-1 text-lg text-text">Transparent before checkout</h2>
+          <h2 className="mt-1 text-lg text-text">Transparent before you send the request</h2>
           <p className="mt-2 text-sm text-text-secondary">
-            Customer total = carrier base price + selected add-ons + the fixed $5 booking fee.
+            Customer total = carrier route price + selected add-ons + moverrr charges.
           </p>
         </div>
         <dl className="space-y-2 text-sm text-text-secondary">
           <div className="flex items-center justify-between gap-4">
             <dt>
-              <span className="text-text">Carrier base price</span>
+              <span className="text-text">Carrier route price</span>
               <span className="mt-1 block text-xs text-text-secondary">
                 The spare-capacity rate for the trip itself.
               </span>
@@ -72,9 +72,9 @@ export function PriceBreakdown({
           </div>
           <div className="flex items-center justify-between gap-4">
             <dt>
-              <span className="text-text">Booking fee</span>
+              <span className="text-text">moverrr charges</span>
               <span className="mt-1 block text-xs text-text-secondary">
-                Fixed platform fee for secure payment, support, and proof capture.
+                Covers secure payment handling, support, and proof capture.
               </span>
             </dt>
             <dd className="text-text">{formatCurrency(pricing.bookingFeeCents)}</dd>

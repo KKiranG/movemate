@@ -35,7 +35,7 @@ export default async function CarrierPayoutsPage() {
               <Link href="/carrier/today">Open today screen</Link>
             </Button>
             <Button asChild variant="secondary">
-              <Link href="/carrier/dashboard">Back to dashboard</Link>
+              <Link href="/carrier/dashboard">Back to carrier home</Link>
             </Button>
           </div>
         }

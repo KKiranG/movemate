@@ -17,11 +17,13 @@ export function MobileNav({
   authCopy,
   isLoggedIn,
   postTripHref,
+  postTripLabel,
 }: {
   navItems: NavItem[];
   authCopy: string;
   isLoggedIn: boolean;
   postTripHref: string;
+  postTripLabel: string;
 }) {
   const pathname = usePathname();
   const detailsRef = useRef<HTMLDetailsElement>(null);
@@ -74,7 +76,7 @@ export function MobileNav({
             )}
             <Button asChild size="sm" className="justify-start">
               <Link href={postTripHref} onClick={closeMenu}>
-                Post a trip
+                {postTripLabel}
               </Link>
             </Button>
           </div>

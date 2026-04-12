@@ -70,7 +70,6 @@ export default async function TripDetailPage({
   const searchTo = getSearchValue(resolvedSearchParams.to);
   const searchWhen = getSearchValue(resolvedSearchParams.when);
   const searchWhat = getSearchValue(resolvedSearchParams.what);
-  const searchSort = getSearchValue(resolvedSearchParams.sort);
   const searchBackload = getSearchValue(resolvedSearchParams.backload);
   const price = `$${Math.round(trip.priceCents / 100)}`;
   const savingsCents = Math.max(0, trip.dedicatedEstimateCents - trip.priceCents);
@@ -87,7 +86,6 @@ export default async function TripDetailPage({
     to: searchTo || trip.route.destinationSuburb,
     when: searchWhen || trip.tripDate,
     ...(searchWhat ? { what: searchWhat } : {}),
-    ...(searchSort ? { sort: searchSort } : {}),
     ...(searchBackload ? { backload: searchBackload } : {}),
   }).toString()}`;
   const similarTripsHref = `/search?${new URLSearchParams({
@@ -100,8 +98,8 @@ export default async function TripDetailPage({
     <main id="main-content" className="page-shell pb-28 lg:pb-0">
       <PageIntro
         eyebrow="Trip detail"
-        title="Confirm fit, then book into the trip"
-        description="The booking flow stays transactional: route, price, item details, addresses, payment."
+        title="Confirm fit, then send your request"
+        description="Check route fit, trust signals, and pricing first. Exact addresses and direct contact stay hidden until the booking is confirmed."
         actions={
           <Link href={backHref} className="inline-flex min-h-[44px] items-center text-sm font-medium text-accent">
             Back to results
@@ -113,7 +111,7 @@ export default async function TripDetailPage({
       <StickyBookingCta
         priceCents={startingPricing.totalPriceCents}
         savingsCents={savingsCents}
-        savingsNote="Starting total includes the fixed booking fee. Add-ons can change the final total."
+        savingsNote="Starting total includes moverrr charges. Add-ons can change the final total."
         isBookable={isBookable}
         href={isBookable ? "#booking-form" : similarTripsHref}
       />
@@ -126,7 +124,7 @@ export default async function TripDetailPage({
             <p className="section-label">Trip availability</p>
             <h2 className="mt-1 text-lg text-text">This trip is fully booked</h2>
             <p className="mt-2 text-sm text-text-secondary">
-              The carrier has no spare capacity left on this run. Browse similar trips on the same corridor instead of starting a booking that cannot be completed.
+              This route no longer has room for another request. See similar matching trips on the same corridor instead of starting a booking that cannot be completed.
             </p>
             <div className="mt-4">
               <Link

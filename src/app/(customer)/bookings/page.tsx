@@ -62,13 +62,13 @@ async function BookingsListSection({ userId }: { userId: string }) {
           <div className="space-y-3">
             <div>
               <p className="section-label">No bookings yet</p>
-              <h2 className="mt-1 text-lg text-text">Browse trips to get started</h2>
+              <h2 className="mt-1 text-lg text-text">Start with a move need</h2>
             </div>
             <p className="subtle-text">
-              moverrr lets you book spare capacity on trips that are already heading your way.
+              moverrr ranks spare-capacity matches after you declare the route, timing, and move type.
             </p>
             <Button asChild className="min-h-[44px] active:opacity-80">
-              <Link href="/search">Browse available trips</Link>
+              <Link href="/search">Find a match</Link>
             </Button>
           </div>
         </Card>

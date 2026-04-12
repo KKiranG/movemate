@@ -26,7 +26,7 @@ export default async function CarrierTemplatesPage() {
         description="Rename, duplicate, archive, and clean up templates so quick-post stays useful over time."
         actions={
           <Button asChild variant="secondary">
-            <Link href="/carrier/dashboard">Back to dashboard</Link>
+            <Link href="/carrier/dashboard">Back to carrier home</Link>
           </Button>
         }
       />

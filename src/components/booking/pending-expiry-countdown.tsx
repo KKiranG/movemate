@@ -35,13 +35,13 @@ export function PendingExpiryCountdown({ expiresAt }: { expiresAt: string }) {
     <div className="rounded-xl border border-border bg-surface p-3">
       <p className="text-sm font-medium text-text">
         {hasExpired
-          ? "The 2-hour response window has ended."
+          ? "The response window has ended."
           : `Carrier response window: expires in ${formatRemainingTime(remainingMs)}.`}
       </p>
       <p className="mt-1 text-sm text-text-secondary">
         {hasExpired
-          ? "If the carrier has not responded yet, this pending booking should auto-expire shortly and free the trip capacity again."
-          : "Pending requests are held for up to 2 hours so carriers can confirm genuine spare-capacity bookings quickly."}
+          ? "If the carrier has not responded yet, this request should auto-expire shortly and free the trip capacity again."
+          : "Pending requests stay open only for the current response window so carriers can confirm genuine spare-capacity moves quickly."}
       </p>
     </div>
   );

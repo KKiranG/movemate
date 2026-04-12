@@ -6,13 +6,13 @@ import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Become a carrier",
-  description: "Post real trips, fill spare room, and turn repeat Sydney routes into extra earnings.",
+  description: "Post real trips, review better-fit move requests, and turn repeat Sydney routes into extra earnings.",
 };
 
 const steps = [
   "Post a route you are already running.",
-  "Show your space, timing, and clear handling rules.",
-  "Accept bookings that fit the trip instead of chasing quote requests.",
+  "Set your timing, item rules, and structured pricing.",
+  "Review matching requests that fit the trip instead of chasing open-ended quotes.",
 ];
 
 export default function BecomeCarrierPage() {
@@ -21,14 +21,14 @@ export default function BecomeCarrierPage() {
       <PageIntro
         eyebrow="For carriers"
         title="Turn spare room on real trips into extra earnings"
-        description="moverrr helps Sydney carriers post real inventory first, then let customers browse into that capacity with transparent pricing."
+        description="moverrr helps Sydney carriers post real trips, then review clear move requests that fit the route, timing, and handling rules they already set."
       />
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <Card className="p-4">
           <h2 className="text-lg text-text">Why carriers use moverrr</h2>
           <ul className="mt-4 grid gap-3 text-sm text-text-secondary">
-            <li>Post once and let customers browse what is already happening.</li>
+            <li>Post once and only review requests that suit the trip you were already taking.</li>
             <li>Keep control of route, date, price, and what you will handle.</li>
             <li>Reuse recurring lanes instead of rebuilding the same trip every week.</li>
           </ul>
@@ -59,7 +59,7 @@ export default function BecomeCarrierPage() {
             href="/search"
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-medium text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
           >
-            See how customers browse
+            See the customer matching flow
           </Link>
         </div>
       </section>

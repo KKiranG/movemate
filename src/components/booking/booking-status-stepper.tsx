@@ -10,13 +10,13 @@ const steps: {
 }[] = [
   {
     status: "pending",
-    label: "Awaiting Confirmation",
-    description: "Carrier has 2 hours to confirm",
+    label: "Request Submitted",
+    description: "Carrier is reviewing your request inside the response window",
   },
   {
     status: "confirmed",
-    label: "Confirmed",
-    description: "Carrier has accepted your booking",
+    label: "Accepted",
+    description: "Carrier accepted and your move is locked in",
   },
   {
     status: "picked_up",
@@ -57,7 +57,7 @@ export function BookingStatusStepper({
   const currentIndex = statusOrder.indexOf(status);
 
   if (status === "cancelled") {
-    return <p className="font-medium text-error">Booking cancelled</p>;
+    return <p className="font-medium text-error">Request cancelled</p>;
   }
 
   if (status === "disputed") {

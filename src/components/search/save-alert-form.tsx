@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function SaveSearchForm({
+export function SaveAlertForm({
   fromSuburb,
   toSuburb,
   itemCategory,
@@ -45,12 +45,12 @@ export function SaveSearchForm({
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to save this search.");
+        throw new Error(payload.error ?? "Unable to turn on this alert.");
       }
 
-      setMessage(`We’ll notify you at ${email}`);
+      setMessage(`Alert active at ${email}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to save this search.");
+      setError(caught instanceof Error ? caught.message : "Unable to turn on this alert.");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,7 +70,7 @@ export function SaveSearchForm({
       {error ? <p className="text-sm text-error">{error}</p> : null}
       {message ? <p className="text-sm text-success">✓ {message}</p> : null}
       <Button type="submit" disabled={isSubmitting} className="min-h-[44px] active:opacity-80">
-        {isSubmitting ? "Saving..." : "Notify me"}
+        {isSubmitting ? "Saving..." : "Turn on alerts"}
       </Button>
     </form>
   );

@@ -36,7 +36,7 @@ export function SaveTripTemplateAction({
         throw new Error(payload.error ?? "Unable to save template.");
       }
 
-      setMessage("Template saved — post this route in one tap from your dashboard.");
+      setMessage("Template saved — post this route in one tap from carrier home.");
       setIsOpen(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to save template.");

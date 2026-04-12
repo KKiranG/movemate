@@ -15,15 +15,15 @@ const instrumentSans = Instrument_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://moverrr.com.au"),
   title: {
-    default: "Spare-capacity moves in Sydney",
+    default: "Need-first spare-capacity moves in Sydney",
     template: "%s · moverrr",
   },
   description:
-    "Browse posted truck and van capacity in Sydney for furniture, boxes, appliances, and other awkward-middle moves.",
+    "Declare the move need first and get ranked spare-capacity matches with clear pricing, fit notes, and trust signals.",
   openGraph: {
     title: "moverrr",
     description:
-      "Browse spare truck space in Sydney and book big-item moves without the quote chase.",
+      "Need-first spare-capacity matching for awkward-middle moves in Sydney.",
     type: "website",
   },
   themeColor: [

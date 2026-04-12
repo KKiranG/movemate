@@ -1,8 +1,141 @@
 # moverrr — Completed Work Log
 
-> Last updated: `2026-04-09` (PR 21)
+> Last updated: `2026-04-13`
 >
 > Purpose: keep a durable record of what is already done, where it lives, why it was changed, and when it landed, so completed work can be removed from the active backlog without losing context.
+
+---
+
+## 2026-04-13 — Vocabulary-layer alignment for alerts, fit labels, privacy, and customer-facing copy
+
+### `COMP-2026-04-13-01` — Alert naming, route-fit labels, privacy boundaries, and plain-language fit copy
+- Moved from active backlog:
+  - `B08`, `B09`, `B53`, `B54`, `B62`, and `B63`
+- When: `2026-04-13`
+- Where:
+  - `src/components/search/save-alert-form.tsx`
+  - `src/components/search/alerts-manager.tsx`
+  - `src/app/(customer)/alerts/page.tsx`
+  - `src/app/(customer)/search/page.tsx`
+  - `src/app/(customer)/saved-searches/page.tsx`
+  - `src/components/trip/trip-card.tsx`
+  - `src/components/trip/trip-detail-summary.tsx`
+  - `src/app/(customer)/trip/[id]/page.tsx`
+  - `src/app/(customer)/bookings/[id]/page.tsx`
+  - `src/app/(customer)/carrier/[id]/page.tsx`
+  - `src/components/booking/booking-form.tsx`
+  - `src/lib/trip-presenters.ts`
+  - `src/app/(admin)/admin/dashboard/page.tsx`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The user-facing vocabulary layer still leaked legacy saved-search naming, dashboard framing, inconsistent privacy promises, route-fit wording drift, and freight-style fit language that pulled the product away from the governing blueprint.
+- What changed:
+  - Renamed the customer alert surface and its main components to alert-based names, kept `/alerts` as the canonical route, and left `/saved-searches` as a compatibility redirect rather than a primary customer destination.
+  - Reworked result-card and trip-detail fit language around blueprint route-fit and fit-confidence labels, replacing raw capacity framing with plain-language suitability guidance and route-fit explanations.
+  - Removed customer-visible carrier phone sharing from booking detail, tightened privacy messaging so exact addresses and direct contact stay hidden until confirmation, and aligned the touched request and booking surfaces around on-platform coordination.
+  - Cleaned the remaining dashboard-centric wording from admin operations failure messaging and softened request-form copy so customer item details describe lift effort and fit in plain language instead of freight-style terminology.
+- Verification:
+  - `npm run check`
+  - `rg -n "save-search-form|saved-searches-manager|SaveSearchForm|SavedSearchesManager|Small detour required|carrierPhone|tap-to-call|Call carrier|% capacity|capacity left|admin dashboard" src/app src/components src/lib`
+
+### `COMP-2026-04-13-02` — Pricing-language cleanup and request-state wording across cards, checkout, and request detail
+- Moved from active backlog:
+  - `B60`, `B61`, and `B68`
+- When: `2026-04-13`
+- Where:
+  - `src/components/trip/trip-card.tsx`
+  - `src/components/trip/trip-detail-summary.tsx`
+  - `src/components/booking/sticky-booking-cta.tsx`
+  - `src/components/booking/price-breakdown.tsx`
+  - `src/components/booking/booking-checkout-panel.tsx`
+  - `src/components/booking/booking-form.tsx`
+  - `src/components/booking/booking-status-stepper.tsx`
+  - `src/components/booking/pending-expiry-countdown.tsx`
+  - `src/app/(customer)/trip/[id]/page.tsx`
+  - `src/app/(customer)/bookings/[id]/page.tsx`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The remaining customer-facing purchase flow still described a superseded flat booking-fee model and still sounded like an instant booking flow instead of a request that waits on carrier review.
+- What changed:
+  - Removed flat booking-fee language from the touched customer-facing result, detail, CTA, and breakdown surfaces, replacing it with total-price and moverrr-charge wording that does not teach the old pricing mental model.
+  - Reworked trip-card hierarchy so cards now surface total price, fit, route quality, timing, trust, and an explicit "Why this matches" explanation before the customer taps through.
+  - Shifted checkout, submit, success, and pending-state copy toward request submission and carrier review language so the customer sees the right next-step expectations before and after submitting.
+  - Aligned the pending booking detail timeline and response-window language with the request-submitted state instead of implying a fully confirmed booking.
+- Verification:
+  - `npm run check`
+  - `rg -n "booking fee|Book into this trip|Book now|Booking created|Creating booking|Continue to payment|fixed \\$5 booking fee|Awaiting Confirmation|Carrier has 2 hours to confirm|booking timeline before you pay|Starting total includes the fixed booking fee" src/app src/components`
+
+## 2026-04-12 — Need-first public surface realignment
+
+### `COMP-2026-04-12-01` — Need-first homepage, fixed best-fit search ordering, and public copy correction
+- Moved from active backlog:
+  - `B01`, `B02`, `B04`, `B05`, `B57`, and `B67`
+- When: `2026-04-12`
+- Where:
+  - `README.md`
+  - `src/app/page.tsx`
+  - `src/app/layout.tsx`
+  - `src/app/(customer)/search/page.tsx`
+  - `src/app/(customer)/trip/[id]/page.tsx`
+  - `src/app/(marketing)/become-a-carrier/page.tsx`
+  - `src/components/search/search-bar.tsx`
+  - `src/components/layout/site-header.tsx`
+  - `src/components/layout/site-footer.tsx`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The public customer entry and matched-results flow were still teaching a browse-first product shape, and the old sort controls made results behave like an archive instead of a ranked answer set.
+- What changed:
+  - Rebuilt the homepage around need declaration, example jobs, and trust scaffolding, while removing the featured live-inventory shelf and the homepage dependency on public trip-card data.
+  - Locked customer search to one deterministic best-fit ordering, removed all customer-facing sort controls, and stripped sort params from the touched search/detail flow.
+  - Rewrote the search empty-state, helper, and route-alert copy so it talks about move needs, ranked matches, and route watch behavior instead of browsing inventory.
+  - Updated root metadata, footer/header language, carrier marketing copy, and README product notes so always-visible product framing now points toward need-first matching.
+- Verification:
+  - `npm run check`
+  - `rg -n "SearchSort|sort-desktop|sort-mobile|general furniture inventory" src/app src/components README.md`
+
+### `COMP-2026-04-12-02` — Navigation IA, alerts route, and carrier-home shell alignment
+- Moved from active backlog:
+  - `B03`, `B06`, `B10`, `B55`, and `B59`
+- When: `2026-04-12`
+- Where:
+  - `src/components/layout/site-header.tsx`
+  - `src/components/layout/mobile-nav.tsx`
+  - `src/app/(customer)/alerts/page.tsx`
+  - `src/app/(customer)/saved-searches/page.tsx`
+  - `src/app/(customer)/account/page.tsx`
+  - `src/app/(customer)/bookings/page.tsx`
+  - `src/app/(carrier)/carrier/dashboard/page.tsx`
+  - `src/app/(carrier)/carrier/requests/page.tsx`
+  - `src/app/(carrier)/carrier/account/page.tsx`
+  - `src/app/(carrier)/carrier/trips/page.tsx`
+  - `src/app/(carrier)/carrier/payouts/page.tsx`
+  - `src/app/(carrier)/carrier/today/page.tsx`
+  - `src/app/(carrier)/carrier/templates/page.tsx`
+  - `src/app/(carrier)/carrier/stats/page.tsx`
+  - `src/app/(auth)/signup/page.tsx`
+  - `src/app/(auth)/carrier/signup/page.tsx`
+  - `src/app/(auth)/login/page.tsx`
+  - `src/components/search/save-search-form.tsx`
+  - `src/components/search/saved-searches-manager.tsx`
+  - `src/components/carrier/pending-bookings-alert.tsx`
+  - `src/components/carrier/carrier-post-success-card.tsx`
+  - `src/components/carrier/save-trip-template-action.tsx`
+  - `src/components/booking/status-update-actions.tsx`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The realigned backlog needed actual MVP destinations for `Alerts`, `Account`, and `Requests`, and the product still leaked the old saved-search and carrier-dashboard mental models in user-facing surfaces.
+- What changed:
+  - Added real shell routes for customer `Alerts` and `Account`, plus carrier `Requests` and `Account`, then rewired the main header and mobile nav to the blueprint IA for signed-in customer and carrier states.
+  - Redirected the old `/saved-searches` page to `/alerts` and rewrote the customer-facing saved-search manager and form copy so the surface now behaves like route alerts instead of passive saved browsing.
+  - Renamed the primary carrier operational surface to `Carrier home` across metadata, intros, back-links, empty states, and post-action messaging, while removing the stats-page CTA from carrier home.
+  - Rewrote auth and empty-state copy so signup, login, and customer bookings reinforce need declaration, alerts, and request handling instead of browse-first inventory behavior.
+- Verification:
+  - `npm run check`
+  - `rg -n "Saved searches|saved searches|saved search|Back to dashboard|Go to dashboard|Carrier dashboard|carrier dashboard|your dashboard|from your dashboard|dashboard refresh|manage saved searches|customers can browse|let customers browse|Browse trips to get started" src/app src/components`
 
 ---
 

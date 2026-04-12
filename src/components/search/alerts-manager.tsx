@@ -9,19 +9,19 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { SavedSearch } from "@/types/customer";
 
-function SavedSearchCard({ search }: { search: SavedSearch }) {
+function AlertCard({ alert }: { alert: SavedSearch }) {
   const router = useRouter();
-  const [notifyEmail, setNotifyEmail] = useState(search.notifyEmail);
-  const [dateFrom, setDateFrom] = useState(search.dateFrom ?? "");
-  const [dateTo, setDateTo] = useState(search.dateTo ?? "");
-  const [isActive, setIsActive] = useState(search.isActive);
+  const [notifyEmail, setNotifyEmail] = useState(alert.notifyEmail);
+  const [dateFrom, setDateFrom] = useState(alert.dateFrom ?? "");
+  const [dateTo, setDateTo] = useState(alert.dateTo ?? "");
+  const [isActive, setIsActive] = useState(alert.isActive);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchHref = `/search?${new URLSearchParams({
-    from: search.fromSuburb,
-    to: search.toSuburb,
-    ...(search.dateFrom ? { when: search.dateFrom } : {}),
-    ...(search.itemCategory ? { what: search.itemCategory } : {}),
+    from: alert.fromSuburb,
+    to: alert.toSuburb,
+    ...(alert.dateFrom ? { when: alert.dateFrom } : {}),
+    ...(alert.itemCategory ? { what: alert.itemCategory } : {}),
   }).toString()}`;
 
   async function saveChanges(nextIsActive = isActive) {
@@ -29,7 +29,7 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/saved-searches/${search.id}`, {
+      const response = await fetch(`/api/saved-searches/${alert.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -42,35 +42,35 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to update saved search.");
+        throw new Error(payload.error ?? "Unable to update this alert.");
       }
 
       setIsActive(payload.savedSearch.isActive);
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to update saved search.");
+      setError(caught instanceof Error ? caught.message : "Unable to update this alert.");
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function removeSearch() {
+  async function removeAlert() {
     setIsSaving(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/saved-searches/${search.id}`, {
+      const response = await fetch(`/api/saved-searches/${alert.id}`, {
         method: "DELETE",
       });
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to delete saved search.");
+        throw new Error(payload.error ?? "Unable to delete this alert.");
       }
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to delete saved search.");
+      setError(caught instanceof Error ? caught.message : "Unable to delete this alert.");
       setIsSaving(false);
     }
   }
@@ -80,12 +80,12 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="section-label">Saved search</p>
+            <p className="section-label">Alert</p>
             <h2 className="mt-1 text-heading text-text">
-              {search.fromSuburb} to {search.toSuburb}
+              {alert.fromSuburb} to {alert.toSuburb}
             </h2>
             <p className="mt-1 text-body text-text-secondary">
-              {search.itemCategory ? `Looking for ${search.itemCategory} capacity` : "Any item category"}
+              {alert.itemCategory ? `Watching for ${alert.itemCategory} capacity` : "Watching any move type"}
             </p>
           </div>
           <span
@@ -99,7 +99,7 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">Notify email</span>
+            <span className="text-sm font-medium text-text">Notification email</span>
             <Input value={notifyEmail} onChange={(event) => setNotifyEmail(event.target.value)} />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -116,10 +116,10 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
 
         <div className="flex flex-wrap gap-2">
           <Button asChild type="button">
-            <Link href={searchHref}>Search now</Link>
+            <Link href={searchHref}>View matching routes</Link>
           </Button>
           <Button type="button" variant="secondary" disabled={isSaving} onClick={() => saveChanges()}>
-            {isSaving ? "Saving..." : "Save edits"}
+            {isSaving ? "Saving..." : "Save changes"}
           </Button>
           <Button
             type="button"
@@ -133,15 +133,15 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
           >
             {isActive ? "Pause alert" : "Resume alert"}
           </Button>
-          <Button type="button" variant="ghost" disabled={isSaving} onClick={removeSearch}>
+          <Button type="button" variant="ghost" disabled={isSaving} onClick={removeAlert}>
             Delete
           </Button>
         </div>
 
         <p className="text-caption text-text-secondary">
-          Alerts sent {search.notificationCount} time(s).{" "}
-          {search.lastNotifiedAt
-            ? `Last notified ${new Date(search.lastNotifiedAt).toLocaleDateString("en-AU")}.`
+          Alerts sent {alert.notificationCount} time(s).{" "}
+          {alert.lastNotifiedAt
+            ? `Last notified ${new Date(alert.lastNotifiedAt).toLocaleDateString("en-AU")}.`
             : "No matches yet."}
         </p>
         {error ? <p className="text-sm text-error">{error}</p> : null}
@@ -150,15 +150,15 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
   );
 }
 
-export function SavedSearchesManager({ searches }: { searches: SavedSearch[] }) {
+export function AlertsManager({ alerts }: { alerts: SavedSearch[] }) {
   return (
     <div className="grid gap-4">
-      {searches.map((search) => (
-        <SavedSearchCard key={search.id} search={search} />
+      {alerts.map((alert) => (
+        <AlertCard key={alert.id} alert={alert} />
       ))}
-      {searches.length === 0 ? (
+      {alerts.length === 0 ? (
         <Card className="p-4">
-          <p className="subtle-text">No saved searches yet. Save a no-results route from browse to get alerts.</p>
+          <p className="subtle-text">No alerts yet. Turn on a route alert from search when moverrr does not find the right fit.</p>
         </Card>
       ) : null}
     </div>
