@@ -200,69 +200,7 @@
 
 ---
 
-## ⚪ After MVP / Deferred
 
-*Explicitly out of the MVP queue. Keep these one-line, separated from launch work, and do not pull them into active delivery without a fresh prioritization pass.*
-
-- [ ] **P4-01** — LLM item classification from customer photo or description
-- [ ] **P4-02** — Fixed price per item category (sofa, fridge, etc.) instead of carrier-set price
-- [ ] **P4-03** — Percentage-based booking fee (3%) replacing the flat $5 — review after 50+ jobs
-- [ ] **P4-04** — In-app messaging between carrier and customer
-- [ ] **P4-05** — Interactive map view of active listings (pins on a map)
-- [ ] **P4-06** — Live GPS tracking of carrier on trip day
-- [ ] **P4-07** — Bounded counter-offer flow for spare-capacity bookings
-- [ ] **P4-08** — Surge pricing on high-demand routes or dates
-- [ ] **P4-09** — Native iOS app (Swift / React Native) — web is for testing only at MVP
-- [ ] **P4-10** — Native Android app
-- [ ] **P4-11** — Multi-stop trip support (more than one pickup or dropoff)
-- [ ] **P4-12** — Corporate/B2B accounts for business relocations
-- [ ] **P4-13** — Carrier insurance-verification API integration (auto-check expiry)
-- [ ] **P4-14** — Automated payout release via Stripe Connect scheduled transfers
-- [ ] **P4-15** — Customer loyalty / repeat-booking discount
-- [ ] **P4-16** — Carrier referral program ("refer another carrier, earn $50")
-- [ ] **P4-17** — Freight broker / 3PL integration for large-volume shippers
-- [ ] **P4-18** — National expansion beyond Sydney metro
-- [ ] **P4-19** — Two-way carrier verification via government API (digital licence check)
-- [ ] **P4-20** — Embedded insurance option for customer items
-- [ ] **P4-21** — Customer item storage (short-term warehousing via carrier network)
-- [ ] **P4-22** — Route optimization suggestions for carriers with multiple bookings
-- [ ] **P4-24** — Carrier earnings export as CSV for tax/accounting
-- [ ] **P4-25** — Customer booking history PDF export
-- [ ] **P4-26** — Review system: double-blind (hold both reviews until both parties submit or window expires)
-- [ ] **P4-27** — Review system: structured sub-ratings (communication, item care, punctuality, proof quality, listing accuracy)
-- [ ] **P4-28** — Review system: one public carrier reply per review (bounded, factual response only)
-- [ ] **P4-29** — Review system: moderation policy examples published for categories of removable reviews
-- [ ] **P4-30** — In-app messaging: thread header showing current booking status and next required action
-- [ ] **P4-31** — In-app messaging: structured prompt chips (confirm dimensions, ask about stairs, share access photo)
-- [ ] **P4-32** — In-app messaging: carrier quick replies for common access and dimension questions
-- [ ] **P4-33** — In-app messaging: visible response deadline per thread for critical booking states
-- [ ] **P4-34** — In-app messaging: image upload labels (item photo, pickup area, delivery proof, damage evidence)
-- [ ] **P4-35** — Search: route corridor featured shelves (Eastern Suburbs pickups, Inner West → City, etc.)
-- [ ] **P4-36** — Search: support-risk aware ranking (blend trust, completeness, response rate into ordering)
-- [ ] **P4-37** — Trip detail: comparison drawer to view two or three listings side by side
-- [ ] **P4-38** — Posting flow: live preview of how the listing card will look in search while creating
-- [ ] **P4-39** — Posting flow: route frequency tracker (shows carrier how often their route type historically converts)
-- [ ] **P4-40** — Carrier profile: route expertise section (repeated corridors, common item types handled, completion history)
-- [ ] **P4-41** — Carrier profile: response speed and booking reliability shown in customer-friendly format
-- [ ] **P4-42** — Scam reporting button on listings, carrier profiles, and suspicious in-app notifications
-- [ ] **P4-43** — Carrier reliability streaks (positive reinforcement for completed job streaks with clean proof and fast responses)
-- [ ] **P4-44** — Saved trip templates for repeat customers (save recurring move details for quick rebooking)
-- [ ] **P4-45** — Carrier departure safety checklist before trip day (load restraint, secure packing, visibility check)
-- [ ] **P4-46** — Proof quality coaching after upload (flag blurry, incomplete, or missing-angle proof photos)
-- [ ] **P4-47** — Route performance analytics for carriers (which routes convert, which item types book most)
-- [ ] **P4-48** — Experiment review ritual: monthly review of near-miss experiments and pending keep/discard decisions
-- [ ] **P4-49** — Weekly operating review ritual with documented format (instruction quality, verification debt, trust incidents)
-- [ ] **P4-50** — Cross-project operating system template (distill best moverrr agent/rule/skill patterns for future repos)
-- [ ] **P4-51** — Carrier badge freshness: show when verification was last confirmed and highlight documents needing renewal
-- [ ] **P4-52** — Carrier profile proof gallery: show selected before/after, pickup, and delivery proof examples from past work
-- [ ] **P4-53** — Day-of-move urgent direct contact mode: unlock tap-to-call only after booking confirmed and trip is same-day
-- [ ] **P4-54** — Message risk detection: flag off-platform payment prompts or suspicious patterns in threads for admin review
-- [ ] **P4-55** — Dispute center: centralize disputes with structured reason codes, evidence upload, and deadline tracking
-- [ ] **P4-56** — Cancellation policy matrix: define outcomes for each cancellation scenario (pre-confirm, post-confirm, carrier cancel, failed access)
-- [ ] **P4-57** — Partial refund rules tied to evidence, timeline, and completed portion of the job
-- [ ] **P4-58** — Rebook from completed trip: let customers rebook a trusted carrier on a similar corridor in one tap
-
----
 
 ---
 
@@ -594,16 +532,6 @@
 
 ---
 
-### Maps-first search is live, but degraded fallback coverage still needs expansion
-
-- **Priority:** P2
-- **Stage:** Pre-MVP
-- **Type:** Product / Search
-- **Why this matters:** Google Maps is now the production source of truth for suburb resolution and route relevance, which closes the worst `ilike` mismatch class. The remaining risk sits in degraded mode: missing-env/local fallback still depends on the curated Sydney suburb map, so suburbs outside the launch corridors can degrade less gracefully than the strongest routes.
-- **What exactly needs to be done:** Expand the curated suburb coordinate map, add regression cases for near-name suburbs and adjacent corridors, and document exactly which degraded fallback paths are still coordinate-backed versus heuristic.
-- **Likely areas affected:** `src/lib/data/trips.ts`, `src/lib/maps/sydney-suburb-coords.ts`, search-ranking tests
-- **Acceptance criteria:** The degraded fallback covers the launch corridors plus common adjacent Sydney suburbs, and regression tests catch false-equivalence cases such as similarly named suburbs.
-
 ---
 
 ## Agentic Development System — Infrastructure Backlog
@@ -634,7 +562,7 @@
 
 ## Agent Operating System — Rule Files, Docs & OS Meta-Tasks
 
-> Remaining meta-work after the 2026-04-09 operating-system cleanup. Shipped rule files, the experiment ledger, and the capability index were removed from active backlog because they already exist in the repo.
+
 
 ---
 
@@ -642,9 +570,6 @@
 
 No active EO items remain after the 2026-04-09 docs, hooks, and verification-template sweep.
 
-## Moverrr — Critical Gaps Found in Deep Repo Review
-
-> Added: `2026-04-08` — findings from a full codebase survey that go beyond what was already in the backlog. Each item below was verified by reading the actual code, not inferred. These are not wishlist items — they are holes in the current implementation.
 
 ---
 
@@ -671,5 +596,69 @@ No active EO items remain after the 2026-04-09 docs, hooks, and verification-tem
 - **Likely areas affected:** `supabase/migrations/010_saved_searches.sql` (rename), `supabase/migrations/` (numbering audit), Supabase `schema_migrations` table (may need a manual update in production)
 - **Dependencies / open questions:** This MUST be done carefully in production — renaming an applied migration filename can cause `supabase migration repair` to be needed. Do a dry run locally first: `supabase db reset` and confirm both migrations apply cleanly after the rename. Coordinate with any pending migration work that uses number `014` or beyond.
 - **Acceptance criteria:** `supabase/migrations/` has no duplicate sequence numbers. `supabase migration status` shows all migrations as applied with no gaps or duplicates. `supabase db reset` in local dev applies all migrations cleanly in order.
+
+---
+
+## ⚪ After MVP / Deferred
+
+*Explicitly out of the MVP queue. Keep these one-line, separated from launch work, and do not pull them into active delivery without a fresh prioritization pass.*
+
+- [ ] **P4-01** — LLM item classification from customer photo or description
+- [ ] **P4-02** — Fixed price per item category (sofa, fridge, etc.) instead of carrier-set price
+- [ ] **P4-03** — Percentage-based booking fee (3%) replacing the flat $5 — review after 50+ jobs
+- [ ] **P4-04** — In-app messaging between carrier and customer
+- [ ] **P4-05** — Interactive map view of active listings (pins on a map)
+- [ ] **P4-06** — Live GPS tracking of carrier on trip day
+- [ ] **P4-07** — Bounded counter-offer flow for spare-capacity bookings
+- [ ] **P4-08** — Surge pricing on high-demand routes or dates
+- [ ] **P4-09** — Native iOS app (Swift / React Native) — web is for testing only at MVP
+- [ ] **P4-10** — Native Android app
+- [ ] **P4-11** — Multi-stop trip support (more than one pickup or dropoff)
+- [ ] **P4-12** — Corporate/B2B accounts for business relocations
+- [ ] **P4-13** — Carrier insurance-verification API integration (auto-check expiry)
+- [ ] **P4-14** — Automated payout release via Stripe Connect scheduled transfers
+- [ ] **P4-15** — Customer loyalty / repeat-booking discount
+- [ ] **P4-16** — Carrier referral program ("refer another carrier, earn $50")
+- [ ] **P4-17** — Freight broker / 3PL integration for large-volume shippers
+- [ ] **P4-18** — National expansion beyond Sydney metro
+- [ ] **P4-19** — Two-way carrier verification via government API (digital licence check)
+- [ ] **P4-20** — Embedded insurance option for customer items
+- [ ] **P4-21** — Customer item storage (short-term warehousing via carrier network)
+- [ ] **P4-22** — Route optimization suggestions for carriers with multiple bookings
+- [ ] **P4-24** — Carrier earnings export as CSV for tax/accounting
+- [ ] **P4-25** — Customer booking history PDF export
+- [ ] **P4-26** — Review system: double-blind (hold both reviews until both parties submit or window expires)
+- [ ] **P4-27** — Review system: structured sub-ratings (communication, item care, punctuality, proof quality, listing accuracy)
+- [ ] **P4-28** — Review system: one public carrier reply per review (bounded, factual response only)
+- [ ] **P4-29** — Review system: moderation policy examples published for categories of removable reviews
+- [ ] **P4-30** — In-app messaging: thread header showing current booking status and next required action
+- [ ] **P4-31** — In-app messaging: structured prompt chips (confirm dimensions, ask about stairs, share access photo)
+- [ ] **P4-32** — In-app messaging: carrier quick replies for common access and dimension questions
+- [ ] **P4-33** — In-app messaging: visible response deadline per thread for critical booking states
+- [ ] **P4-34** — In-app messaging: image upload labels (item photo, pickup area, delivery proof, damage evidence)
+- [ ] **P4-35** — Search: route corridor featured shelves (Eastern Suburbs pickups, Inner West → City, etc.)
+- [ ] **P4-36** — Search: support-risk aware ranking (blend trust, completeness, response rate into ordering)
+- [ ] **P4-37** — Trip detail: comparison drawer to view two or three listings side by side
+- [ ] **P4-38** — Posting flow: live preview of how the listing card will look in search while creating
+- [ ] **P4-39** — Posting flow: route frequency tracker (shows carrier how often their route type historically converts)
+- [ ] **P4-40** — Carrier profile: route expertise section (repeated corridors, common item types handled, completion history)
+- [ ] **P4-41** — Carrier profile: response speed and booking reliability shown in customer-friendly format
+- [ ] **P4-42** — Scam reporting button on listings, carrier profiles, and suspicious in-app notifications
+- [ ] **P4-43** — Carrier reliability streaks (positive reinforcement for completed job streaks with clean proof and fast responses)
+- [ ] **P4-44** — Saved trip templates for repeat customers (save recurring move details for quick rebooking)
+- [ ] **P4-45** — Carrier departure safety checklist before trip day (load restraint, secure packing, visibility check)
+- [ ] **P4-46** — Proof quality coaching after upload (flag blurry, incomplete, or missing-angle proof photos)
+- [ ] **P4-47** — Route performance analytics for carriers (which routes convert, which item types book most)
+- [ ] **P4-48** — Experiment review ritual: monthly review of near-miss experiments and pending keep/discard decisions
+- [ ] **P4-49** — Weekly operating review ritual with documented format (instruction quality, verification debt, trust incidents)
+- [ ] **P4-50** — Cross-project operating system template (distill best moverrr agent/rule/skill patterns for future repos)
+- [ ] **P4-51** — Carrier badge freshness: show when verification was last confirmed and highlight documents needing renewal
+- [ ] **P4-52** — Carrier profile proof gallery: show selected before/after, pickup, and delivery proof examples from past work
+- [ ] **P4-53** — Day-of-move urgent direct contact mode: unlock tap-to-call only after booking confirmed and trip is same-day
+- [ ] **P4-54** — Message risk detection: flag off-platform payment prompts or suspicious patterns in threads for admin review
+- [ ] **P4-55** — Dispute center: centralize disputes with structured reason codes, evidence upload, and deadline tracking
+- [ ] **P4-56** — Cancellation policy matrix: define outcomes for each cancellation scenario (pre-confirm, post-confirm, carrier cancel, failed access)
+- [ ] **P4-57** — Partial refund rules tied to evidence, timeline, and completed portion of the job
+- [ ] **P4-58** — Rebook from completed trip: let customers rebook a trusted carrier on a similar corridor in one tap
 
 ---
