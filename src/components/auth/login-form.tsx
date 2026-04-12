@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { getSafeRedirectUrl } from "@/lib/utils";
 
 export function LoginForm() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push(searchParams.get("next") ?? "/search");
+      router.push(getSafeRedirectUrl(searchParams.get("next"), "/search"));
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to log in.");

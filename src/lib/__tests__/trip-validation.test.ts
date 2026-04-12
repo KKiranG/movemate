@@ -10,8 +10,10 @@ import {
 function buildTripUpdateInput(
   overrides: Partial<Parameters<typeof tripUpdateSchema.parse>[0]> = {},
 ) {
+  const futureDate = new Date();
+  futureDate.setUTCDate(futureDate.getUTCDate() + 10);
   return {
-    tripDate: "2026-04-10",
+    tripDate: futureDate.toISOString().split('T')[0],
     timeWindow: "morning",
     spaceSize: "M",
     availableVolumeM3: 1.2,

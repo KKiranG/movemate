@@ -153,3 +153,16 @@ export function sanitizeText(value: string) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+export function getSafeRedirectUrl(url: string | null | undefined, fallback = "/") {
+  if (!url) return fallback;
+  try {
+    const parsedUrl = new URL(url, "http://localhost");
+    if (parsedUrl.origin === "http://localhost" && url.startsWith("/")) {
+      return url.startsWith("//") ? fallback : url;
+    }
+  } catch {
+    // Ignore invalid URLs
+  }
+  return fallback;
+}
