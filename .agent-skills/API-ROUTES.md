@@ -5,12 +5,21 @@
 ### Public
 
 - `GET /api/health`
-- `GET /api/search`
-- `GET /api/trips/[id]`
+- `GET /api/search` — legacy search endpoint; transitioning to move-requests flow
+- `GET /api/trips/[id]` — offer detail page data
 
 ### Shared authenticated
 
 - `POST /api/upload`
+
+### Need-first flow (customer)
+
+- `POST /api/move-requests` — create a MoveRequest (wizard completion)
+- `GET /api/move-requests/[id]/offers` — retrieve match-ranked Offers for a MoveRequest
+- `POST /api/booking-requests` — create a booking request (single or Fast Match group)
+- `PATCH /api/booking-requests/[id]` — accept / decline / request clarification (carrier-facing)
+- `POST /api/unmatched-requests` — Alert the Network (zero-match demand capture)
+- `PATCH /api/unmatched-requests/[id]` — update status (customer cancels, match found)
 
 ### Carrier-facing
 
@@ -25,14 +34,16 @@
 - `POST /api/trips/templates/[id]/post`
 - `GET /api/trips/price-guidance`
 
-### Customer-facing
+### Customer-facing (bookings)
 
-- `POST /api/bookings`
+- `POST /api/bookings` — create booking from accepted booking request
 - `GET /api/bookings`
 - `PATCH /api/bookings/[id]`
 - `POST /api/bookings/[id]/confirm-receipt`
 - `POST /api/bookings/[id]/dispute`
 - `POST /api/bookings/[id]/review`
+- `POST /api/bookings/[id]/condition-adjustment` — carrier triggers structured adjustment
+- `PATCH /api/bookings/[id]/condition-adjustment` — customer accepts or rejects adjustment
 - `GET /api/saved-searches`
 - `POST /api/saved-searches`
 - `DELETE /api/saved-searches/[id]`
@@ -57,6 +68,8 @@
 - `POST /api/admin/carriers/[id]/verify`
 - `PATCH /api/admin/disputes/[id]`
 - `GET /api/admin/rate-limit`
+- `POST /api/admin/concierge-offers` — founder creates concierge offer for an unmatched request
+- `PATCH /api/admin/concierge-offers/[id]` — update concierge offer status
 
 ## API boundary rules
 
@@ -68,8 +81,10 @@
 
 ## High-risk route families
 
-- bookings
-- payments
+- booking-requests (Fast Match atomicity)
+- bookings (state machine, capacity invariants)
+- condition-adjustment (structured exception path — not a negotiation channel)
+- payments (capture timing, webhook idempotency)
 - upload
 - admin verification and disputes
 

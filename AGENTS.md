@@ -14,10 +14,11 @@ Do not skip the read phase. In this repo, shallow context creates product drift 
 
 ## Non-Negotiable Product Context
 
-moverrr is a browse-first spare-capacity marketplace for Sydney's awkward-middle moves.
-Carriers post real trips with spare room. Customers browse and book into that inventory.
+moverrr is a need-first, match-ranked spare-capacity marketplace.
+Carriers post trips they are already taking and set structured pricing. Customers declare a move need via a wizard; the system returns a confidence-ranked shortlist with fit labels and match explanations. Request-to-Book or Fast Match. Carrier accepts or declines via decision card.
 
 Never casually turn it into:
+- a browse-first inventory catalogue
 - a removalist platform
 - a dispatch layer
 - a quote engine

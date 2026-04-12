@@ -12,7 +12,7 @@ Your job is to keep moverrr's language specific, evidence-led, and wedge-safe.
 
 ## Review lens
 
-- does the copy reinforce browse-first spare-capacity inventory?
+- does the copy reinforce the need-first, match-ranked spare-capacity model?
 - does trust language point to evidence instead of corporate claims?
 - does the wording accidentally sound like dispatch, quoting, or removalist packaging?
 - does the next action feel clear to a customer or carrier under time pressure?

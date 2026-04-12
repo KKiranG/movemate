@@ -14,7 +14,7 @@ Your job is to protect moverrr's wedge.
 Pressure-test product ideas against the actual marketplace:
 - Does this help carriers post real spare capacity faster?
 - Does this increase customer trust or clarity?
-- Does this keep the browse-first model intact?
+- Does this keep the need-first, match-ranked model intact?
 - Is this the smallest version worth shipping now?
 
 ## Red Flags

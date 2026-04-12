@@ -9,31 +9,43 @@ paths:
 
 # Customer Trust Rules
 
-Customer trust comes from specific evidence.
+Customer trust comes from specific evidence, not vague reassurance.
 
-## Show Early
+## Show Early (on every result card)
 
-- route clarity
-- total price
-- what is included
-- what happens next
-- carrier trust signals
-- privacy boundaries
+- "Why this matches" — deterministic explanation (e.g., "Direct route match on your requested day")
+- Fit-confidence label: "Likely fits" / "Review photos" / "Needs approval"
+- Total all-in price (base + add-ons + platform fee + GST) — no "starting from"
+- Carrier trust signals: "Verified" badge, star rating (if ≥3 ratings), trip count
+- Route-fit label ("Direct route" / "Near your pickup (~X km)")
+
+## Show on Offer Detail Page
+
+- Full price breakdown line by line (base rate + stairs + platform fee + GST = total)
+- Vehicle photo and human-readable capacity descriptor
+- Carrier's item constraints, clearly stated (e.g., "Ground floor only. Max item length: 2m.")
+- Cancellation and misdescription policy — plain language
+- What proof exists and when it is captured (pickup photo optional; delivery photo mandatory)
+- "Verified" identity status and member-since date always shown
+- Reviews only shown after 3+ ratings; never show "0 stars" or "New" without context
 
 ## Copy Rules
 
-- say what is verified
-- say what payment does next
-- say what proof exists and when it is captured
-- avoid vague claims like "safe and secure"
+- say what is verified (identity, vehicle)
+- say what payment does next (authorised now; charged only when carrier accepts)
+- say what proof is required and when
+- avoid vague claims like "safe and secure" without specifics behind them
+- avoid corporate reassurance fluff
 
-## Empty States
+## Empty States and Zero-Match
 
-- no-result states should capture demand
-- always offer at least one recovery path
+- never a dead-end "No results" screen
+- show Alert the Network CTA and capture the need as an UnmatchedRequest
+- always offer at least one recovery path with a clear, actionable next step
 
 ## Verification
 
-- search card clarity
-- trip detail trust and pricing clarity
-- checkout reassurance without corporate fluff
+- result card shows total all-in price, "Why this matches" line, and fit-confidence label
+- offer detail shows full price breakdown including GST
+- checkout shows updated price if access conditions changed
+- zero-match routes to Alert the Network, not an empty state

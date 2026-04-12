@@ -15,7 +15,7 @@ Use `$ARGUMENTS` to specify the issue number (e.g. `#42`).
 Before touching code, confirm the issue fits moverrr's thesis:
 
 1. Does fixing this help carriers post real spare capacity, or improve customer trust/clarity?
-2. Does it keep the browse-first model intact?
+2. Does it keep the need-first, match-ranked model intact?
 3. Is it the smallest version worth shipping now?
 
 If the answer to any of these is unclear, flag it to the founder before continuing.

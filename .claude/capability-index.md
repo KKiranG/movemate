@@ -12,7 +12,7 @@ Use this file as the fast inventory of what currently exists.
 | `backend-marketplace-invariants.md` | `src/lib/**`, `src/app/api/**`, `supabase/**`, `middleware.ts`, `next.config.js` | booking, pricing, capacity, matching, and schema invariants |
 | `operations-and-trust.md` | admin, disputes, notifications, payments | manual-first ops, trust, recoverability |
 | `docs-and-memory.md` | markdown and memory files | where shared truth belongs and how to keep it clean |
-| `search-and-matching.md` | search UI, search API, matching logic | browse-first fit logic, explainable ranking, weak-inventory handling |
+| `search-and-matching.md` | search UI, search API, matching logic | need-first results, explainable ranking, match explanations, zero-match handling |
 | `payments-and-payouts.md` | Stripe, webhook, payout, payment admin surfaces | funds flow, payout timing, reconciliation, holds |
 | `supabase-schema.md` | `supabase/**`, `src/types/database.ts` | migration, RLS, RPC, rollback, and type sync discipline |
 | `analytics-and-metrics.md` | analytics, admin metrics, experiment docs | marketplace questions first, events second |

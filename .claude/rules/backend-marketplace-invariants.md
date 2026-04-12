@@ -15,9 +15,16 @@ IMPORTANT: backend changes can quietly distort the marketplace if they ignore bu
 ## Booking + Pricing
 
 - Pricing formula lives in `src/lib/pricing/breakdown.ts`
-- Commission is `15%` of `basePriceCents` only
+- Commission is `15%` of `basePriceCents` only — never applied to stairs, helper, or detour add-ons
 - Booking fee is `$5`
-- The pricing identity must hold: `total = payout + commission + booking_fee`
+- GST is `10%` of `(subtotal + platform_fee)` — always collected on top, never absorbed
+- The pricing identity must hold: `total = carrier_payout + platform_fee + gst + booking_fee`
+
+## Fast Match Atomicity
+
+- When one carrier accepts a Fast Match booking request, all sibling requests in the same `request_group_id` must be atomically revoked
+- No race condition: first accept wins and the group is closed
+- Non-accepted carriers must be notified of revocation
 
 ## Booking State + Capacity
 
@@ -30,8 +37,15 @@ IMPORTANT: backend changes can quietly distort the marketplace if they ignore bu
 ## Matching
 
 - Matching stays deterministic and explainable
-- Hard disqualifiers should remain explicit
+- Hard eligibility disqualifiers must remain explicit and enforced
 - Do not introduce opaque AI ranking or negotiation behavior
+- match_class labels are deterministic string templates — never free text
+
+## Condition Adjustment
+
+- Carrier can trigger at most one ConditionAdjustment per booking
+- Reasons and amounts are platform-defined enums — no freeform input
+- One round only: customer accepts or rejects; no second adjustment
 
 ## API + Validation
 

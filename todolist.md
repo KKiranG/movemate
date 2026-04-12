@@ -8,9 +8,9 @@
 
 ## Product Guardrails (Read Before Touching Any Item)
 
-- moverrr is a **browse-first spare-capacity marketplace**. Not dispatch, not removalist booking, not AI matching.
+- moverrr is a **need-first, match-ranked spare-capacity marketplace**. Not browse-first inventory, not dispatch, not removalist booking, not AI matching.
 - Commission math in `src/lib/pricing/breakdown.ts` is frozen unless explicitly discussed.
-- iPhone-first rules are non-negotiable: `min-h-[44px]`, `active:` alongside every `hover:`, `capture="environment"` on proof inputs, safe-area insets on fixed elements.
+- Mobile-first rules are non-negotiable: `min-h-[44px]`, `active:` alongside every `hover:`, `capture="environment"` on proof inputs, safe-area insets on fixed elements.
 - Trust beats cleverness. Supply speed beats polish.
 
 ---

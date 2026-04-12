@@ -1,6 +1,6 @@
 ---
 name: founder-scope-check
-description: Pressure-test feature ideas, prioritization decisions, and strategy requests so moverrr stays a browse-first spare-capacity marketplace instead of drifting into dispatch, quote comparison, or removalist workflows.
+description: Pressure-test feature ideas, prioritization decisions, and strategy requests so moverrr stays a need-first, match-ranked spare-capacity marketplace instead of drifting into dispatch, quote comparison, or removalist workflows.
 when_to_use: Use when the user asks for a new feature, prioritization help, roadmap advice, automation idea, pricing mechanic, or marketplace workflow that could change the product shape. Examples: "should we add live tracking?", "build smarter matching", "what should we do next?", "let carriers bid", or "how should we prioritize this feature?".
 ---
 
@@ -15,7 +15,7 @@ For every proposal, answer these in moverrr's context:
 1. Does this help carriers post genuine spare capacity faster?
 2. Does this improve trust or clarity for customers?
 3. Does this reduce manual ops pain in a meaningful way?
-4. Does it preserve the browse-first marketplace model?
+4. Does it preserve the need-first, match-ranked marketplace model?
 5. Is the smallest version obvious?
 6. What wedge risk appears if we build it badly?
 

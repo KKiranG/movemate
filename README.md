@@ -1,12 +1,12 @@
 # moverrr
 
-Browse-first spare-capacity marketplace for the awkward middle in Sydney.
+Need-first, match-ranked spare-capacity marketplace for awkward-middle item moves.
 
-Carriers post trips with spare room. Customers browse those trips and book into them instead of posting a job and waiting for quotes.
+Carriers post trips they are already taking and set structured pricing. Customers declare a specific move need via a short wizard (route + item + timing + access). The system matches against posted trips and returns a confidence-ranked shortlist with deterministic pricing, fit-confidence labels, and match explanations. Customers use Request-to-Book (single carrier) or Fast Match (up to 3, first to accept wins). Carriers accept or decline via a decision card. Payment is escrowed; proof-of-delivery releases payout.
 
 ## Current Status
 
-- The app now runs as a real browse-first MVP shell with live Supabase-backed auth, listings, bookings, admin review tools, dispute handling, and review capture.
+- The app runs as a need-first MVP shell with live Supabase-backed auth, listings, bookings, admin review tools, dispute handling, and review capture.
 - Carrier onboarding, trip posting, trip editing, customer booking, booking-state progression, waitlist capture, smoke-dataset bootstrap, and admin verification are wired in code.
 - External services still need real credentials before production behavior is fully live for Maps, Stripe, Resend, Sentry, and deployment hosting.
 
@@ -14,9 +14,9 @@ Carriers post trips with spare room. Customers browse those trips and book into 
 
 The best validation question right now is:
 
-Can we get 10+ Sydney carriers to reliably post spare capacity every week if posting takes under 60 seconds and the customer sees transparent, route-fit inventory instantly?
+Can moverrr convert a messy object-move problem into a confident yes/no decision fast enough that customers do not abandon — even when supply is sparse? And will carriers reliably post repeat corridors if quick-repost takes under 30 seconds?
 
-That question matters more than pixel polish because if carriers will not post inventory consistently, the browse-first model breaks.
+These two questions matter more than pixel polish. If customers abandon during the need-declaration flow or carriers will not post repeat inventory, the model breaks.
 
 ## Stack
 

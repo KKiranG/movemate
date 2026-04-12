@@ -4,11 +4,12 @@ This file provides guidance to Claude Code when working in this repository.
 
 ## Product Thesis
 
-moverrr is an iOS-first, browse-first spare-capacity marketplace.
-Carriers post trips that are already happening and sell the spare room.
-Customers browse that real inventory and book into it.
+moverrr is a need-first, match-ranked spare-capacity marketplace.
+Carriers post trips that are already happening and set structured pricing.
+Customers declare a specific move need via a short wizard. The system matches against posted trips and returns a confidence-ranked shortlist with deterministic pricing, fit-confidence labels, and trust signals. The customer requests a carrier (or uses Fast Match to broadcast to up to 3). The carrier accepts or declines. Payment is escrowed. Proof-of-delivery releases payout.
 
 This product is explicitly not:
+- a browse-first inventory catalogue of drivers or trips
 - a removalist booking business
 - a courier dispatch system
 - a quote-comparison funnel

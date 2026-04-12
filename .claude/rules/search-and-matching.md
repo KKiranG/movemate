@@ -7,41 +7,55 @@ paths:
   - src/app/(customer)/search/**
 ---
 
-# Search + Matching Rules
+# Matching + Results Rules
 
-Search is a product-shaping surface in moverrr.
+The results surface is a product-shaping surface in moverrr. It is a ranked answer set, not a filterable browse archive.
 
 ## Core Principles
 
-- Search should explain why a trip fits, not just list rows.
-- Ranking must stay deterministic and explainable.
-- Hard disqualifiers should remain visible and explicit.
-- Search language should stay route-first and browse-first, never drift into quotes or dispatch.
+- Results explain why each option fits — "Why this matches" is mandatory on every result card.
+- Ranking must stay deterministic and explainable (see `MATCHING-ENGINE.md` for match_class labels).
+- Hard eligibility disqualifiers should remain visible and explicit in code.
+- Results language should stay need-first and match-focused — never drift into catalogue browsing, quotes, or dispatch.
 
 ## What To Optimize
 
-- route fit
-- trust legibility
+- route fit (every result explains the match, not just lists the row)
+- match explanation clarity ("Direct route match" / "Near your pickup (~3 km)")
+- trust legibility (verified badge, trip count, star rating if ≥3)
+- total all-in price on every card (including platform fee and GST)
 - timing clarity
-- supply quality
-- customer self-qualification
+- zero-match path (always routes to Alert the Network — never a dead end)
 
 ## What To Avoid
 
 - hidden ranking logic
 - opaque AI scoring
 - freight-software jargon
-- weak inventory dominating first impressions
+- raw cubic-metre capacity on customer-facing cards
+- weak inventory dominating first impressions without match explanation
+- "starting from" price ranges — the price is the price
 
-## Search UI Expectations
+## Result Card Expectations
 
-- cards should show total customer price
-- timing confidence should be visible before tap
-- capacity should be made human, not only percent-based
-- empty states should capture demand and offer next actions
+- total all-in price (base + add-ons + platform fee + GST) shown prominently
+- "Why this matches" explanation line on every card
+- fit-confidence label: "Likely fits" / "Review photos" / "Needs approval"
+- route-fit label: "Direct route" / "Near your pickup (~X km)" / etc.
+- timing confidence visible before tap
+- trust signals: "Verified" badge + star rating (if ≥3) + trip count
+
+## Zero-Match State
+
+- never show a dead-end empty state
+- show near-matches if they exist (same corridor within 7 days, adjacent corridors, partial segments)
+- if truly zero: show Alert the Network CTA and capture the need as an UnmatchedRequest
+- always offer at least one recovery path
 
 ## Verification
 
 - check default ordering with a weak and a strong listing
-- confirm no-result states still offer a clear next step
+- confirm "Why this matches" string is present and uses the correct match_class template
+- confirm no-result states route to Alert the Network (not just empty)
+- confirm result card price is total all-in (not base-only)
 - confirm route-fit and pricing copy still match the actual product wedge
