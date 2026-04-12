@@ -42,10 +42,16 @@ export function WaitlistForm({ from, to, when, what }: WaitlistFormProps) {
         throw new Error(payload.error ?? "Unable to join the waitlist.");
       }
 
-      setMessage("Thanks. We’ll use this route request in the launch waitlist and concierge flow.");
+      setMessage(
+        "Thanks. We’ll use this route request in the launch waitlist and concierge flow.",
+      );
       setEmail("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to join the waitlist.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to join the waitlist.",
+      );
     } finally {
       setIsSubmitting(false);
     }

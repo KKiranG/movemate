@@ -48,7 +48,11 @@ function AlertCard({ alert }: { alert: SavedSearch }) {
       setIsActive(payload.savedSearch.isActive);
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to update this alert.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to update this alert.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -70,7 +74,11 @@ function AlertCard({ alert }: { alert: SavedSearch }) {
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to delete this alert.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to delete this alert.",
+      );
       setIsSaving(false);
     }
   }
@@ -85,12 +93,16 @@ function AlertCard({ alert }: { alert: SavedSearch }) {
               {alert.fromSuburb} to {alert.toSuburb}
             </h2>
             <p className="mt-1 text-body text-text-secondary">
-              {alert.itemCategory ? `Watching for ${alert.itemCategory} capacity` : "Watching any move type"}
+              {alert.itemCategory
+                ? `Watching for ${alert.itemCategory} capacity`
+                : "Watching any move type"}
             </p>
           </div>
           <span
             className={`rounded-xl px-3 py-2 text-caption ${
-              isActive ? "bg-success/10 text-success" : "bg-black/[0.04] text-text-secondary dark:bg-white/[0.06]"
+              isActive
+                ? "bg-success/10 text-success"
+                : "bg-black/[0.04] text-text-secondary dark:bg-white/[0.06]"
             }`}
           >
             {isActive ? "Active" : "Paused"}
@@ -99,17 +111,30 @@ function AlertCard({ alert }: { alert: SavedSearch }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">Notification email</span>
-            <Input value={notifyEmail} onChange={(event) => setNotifyEmail(event.target.value)} />
+            <span className="text-sm font-medium text-text">
+              Notification email
+            </span>
+            <Input
+              value={notifyEmail}
+              onChange={(event) => setNotifyEmail(event.target.value)}
+            />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-text">Date from</span>
-              <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+              />
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-text">Date to</span>
-              <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+              />
             </label>
           </div>
         </div>
@@ -118,7 +143,12 @@ function AlertCard({ alert }: { alert: SavedSearch }) {
           <Button asChild type="button">
             <Link href={searchHref}>View matching routes</Link>
           </Button>
-          <Button type="button" variant="secondary" disabled={isSaving} onClick={() => saveChanges()}>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isSaving}
+            onClick={() => saveChanges()}
+          >
             {isSaving ? "Saving..." : "Save changes"}
           </Button>
           <Button
@@ -133,7 +163,12 @@ function AlertCard({ alert }: { alert: SavedSearch }) {
           >
             {isActive ? "Pause alert" : "Resume alert"}
           </Button>
-          <Button type="button" variant="ghost" disabled={isSaving} onClick={removeAlert}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isSaving}
+            onClick={removeAlert}
+          >
             Delete
           </Button>
         </div>
@@ -158,7 +193,10 @@ export function AlertsManager({ alerts }: { alerts: SavedSearch[] }) {
       ))}
       {alerts.length === 0 ? (
         <Card className="p-4">
-          <p className="subtle-text">No alerts yet. Turn on a route alert from search when moverrr does not find the right fit.</p>
+          <p className="subtle-text">
+            No alerts yet. Turn on a route alert from search when moverrr does
+            not find the right fit.
+          </p>
         </Card>
       ) : null}
     </div>

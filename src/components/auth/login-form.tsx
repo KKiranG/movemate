@@ -66,10 +66,16 @@ export function LoginForm() {
         />
       </label>
       <div className="flex items-center justify-between gap-3 text-sm">
-        <Link href="/reset-password" className="inline-flex min-h-[44px] items-center text-accent">
+        <Link
+          href="/reset-password"
+          className="inline-flex min-h-[44px] items-center text-accent"
+        >
           Forgot password?
         </Link>
-        <Link href="/signup" className="inline-flex min-h-[44px] items-center text-text-secondary">
+        <Link
+          href="/signup"
+          className="inline-flex min-h-[44px] items-center text-text-secondary"
+        >
           No account yet? Sign up
         </Link>
       </div>

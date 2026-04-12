@@ -22,9 +22,17 @@ const SEARCH_INTENT_OPTIONS: Array<{
   label: string;
   category: ItemCategory;
 }> = [
-  { value: "single_furniture", label: "Single furniture", category: "furniture" },
+  {
+    value: "single_furniture",
+    label: "Single furniture",
+    category: "furniture",
+  },
   { value: "appliance", label: "Appliance", category: "appliance" },
-  { value: "marketplace_pickup", label: "Marketplace pickup", category: "furniture" },
+  {
+    value: "marketplace_pickup",
+    label: "Marketplace pickup",
+    category: "furniture",
+  },
   { value: "student_move", label: "Student move", category: "boxes" },
   { value: "office_overflow", label: "Office overflow", category: "boxes" },
   { value: "boxes", label: "Boxes", category: "boxes" },
@@ -32,8 +40,8 @@ const SEARCH_INTENT_OPTIONS: Array<{
 
 function getIntentForCategory(category: ItemCategory) {
   return (
-    SEARCH_INTENT_OPTIONS.find((option) => option.category === category)?.value ??
-    "single_furniture"
+    SEARCH_INTENT_OPTIONS.find((option) => option.category === category)
+      ?.value ?? "single_furniture"
   );
 }
 
@@ -56,12 +64,12 @@ export function SearchBar({
   const fromRef = useRef<HTMLInputElement>(null);
   const hasUrlDefaults = Boolean(
     defaults?.from ||
-      defaults?.to ||
-      defaults?.when ||
-      defaults?.what ||
-      defaults?.intent ||
-      defaults?.backload ||
-      defaults?.flexibleDates,
+    defaults?.to ||
+    defaults?.when ||
+    defaults?.what ||
+    defaults?.intent ||
+    defaults?.backload ||
+    defaults?.flexibleDates,
   );
   const [from, setFrom] = useState(defaults?.from ?? "");
   const [to, setTo] = useState(defaults?.to ?? "");
@@ -70,7 +78,9 @@ export function SearchBar({
     defaults?.intent ?? getIntentForCategory(defaults?.what ?? "furniture"),
   );
   const [backload, setBackload] = useState(defaults?.backload ?? false);
-  const [flexibleDates, setFlexibleDates] = useState(defaults?.flexibleDates ?? false);
+  const [flexibleDates, setFlexibleDates] = useState(
+    defaults?.flexibleDates ?? false,
+  );
 
   const defaultDate = useMemo(() => getTodayIsoDate(), []);
 
@@ -102,7 +112,8 @@ export function SearchBar({
       }
       if (parsed.intent !== undefined) setIntent(parsed.intent);
       if (parsed.backload !== undefined) setBackload(parsed.backload);
-      if (parsed.flexibleDates !== undefined) setFlexibleDates(parsed.flexibleDates);
+      if (parsed.flexibleDates !== undefined)
+        setFlexibleDates(parsed.flexibleDates);
     } catch {
       window.localStorage.removeItem("moverrr:search:draft");
     }
@@ -142,7 +153,9 @@ export function SearchBar({
       return;
     }
 
-    const shouldScroll = window.sessionStorage.getItem("moverrr:search:scroll-to-results");
+    const shouldScroll = window.sessionStorage.getItem(
+      "moverrr:search:scroll-to-results",
+    );
 
     if (shouldScroll !== "1") {
       return;
@@ -166,7 +179,8 @@ export function SearchBar({
 
     const params = new URLSearchParams();
     const category =
-      SEARCH_INTENT_OPTIONS.find((option) => option.value === intent)?.category ?? "furniture";
+      SEARCH_INTENT_OPTIONS.find((option) => option.value === intent)
+        ?.category ?? "furniture";
 
     if (from.trim()) params.set("from", from.trim());
     if (to.trim()) params.set("to", to.trim());
@@ -218,8 +232,12 @@ export function SearchBar({
 
       <div className="hidden gap-2 sm:grid">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-text">What are you moving?</span>
-          <span className="text-xs text-text-secondary">Choose the closest move type</span>
+          <span className="text-sm font-medium text-text">
+            What are you moving?
+          </span>
+          <span className="text-xs text-text-secondary">
+            Choose the closest move type
+          </span>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {SEARCH_INTENT_OPTIONS.map((option) => (
@@ -261,8 +279,12 @@ export function SearchBar({
             aria-label="Flexible dates"
           />
           <div className="flex-1">
-            <span className="block text-sm font-medium text-text">Flexible dates</span>
-            <span className="text-xs text-text-secondary">Search this day plus 3 days either side.</span>
+            <span className="block text-sm font-medium text-text">
+              Flexible dates
+            </span>
+            <span className="text-xs text-text-secondary">
+              Search this day plus 3 days either side.
+            </span>
           </div>
         </label>
         <label className="hidden min-h-[44px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 active:bg-black/[0.04] dark:active:bg-white/[0.08] sm:flex focus-within:ring-2 focus-within:ring-accent focus-within:outline-none">
@@ -276,9 +298,12 @@ export function SearchBar({
             aria-label="Return trip only"
           />
           <div className="flex-1">
-            <span className="block text-sm font-medium text-text">Return trip only</span>
+            <span className="block text-sm font-medium text-text">
+              Return trip only
+            </span>
             <span className="text-xs text-text-secondary">
-              Return trips often have the best prices because the carrier is already coming back.
+              Return trips often have the best prices because the carrier is
+              already coming back.
             </span>
           </div>
         </label>
@@ -332,7 +357,9 @@ export function SearchBar({
               aria-label="Flexible dates"
             />
             <div className="flex-1">
-              <span className="block text-sm font-medium text-text">Flexible dates</span>
+              <span className="block text-sm font-medium text-text">
+                Flexible dates
+              </span>
               <span className="text-xs text-text-secondary">
                 Include nearby dates when the exact day is sparse.
               </span>
@@ -349,9 +376,12 @@ export function SearchBar({
               aria-label="Return trip only"
             />
             <div className="flex-1">
-              <span className="block text-sm font-medium text-text">Return trip only</span>
+              <span className="block text-sm font-medium text-text">
+                Return trip only
+              </span>
               <span className="text-xs text-text-secondary">
-                Return trips often have the best prices because the carrier is already coming back.
+                Return trips often have the best prices because the carrier is
+                already coming back.
               </span>
             </div>
           </label>

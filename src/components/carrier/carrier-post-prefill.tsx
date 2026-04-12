@@ -47,7 +47,12 @@ export function CarrierPostPrefill({
     const suburb = searchParams.get("from");
     const postcode = searchParams.get("originPostcode");
 
-    if (!suburb || !postcode || latitude === undefined || longitude === undefined) {
+    if (
+      !suburb ||
+      !postcode ||
+      latitude === undefined ||
+      longitude === undefined
+    ) {
       return null;
     }
 
@@ -66,7 +71,12 @@ export function CarrierPostPrefill({
     const suburb = searchParams.get("to");
     const postcode = searchParams.get("destinationPostcode");
 
-    if (!suburb || !postcode || latitude === undefined || longitude === undefined) {
+    if (
+      !suburb ||
+      !postcode ||
+      latitude === undefined ||
+      longitude === undefined
+    ) {
       return null;
     }
 
@@ -95,7 +105,9 @@ export function CarrierPostPrefill({
   const initialIsReturnTrip = booleanParam(searchParams.get("isReturn"));
   const initialStairsOk = booleanParam(searchParams.get("stairsOk"));
   const initialStairsExtraDollars = searchParams.get("stairsExtra");
-  const initialHelperAvailable = booleanParam(searchParams.get("helperAvailable"));
+  const initialHelperAvailable = booleanParam(
+    searchParams.get("helperAvailable"),
+  );
   const initialHelperExtraDollars = searchParams.get("helperExtra");
   const initialVehicleId = searchParams.get("vehicleId");
 

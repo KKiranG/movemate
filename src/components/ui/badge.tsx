@@ -25,7 +25,8 @@ const statusBadgeMap: Record<BookingStatus, string> = {
   in_transit: "border-accent/20 bg-accent/10 text-accent",
   delivered: "border-border bg-black/[0.03] text-text dark:bg-white/[0.06]",
   completed: "border-border bg-black/[0.03] text-text dark:bg-white/[0.06]",
-  cancelled: "border-border bg-black/[0.03] text-text-secondary dark:bg-white/[0.04]",
+  cancelled:
+    "border-border bg-black/[0.03] text-text-secondary dark:bg-white/[0.04]",
   disputed: "border-error/30 bg-error/10 text-error",
 };
 

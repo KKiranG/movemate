@@ -62,13 +62,20 @@ export function MobileNav({
         </div>
 
         <div className="space-y-3 border-t border-border pt-3">
-          {isLoggedIn ? <p className="break-all text-sm text-text-secondary">{authCopy}</p> : null}
+          {isLoggedIn ? (
+            <p className="break-all text-sm text-text-secondary">{authCopy}</p>
+          ) : null}
 
           <div className="flex flex-col gap-2">
             {isLoggedIn ? (
               <LogoutButton />
             ) : (
-              <Button asChild variant="ghost" size="sm" className="justify-start">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+              >
                 <Link href="/login" onClick={closeMenu}>
                   Log in
                 </Link>

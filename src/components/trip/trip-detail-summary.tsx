@@ -65,24 +65,32 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               <span>{fitConfidenceLabel}</span>
               <span>{routeFitLabel}</span>
               {trip.isReturnTrip ? (
-                <Badge className="border-success/20 bg-success/10 text-success">Return trip</Badge>
+                <Badge className="border-success/20 bg-success/10 text-success">
+                  Return trip
+                </Badge>
               ) : null}
             </div>
             <TimeBar timeWindow={trip.timeWindow} />
             <p className="text-sm text-text">
-              You are requesting spare room on a trip that is already happening, so the price is
-              usually lower than hiring a dedicated truck for the whole job.
+              You are requesting spare room on a trip that is already happening,
+              so the price is usually lower than hiring a dedicated truck for
+              the whole job.
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Customer total</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              Customer total
+            </p>
             <p className="text-2xl font-medium text-text">
               {formatCurrency(pricingPreview.totalPriceCents)}
             </p>
             <p className="mt-1 text-sm text-text-secondary">
-              Route price, moverrr charges, and any selected add-ons are included in this total.
+              Route price, moverrr charges, and any selected add-ons are
+              included in this total.
             </p>
-            <p className="text-sm text-savings">{trip.savingsPct}% cheaper before optional add-ons</p>
+            <p className="text-sm text-savings">
+              {trip.savingsPct}% cheaper before optional add-ons
+            </p>
           </div>
         </div>
 
@@ -90,7 +98,10 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
           <div className="rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-text">
               <BadgeCheck className="h-4 w-4 text-accent" />
-              <Link href={`/carrier/${trip.carrier.id}`} className="text-accent active:opacity-80">
+              <Link
+                href={`/carrier/${trip.carrier.id}`}
+                className="text-accent active:opacity-80"
+              >
                 {trip.carrier.businessName}
               </Link>
             </div>
@@ -107,7 +118,9 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
                 </span>
               ) : null}
               <span className="inline-flex rounded-full border border-border px-2 py-1">
-                {trip.carrier.stripeOnboardingComplete ? "Payout ready" : "Payout review pending"}
+                {trip.carrier.stripeOnboardingComplete
+                  ? "Payout ready"
+                  : "Payout review pending"}
               </span>
             </div>
           </div>
@@ -120,7 +133,12 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               {SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              Best for {trip.rules.accepts.map((item) => ITEM_CATEGORY_LABELS[item]).join(", ").toLowerCase()} on this route.
+              Best for{" "}
+              {trip.rules.accepts
+                .map((item) => ITEM_CATEGORY_LABELS[item])
+                .join(", ")
+                .toLowerCase()}{" "}
+              on this route.
             </p>
           </div>
         </div>
@@ -148,7 +166,10 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               {addOnItems.map((item) => (
                 <li key={item}>{item}</li>
               ))}
-              <li>{trip.rules.specialNotes ?? "Customer should be present for handoff and fit checks."}</li>
+              <li>
+                {trip.rules.specialNotes ??
+                  "Customer should be present for handoff and fit checks."}
+              </li>
             </ul>
           </div>
         </div>
@@ -186,16 +207,20 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
                 : "Ground-floor or lift-friendly handoffs only on this route."}
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              Pickup and dropoff should sit within {trip.detourRadiusKm}km of this corridor.
+              Pickup and dropoff should sit within {trip.detourRadiusKm}km of
+              this corridor.
             </p>
           </div>
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Hold and privacy boundary</p>
             <p className="mt-2 text-sm text-text-secondary">
-              Exact street addresses and direct phone details stay hidden until the booking is confirmed. Before that point you only see suburb-level route fit and the on-platform booking record.
+              Exact street addresses and direct phone details stay hidden until
+              the booking is confirmed. Before that point you only see
+              suburb-level route fit and the on-platform booking record.
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              Keep coordination, proof, and any issue handling on-platform so moverrr has one clean record of what happened.
+              Keep coordination, proof, and any issue handling on-platform so
+              moverrr has one clean record of what happened.
             </p>
           </div>
         </div>
@@ -227,12 +252,23 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
                 A quick checklist before the window starts
               </p>
             </div>
-            <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">Open</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+              Open
+            </span>
           </summary>
           <div className="mt-3 space-y-2 text-sm text-text-secondary">
-            <p>Keep the item measured, accessible, and ready at ground level or within the agreed access limits.</p>
-            <p>Wrap fragile items, take a quick reference photo, and flag stairs or helper needs before paying.</p>
-            <p>Have access notes ready so the carrier can keep the route moving without ad-hoc phone triage.</p>
+            <p>
+              Keep the item measured, accessible, and ready at ground level or
+              within the agreed access limits.
+            </p>
+            <p>
+              Wrap fragile items, take a quick reference photo, and flag stairs
+              or helper needs before paying.
+            </p>
+            <p>
+              Have access notes ready so the carrier can keep the route moving
+              without ad-hoc phone triage.
+            </p>
           </div>
         </details>
 

@@ -45,7 +45,9 @@ export async function PrivateProofTile({
       <div className="space-y-2 p-3">
         <div>
           <p className="text-sm font-medium text-text">{title}</p>
-          {subtitle ? <p className="text-sm text-text-secondary">{subtitle}</p> : null}
+          {subtitle ? (
+            <p className="text-sm text-text-secondary">{subtitle}</p>
+          ) : null}
         </div>
         <p className="text-xs text-text-secondary">
           {asset.isHeicLike

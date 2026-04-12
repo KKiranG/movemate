@@ -49,11 +49,7 @@ const statusOrder: BookingStatus[] = [
   "completed",
 ];
 
-export function BookingStatusStepper({
-  status,
-}: {
-  status: BookingStatus;
-}) {
+export function BookingStatusStepper({ status }: { status: BookingStatus }) {
   const currentIndex = statusOrder.indexOf(status);
 
   if (status === "cancelled") {
@@ -81,8 +77,11 @@ export function BookingStatusStepper({
               className={cn(
                 "mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm font-medium transition-all",
                 isDone && "bg-success text-white",
-                isActive && "animate-pulse bg-accent text-white ring-4 ring-accent/10",
-                !isDone && !isActive && "bg-black/[0.06] text-text-secondary dark:bg-white/[0.08]",
+                isActive &&
+                  "animate-pulse bg-accent text-white ring-4 ring-accent/10",
+                !isDone &&
+                  !isActive &&
+                  "bg-black/[0.06] text-text-secondary dark:bg-white/[0.08]",
               )}
             >
               {isDone ? <Check className="h-4 w-4" /> : index + 1}
@@ -91,7 +90,11 @@ export function BookingStatusStepper({
               <p
                 className={cn(
                   "font-medium",
-                  isActive ? "text-text" : isDone ? "text-text" : "text-text-secondary",
+                  isActive
+                    ? "text-text"
+                    : isDone
+                      ? "text-text"
+                      : "text-text-secondary",
                 )}
               >
                 {step.label}

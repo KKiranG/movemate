@@ -15,9 +15,12 @@ export function ConfirmReceiptButton({ bookingId }: { bookingId: string }) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/bookings/${bookingId}/confirm-receipt`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/bookings/${bookingId}/confirm-receipt`,
+        {
+          method: "POST",
+        },
+      );
       const payload = await response.json();
 
       if (!response.ok) {
@@ -26,7 +29,9 @@ export function ConfirmReceiptButton({ bookingId }: { bookingId: string }) {
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to confirm receipt.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to confirm receipt.",
+      );
     } finally {
       setIsSubmitting(false);
     }

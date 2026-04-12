@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-export function SearchRefineButton({ targetId = "search-form" }: { targetId?: string }) {
+export function SearchRefineButton({
+  targetId = "search-form",
+}: {
+  targetId?: string;
+}) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {

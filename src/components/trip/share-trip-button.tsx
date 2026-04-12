@@ -37,7 +37,9 @@ export function ShareTripButton({
         <Share2 className="mr-2 h-4 w-4" />
         Share trip
       </Button>
-      {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
+      {message ? (
+        <p className="text-sm text-text-secondary">{message}</p>
+      ) : null}
     </div>
   );
 }

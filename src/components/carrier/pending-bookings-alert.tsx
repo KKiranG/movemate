@@ -49,7 +49,10 @@ export function PendingBookingsAlert({ bookings }: { bookings: Booking[] }) {
     return () => window.clearInterval(interval);
   }, []);
 
-  async function updateBooking(booking: Booking, nextStatus: "confirmed" | "cancelled") {
+  async function updateBooking(
+    booking: Booking,
+    nextStatus: "confirmed" | "cancelled",
+  ) {
     setBusyId(`${booking.id}:${nextStatus}`);
 
     try {
@@ -91,9 +94,12 @@ export function PendingBookingsAlert({ bookings }: { bookings: Booking[] }) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="section-label">Pending bookings</p>
-            <h2 className="mt-1 text-lg text-text">Respond before the 2-hour window closes</h2>
+            <h2 className="mt-1 text-lg text-text">
+              Respond before the 2-hour window closes
+            </h2>
             <p className="mt-1 text-sm text-text-secondary">
-              {pendingBookings.length} booking{pendingBookings.length === 1 ? "" : "s"} need a decision now.
+              {pendingBookings.length} booking
+              {pendingBookings.length === 1 ? "" : "s"} need a decision now.
             </p>
           </div>
           <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
@@ -103,20 +109,28 @@ export function PendingBookingsAlert({ bookings }: { bookings: Booking[] }) {
 
         <div className="grid gap-3">
           {pendingBookings.map((booking) => (
-            <div key={booking.id} className="rounded-xl border border-warning/20 bg-background p-3">
+            <div
+              key={booking.id}
+              className="rounded-xl border border-warning/20 bg-background p-3"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={booking.status} />
-                    <p className="text-sm font-medium text-text">{booking.bookingReference}</p>
+                    <p className="text-sm font-medium text-text">
+                      {booking.bookingReference}
+                    </p>
                   </div>
                   <p className="text-sm text-text">{booking.itemDescription}</p>
                   <p className="text-sm text-text-secondary">
                     {booking.pickupAddress} to {booking.dropoffAddress}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    Expires {formatRemainingTime(booking.pendingExpiresAt, now)} · Created{" "}
-                    {formatDateTime(booking.createdAt ?? new Date().toISOString())}
+                    Expires {formatRemainingTime(booking.pendingExpiresAt, now)}{" "}
+                    · Created{" "}
+                    {formatDateTime(
+                      booking.createdAt ?? new Date().toISOString(),
+                    )}
                   </p>
                 </div>
 

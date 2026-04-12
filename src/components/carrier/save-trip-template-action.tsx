@@ -36,10 +36,14 @@ export function SaveTripTemplateAction({
         throw new Error(payload.error ?? "Unable to save template.");
       }
 
-      setMessage("Template saved — post this route in one tap from carrier home.");
+      setMessage(
+        "Template saved — post this route in one tap from carrier home.",
+      );
       setIsOpen(false);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to save template.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to save template.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -56,7 +60,10 @@ export function SaveTripTemplateAction({
         {isOpen ? "Close template form" : "Save as template"}
       </Button>
       {isOpen ? (
-        <form className="grid gap-3 rounded-xl border border-border p-3" onSubmit={handleSubmit}>
+        <form
+          className="grid gap-3 rounded-xl border border-border p-3"
+          onSubmit={handleSubmit}
+        >
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Template name</span>
             <Input
@@ -67,7 +74,11 @@ export function SaveTripTemplateAction({
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={isSubmitting} className="min-h-[44px] active:opacity-80">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="min-h-[44px] active:opacity-80"
+            >
               {isSubmitting ? "Saving..." : "Save template"}
             </Button>
             <Button

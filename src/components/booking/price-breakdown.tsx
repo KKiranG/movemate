@@ -37,9 +37,12 @@ export function PriceBreakdown({
       <div className="space-y-3">
         <div>
           <p className="section-label">Full moverrr breakdown</p>
-          <h2 className="mt-1 text-lg text-text">Transparent before you send the request</h2>
+          <h2 className="mt-1 text-lg text-text">
+            Transparent before you send the request
+          </h2>
           <p className="mt-2 text-sm text-text-secondary">
-            Customer total = carrier route price + selected add-ons + moverrr charges.
+            Customer total = carrier route price + selected add-ons + moverrr
+            charges.
           </p>
         </div>
         <dl className="space-y-2 text-sm text-text-secondary">
@@ -50,7 +53,9 @@ export function PriceBreakdown({
                 The spare-capacity rate for the trip itself.
               </span>
             </dt>
-            <dd className="text-text">{formatCurrency(pricing.basePriceCents)}</dd>
+            <dd className="text-text">
+              {formatCurrency(pricing.basePriceCents)}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
             <dt>
@@ -59,7 +64,9 @@ export function PriceBreakdown({
                 Only charged if you confirm stair access is needed.
               </span>
             </dt>
-            <dd className="text-text">{formatCurrency(pricing.stairsFeeCents)}</dd>
+            <dd className="text-text">
+              {formatCurrency(pricing.stairsFeeCents)}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
             <dt>
@@ -68,7 +75,9 @@ export function PriceBreakdown({
                 Optional extra pair of hands when the carrier offers it.
               </span>
             </dt>
-            <dd className="text-text">{formatCurrency(pricing.helperFeeCents)}</dd>
+            <dd className="text-text">
+              {formatCurrency(pricing.helperFeeCents)}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
             <dt>
@@ -77,7 +86,9 @@ export function PriceBreakdown({
                 Covers secure payment handling, support, and proof capture.
               </span>
             </dt>
-            <dd className="text-text">{formatCurrency(pricing.bookingFeeCents)}</dd>
+            <dd className="text-text">
+              {formatCurrency(pricing.bookingFeeCents)}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4 border-t border-border pt-2">
             <dt className="font-medium text-text">Customer total</dt>
@@ -93,7 +104,8 @@ export function PriceBreakdown({
           </p>
         ) : null}
         <p className="text-xs text-text-secondary">
-          moverrr commission comes from the base price only, never from stairs or helper add-ons.
+          moverrr commission comes from the base price only, never from stairs
+          or helper add-ons.
         </p>
         {!needsStairs && stairsExtraCents > 0 ? (
           <p className="text-sm text-text-secondary">

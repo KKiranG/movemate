@@ -68,8 +68,12 @@ export async function CarrierTrustPanel({
     },
     {
       label: "Business details",
-      ready: Boolean(carrier.abn && carrier.serviceSuburbs.length > 0 && carrier.contactName),
-      helper: carrier.abn ? "ABN and service area supplied." : "Add ABN and service suburbs.",
+      ready: Boolean(
+        carrier.abn && carrier.serviceSuburbs.length > 0 && carrier.contactName,
+      ),
+      helper: carrier.abn
+        ? "ABN and service area supplied."
+        : "Add ABN and service suburbs.",
     },
     {
       label: "Payout ready",
@@ -104,10 +108,12 @@ export async function CarrierTrustPanel({
       <div className="space-y-4">
         <div>
           <p className="section-label">Carrier profile signals</p>
-          <h2 className="mt-1 text-lg text-text">Evidence-led trust, not brochure copy</h2>
+          <h2 className="mt-1 text-lg text-text">
+            Evidence-led trust, not brochure copy
+          </h2>
           <p className="mt-2 text-sm text-text-secondary">
-            Customers judge supply on verification, proof, and operational follow-through. This is
-            the trust stack your profile is building.
+            Customers judge supply on verification, proof, and operational
+            follow-through. This is the trust stack your profile is building.
           </p>
         </div>
 
@@ -139,12 +145,16 @@ export async function CarrierTrustPanel({
           </div>
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Proof-backed jobs</p>
-            <p className="mt-2 text-2xl text-text">{completedProofBackedJobs.length}</p>
+            <p className="mt-2 text-2xl text-text">
+              {completedProofBackedJobs.length}
+            </p>
           </div>
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Public rating</p>
             <p className="mt-2 text-2xl text-text">
-              {carrier.ratingCount > 0 ? carrier.averageRating.toFixed(1) : "New"}
+              {carrier.ratingCount > 0
+                ? carrier.averageRating.toFixed(1)
+                : "New"}
             </p>
             <p className="mt-1 text-sm text-text-secondary">
               {carrier.ratingCount} review{carrier.ratingCount === 1 ? "" : "s"}
@@ -168,8 +178,8 @@ export async function CarrierTrustPanel({
             </div>
           ) : (
             <p className="mt-2 text-sm text-text-secondary">
-              Pickup and delivery proof examples will appear here after your first completed,
-              proof-backed jobs land.
+              Pickup and delivery proof examples will appear here after your
+              first completed, proof-backed jobs land.
             </p>
           )}
         </div>

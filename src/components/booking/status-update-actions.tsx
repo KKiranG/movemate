@@ -36,15 +36,19 @@ export function StatusUpdateActions({
   const [pickupCondition, setPickupCondition] =
     useState<BookingProofCondition>("no_visible_damage");
   const [pickupHandoffConfirmed, setPickupHandoffConfirmed] = useState(false);
-  const [deliveryRecipientConfirmed, setDeliveryRecipientConfirmed] = useState(false);
+  const [deliveryRecipientConfirmed, setDeliveryRecipientConfirmed] =
+    useState(false);
   const [deliveryExceptionCode, setDeliveryExceptionCode] =
     useState<BookingExceptionCode>("none");
   const [deliveryExceptionNote, setDeliveryExceptionNote] = useState("");
-  const [exceptionCode, setExceptionCode] = useState<Exclude<BookingExceptionCode, "none">>("other");
+  const [exceptionCode, setExceptionCode] =
+    useState<Exclude<BookingExceptionCode, "none">>("other");
   const [exceptionNote, setExceptionNote] = useState("");
   const [exceptionFiles, setExceptionFiles] = useState<File[]>([]);
   const [cancellationReason, setCancellationReason] = useState("");
-  const [cancellationReasonCode, setCancellationReasonCode] = useState("carrier_unavailable");
+  const [cancellationReasonCode, setCancellationReasonCode] = useState(
+    "carrier_unavailable",
+  );
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,8 +118,13 @@ export function StatusUpdateActions({
     setIsSubmitting(true);
 
     try {
-      if ((nextStatus === "picked_up" || nextStatus === "delivered") && !proofFile) {
-        throw new Error("Upload a proof photo before changing that booking status.");
+      if (
+        (nextStatus === "picked_up" || nextStatus === "delivered") &&
+        !proofFile
+      ) {
+        throw new Error(
+          "Upload a proof photo before changing that booking status.",
+        );
       }
 
       if (nextStatus === "cancelled" && !cancellationReason.trim()) {
@@ -141,7 +150,9 @@ export function StatusUpdateActions({
 
       if (nextStatus === "picked_up") {
         if (!pickupHandoffConfirmed) {
-          throw new Error("Confirm the pickup handoff before marking the booking as picked up.");
+          throw new Error(
+            "Confirm the pickup handoff before marking the booking as picked up.",
+          );
         }
 
         const uploadedProof = await uploadProofIfNeeded();
@@ -156,11 +167,15 @@ export function StatusUpdateActions({
 
       if (nextStatus === "delivered") {
         if (!deliveryRecipientConfirmed) {
-          throw new Error("Confirm recipient handoff before marking the booking as delivered.");
+          throw new Error(
+            "Confirm recipient handoff before marking the booking as delivered.",
+          );
         }
 
         if (deliveryExceptionCode !== "none" && !deliveryExceptionNote.trim()) {
-          throw new Error("Add a short exception note when delivery proof flags an issue.");
+          throw new Error(
+            "Add a short exception note when delivery proof flags an issue.",
+          );
         }
 
         const uploadedProof = await uploadProofIfNeeded();
@@ -170,7 +185,9 @@ export function StatusUpdateActions({
           recipientConfirmed: true,
           exceptionCode: deliveryExceptionCode,
           exceptionNote:
-            deliveryExceptionCode !== "none" ? deliveryExceptionNote.trim() : undefined,
+            deliveryExceptionCode !== "none"
+              ? deliveryExceptionNote.trim()
+              : undefined,
         };
       }
 
@@ -196,7 +213,9 @@ export function StatusUpdateActions({
       router.refresh();
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Unable to update booking status.",
+        caught instanceof Error
+          ? caught.message
+          : "Unable to update booking status.",
       );
     } finally {
       setIsSubmitting(false);
@@ -209,7 +228,9 @@ export function StatusUpdateActions({
 
     try {
       if (!exceptionNote.trim()) {
-        throw new Error("Add a short factual note before logging an exception.");
+        throw new Error(
+          "Add a short factual note before logging an exception.",
+        );
       }
 
       const photoUrls = await uploadExceptionFiles();
@@ -237,15 +258,17 @@ export function StatusUpdateActions({
       router.refresh();
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Unable to log booking exception.",
+        caught instanceof Error
+          ? caught.message
+          : "Unable to log booking exception.",
       );
     } finally {
       setIsLoggingException(false);
     }
   }
 
-  const transitions = (ALLOWED_BOOKING_TRANSITIONS[currentStatus] ?? []).filter((status) =>
-    CARRIER_MANAGED_TRANSITIONS.has(status),
+  const transitions = (ALLOWED_BOOKING_TRANSITIONS[currentStatus] ?? []).filter(
+    (status) => CARRIER_MANAGED_TRANSITIONS.has(status),
   );
   const proofChecklist =
     transitions.includes("picked_up") && !transitions.includes("delivered")
@@ -257,11 +280,11 @@ export function StatusUpdateActions({
         }
       : transitions.includes("delivered")
         ? {
-          title: "Delivery proof pack",
-          helper:
-            "Capture the delivered item, confirm recipient handoff, and attach an exception note if anything mismatched, was damaged, or could not be completed cleanly.",
-          label: "Delivery proof photo",
-        }
+            title: "Delivery proof pack",
+            helper:
+              "Capture the delivered item, confirm recipient handoff, and attach an exception note if anything mismatched, was damaged, or could not be completed cleanly.",
+            label: "Delivery proof photo",
+          }
         : null;
 
   if (transitions.length === 0) {
@@ -285,7 +308,9 @@ export function StatusUpdateActions({
                 accept="image/*,image/heic,image/heif"
                 capture="environment"
                 className="sr-only"
-                onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
+                onChange={(event) =>
+                  setProofFile(event.target.files?.[0] ?? null)
+                }
               />
             </label>
             <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
@@ -295,7 +320,9 @@ export function StatusUpdateActions({
                 type="file"
                 accept="image/*,image/heic,image/heif"
                 className="sr-only"
-                onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
+                onChange={(event) =>
+                  setProofFile(event.target.files?.[0] ?? null)
+                }
               />
             </label>
           </div>
@@ -307,10 +334,13 @@ export function StatusUpdateActions({
               onRemove={() => setProofFile(null)}
             />
           ) : null}
-          {transitions.includes("picked_up") && !transitions.includes("delivered") ? (
+          {transitions.includes("picked_up") &&
+          !transitions.includes("delivered") ? (
             <div className="grid gap-3 rounded-xl border border-border p-3">
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-text">How many items were handed over?</span>
+                <span className="text-sm font-medium text-text">
+                  How many items were handed over?
+                </span>
                 <input
                   type="number"
                   min="1"
@@ -321,11 +351,15 @@ export function StatusUpdateActions({
                 />
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-text">Visible condition at pickup</span>
+                <span className="text-sm font-medium text-text">
+                  Visible condition at pickup
+                </span>
                 <select
                   value={pickupCondition}
                   onChange={(event) =>
-                    setPickupCondition(event.target.value as BookingProofCondition)
+                    setPickupCondition(
+                      event.target.value as BookingProofCondition,
+                    )
                   }
                   className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
                 >
@@ -338,11 +372,14 @@ export function StatusUpdateActions({
                 <input
                   type="checkbox"
                   checked={pickupHandoffConfirmed}
-                  onChange={(event) => setPickupHandoffConfirmed(event.target.checked)}
+                  onChange={(event) =>
+                    setPickupHandoffConfirmed(event.target.checked)
+                  }
                   className="mt-1 h-4 w-4"
                 />
                 <span>
-                  I confirmed the pickup handoff and the proof photo matches what was loaded.
+                  I confirmed the pickup handoff and the proof photo matches
+                  what was loaded.
                 </span>
               </label>
             </div>
@@ -353,19 +390,26 @@ export function StatusUpdateActions({
                 <input
                   type="checkbox"
                   checked={deliveryRecipientConfirmed}
-                  onChange={(event) => setDeliveryRecipientConfirmed(event.target.checked)}
+                  onChange={(event) =>
+                    setDeliveryRecipientConfirmed(event.target.checked)
+                  }
                   className="mt-1 h-4 w-4"
                 />
                 <span>
-                  I confirmed the delivery handoff with the recipient or receiving contact.
+                  I confirmed the delivery handoff with the recipient or
+                  receiving contact.
                 </span>
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-text">Delivery exception</span>
+                <span className="text-sm font-medium text-text">
+                  Delivery exception
+                </span>
                 <select
                   value={deliveryExceptionCode}
                   onChange={(event) =>
-                    setDeliveryExceptionCode(event.target.value as BookingExceptionCode)
+                    setDeliveryExceptionCode(
+                      event.target.value as BookingExceptionCode,
+                    )
                   }
                   className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
                 >
@@ -380,10 +424,14 @@ export function StatusUpdateActions({
               </label>
               {deliveryExceptionCode !== "none" ? (
                 <label className="grid gap-2">
-                  <span className="text-sm font-medium text-text">Exception note</span>
+                  <span className="text-sm font-medium text-text">
+                    Exception note
+                  </span>
                   <Textarea
                     value={deliveryExceptionNote}
-                    onChange={(event) => setDeliveryExceptionNote(event.target.value)}
+                    onChange={(event) =>
+                      setDeliveryExceptionNote(event.target.value)
+                    }
                     placeholder="Short factual note for ops and the customer timeline."
                   />
                 </label>
@@ -393,18 +441,25 @@ export function StatusUpdateActions({
         </div>
       ) : null}
       <div className="rounded-xl border border-border bg-black/[0.02] p-3 dark:bg-white/[0.04]">
-        <p className="text-sm font-medium text-text">Log an exception in the moment</p>
+        <p className="text-sm font-medium text-text">
+          Log an exception in the moment
+        </p>
         <p className="mt-1 text-sm text-text-secondary">
-          Use this for blocked access, item mismatch, damage, no-show, or any suspicious payment
-          push so ops gets a timestamped record before the timeline moves on.
+          Use this for blocked access, item mismatch, damage, no-show, or any
+          suspicious payment push so ops gets a timestamped record before the
+          timeline moves on.
         </p>
         <div className="mt-3 grid gap-3">
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">Exception type</span>
+            <span className="text-sm font-medium text-text">
+              Exception type
+            </span>
             <select
               value={exceptionCode}
               onChange={(event) =>
-                setExceptionCode(event.target.value as Exclude<BookingExceptionCode, "none">)
+                setExceptionCode(
+                  event.target.value as Exclude<BookingExceptionCode, "none">,
+                )
               }
               className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
             >
@@ -417,7 +472,9 @@ export function StatusUpdateActions({
             </select>
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">What happened?</span>
+            <span className="text-sm font-medium text-text">
+              What happened?
+            </span>
             <Textarea
               value={exceptionNote}
               onChange={(event) => setExceptionNote(event.target.value)}
@@ -434,7 +491,9 @@ export function StatusUpdateActions({
                 accept="image/*,image/heic,image/heif"
                 capture="environment"
                 className="sr-only"
-                onChange={(event) => setExceptionFiles(Array.from(event.target.files ?? []))}
+                onChange={(event) =>
+                  setExceptionFiles(Array.from(event.target.files ?? []))
+                }
               />
             </label>
             <Button
@@ -443,13 +502,16 @@ export function StatusUpdateActions({
               disabled={isLoggingException}
               onClick={() => void logException()}
             >
-              {isLoggingException ? "Logging exception..." : "Log exception now"}
+              {isLoggingException
+                ? "Logging exception..."
+                : "Log exception now"}
             </Button>
           </div>
           {exceptionFiles.length > 0 ? (
             <div className="rounded-xl border border-border px-3 py-2 text-sm text-text-secondary">
-              {exceptionFiles.length} photo{exceptionFiles.length === 1 ? "" : "s"} ready for the
-              exception record.
+              {exceptionFiles.length} photo
+              {exceptionFiles.length === 1 ? "" : "s"} ready for the exception
+              record.
             </div>
           ) : null}
         </div>
@@ -509,7 +571,9 @@ export function StatusUpdateActions({
             onClick={() => {
               if (status === "cancelled") {
                 if (!cancellationReason.trim()) {
-                  setError("Add a short cancellation reason for audit history.");
+                  setError(
+                    "Add a short cancellation reason for audit history.",
+                  );
                   return;
                 }
 
@@ -527,8 +591,9 @@ export function StatusUpdateActions({
         ))}
       </div>
       <p className="text-xs text-text-secondary">
-        If access is blocked, the item mismatches the booking, or someone pushes payment
-        off-platform, capture evidence right away and keep the report inside moverrr.
+        If access is blocked, the item mismatches the booking, or someone pushes
+        payment off-platform, capture evidence right away and keep the report
+        inside moverrr.
       </p>
       {error ? <p className="text-sm text-error">{error}</p> : null}
     </div>

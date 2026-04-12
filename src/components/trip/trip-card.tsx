@@ -4,10 +4,7 @@ import { ArrowRight, BadgeCheck, ShieldCheck, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { TimeBar } from "@/components/ui/time-bar";
-import {
-  ITEM_CATEGORY_LABELS,
-  SPACE_SIZE_DESCRIPTIONS,
-} from "@/lib/constants";
+import { ITEM_CATEGORY_LABELS, SPACE_SIZE_DESCRIPTIONS } from "@/lib/constants";
 import {
   getBaseCustomerPriceCents,
   getTripFitConfidenceLabel,
@@ -24,7 +21,9 @@ interface TripCardProps {
   href?: string;
 }
 
-function isTripSearchResult(trip: Trip | TripSearchResult): trip is TripSearchResult {
+function isTripSearchResult(
+  trip: Trip | TripSearchResult,
+): trip is TripSearchResult {
   return (
     "matchScore" in trip &&
     typeof trip.matchScore === "number" &&
@@ -50,19 +49,20 @@ const SPACE_SIZE_EXAMPLES: Record<Trip["spaceSize"], string> = {
 };
 
 export function TripCard({ trip, href }: TripCardProps) {
-  const isFullyBooked = trip.remainingCapacityPct <= 0 || trip.status === "booked_full";
+  const isFullyBooked =
+    trip.remainingCapacityPct <= 0 || trip.status === "booked_full";
   const timingBadges = getTripTimingBadges(trip);
   const trustRow = getTripTrustStack(trip).map((label) =>
-    label.includes("reviews")
-      ? label.replace(" from ", " · ")
-      : label,
+    label.includes("reviews") ? label.replace(" from ", " · ") : label,
   );
   const searchHref = `/search?${new URLSearchParams({
     from: trip.route.originSuburb,
     to: trip.route.destinationSuburb,
   }).toString()}`;
   const cardHref = isFullyBooked ? searchHref : href;
-  const fitLabel = isTripSearchResult(trip) ? getTripFitConfidenceLabel(trip.matchScore) : "Likely fits";
+  const fitLabel = isTripSearchResult(trip)
+    ? getTripFitConfidenceLabel(trip.matchScore)
+    : "Likely fits";
   const routeFitLabel = getTripRouteFitLabel(trip);
 
   const content = (
@@ -74,7 +74,9 @@ export function TripCard({ trip, href }: TripCardProps) {
           </div>
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base text-text">{trip.carrier.businessName}</h3>
+              <h3 className="text-base text-text">
+                {trip.carrier.businessName}
+              </h3>
               {trip.carrier.isVerified ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
                   <BadgeCheck className="h-3.5 w-3.5" />
@@ -98,29 +100,42 @@ export function TripCard({ trip, href }: TripCardProps) {
             </p>
             <div className="grid gap-2 sm:grid-cols-3">
               <div className="rounded-xl border border-border px-3 py-2">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">Fit</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">
+                  Fit
+                </p>
                 <p className="mt-1 text-sm font-medium text-text">{fitLabel}</p>
               </div>
               <div className="rounded-xl border border-border px-3 py-2">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">Route</p>
-                <p className="mt-1 text-sm font-medium text-text">{routeFitLabel}</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">
+                  Route
+                </p>
+                <p className="mt-1 text-sm font-medium text-text">
+                  {routeFitLabel}
+                </p>
               </div>
               <div className="rounded-xl border border-border px-3 py-2">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">Timing</p>
-                <p className="mt-1 text-sm font-medium text-text">{formatDate(trip.tripDate)}</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">
+                  Timing
+                </p>
+                <p className="mt-1 text-sm font-medium text-text">
+                  {formatDate(trip.tripDate)}
+                </p>
               </div>
             </div>
             <TimeBar timeWindow={trip.timeWindow} />
             {trustRow.length > 0 ? (
               <p className="text-sm text-text-secondary">
-                <span className="font-medium text-text">Trust:</span> {trustRow.join(" · ")}
+                <span className="font-medium text-text">Trust:</span>{" "}
+                {trustRow.join(" · ")}
               </p>
             ) : null}
             <div className="rounded-xl border border-accent/10 bg-accent/5 px-3 py-2">
               <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">
                 Why this matches
               </p>
-              <p className="mt-1 text-sm text-text">{getTripFitSummary(trip)}</p>
+              <p className="mt-1 text-sm text-text">
+                {getTripFitSummary(trip)}
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
               <span>{SPACE_SIZE_EXAMPLES[trip.spaceSize]}</span>
@@ -135,9 +150,16 @@ export function TripCard({ trip, href }: TripCardProps) {
               ) : null}
             </div>
             <div className="hidden space-y-2 sm:block">
-              <p className="text-sm text-text-secondary">{SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}</p>
               <p className="text-sm text-text-secondary">
-                Best for {trip.rules.accepts.map((item) => ITEM_CATEGORY_LABELS[item]).join(", ").toLowerCase()}.
+                {SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}
+              </p>
+              <p className="text-sm text-text-secondary">
+                Best for{" "}
+                {trip.rules.accepts
+                  .map((item) => ITEM_CATEGORY_LABELS[item])
+                  .join(", ")
+                  .toLowerCase()}
+                .
               </p>
             </div>
             <details className="sm:hidden">
@@ -145,21 +167,31 @@ export function TripCard({ trip, href }: TripCardProps) {
                 More info
               </summary>
               <div className="space-y-2 pb-1">
-                <p className="text-sm text-text-secondary">{SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}</p>
                 <p className="text-sm text-text-secondary">
-                  Best for {trip.rules.accepts.map((item) => ITEM_CATEGORY_LABELS[item]).join(", ").toLowerCase()}.
+                  {SPACE_SIZE_DESCRIPTIONS[trip.spaceSize]}
+                </p>
+                <p className="text-sm text-text-secondary">
+                  Best for{" "}
+                  {trip.rules.accepts
+                    .map((item) => ITEM_CATEGORY_LABELS[item])
+                    .join(", ")
+                    .toLowerCase()}
+                  .
                 </p>
               </div>
             </details>
             {trip.isReturnTrip ? (
               <p className="text-sm font-medium text-success">
-                Return trips often cost less because the carrier is already coming back.
+                Return trips often cost less because the carrier is already
+                coming back.
               </p>
             ) : null}
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Customer total</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+            Customer total
+          </p>
           <p className="text-2xl font-medium text-text">
             {formatCurrency(getBaseCustomerPriceCents(trip))}
           </p>
@@ -179,13 +211,17 @@ export function TripCard({ trip, href }: TripCardProps) {
               </p>
             </>
           ) : (
-            <p className="text-sm text-text-secondary">Dedicated van pricing varies by route.</p>
+            <p className="text-sm text-text-secondary">
+              Dedicated van pricing varies by route.
+            </p>
           )}
         </div>
       </div>
       <div className="mt-4 flex items-center justify-end">
         <span className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-accent px-4 text-sm font-medium text-white active:bg-[#0047b3]">
-          {isFullyBooked ? "Fully booked - see similar trips" : "Request this trip"}
+          {isFullyBooked
+            ? "Fully booked - see similar trips"
+            : "Request this trip"}
           <ArrowRight className="h-4 w-4" />
         </span>
       </div>

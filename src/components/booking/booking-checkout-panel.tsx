@@ -31,14 +31,19 @@ export function BookingCheckoutPanel({
     needsHelper,
     helperExtraCents: trip.rules.helperExtraCents,
   });
-  const savingsCents = Math.max(0, trip.dedicatedEstimateCents - pricing.totalPriceCents);
+  const savingsCents = Math.max(
+    0,
+    trip.dedicatedEstimateCents - pricing.totalPriceCents,
+  );
   const prepChecklist = getConfirmedBookingChecklist();
 
   return (
     <div className="space-y-4">
       <div>
         <p className="section-label">Request details</p>
-        <h2 className="mt-1 text-lg text-text">Item, access, and address details</h2>
+        <h2 className="mt-1 text-lg text-text">
+          Item, access, and address details
+        </h2>
       </div>
       <Card className="border-success/20 bg-success/5 p-4">
         <p className="section-label">Savings context</p>
@@ -48,8 +53,8 @@ export function BookingCheckoutPanel({
               You save {formatCurrency(savingsCents)} versus a dedicated van
             </h3>
             <p className="mt-2 text-sm text-text-secondary">
-              That estimate compares this spare-capacity trip with the typical dedicated-truck
-              price for the same size job.
+              That estimate compares this spare-capacity trip with the typical
+              dedicated-truck price for the same size job.
             </p>
           </>
         ) : (
@@ -58,7 +63,8 @@ export function BookingCheckoutPanel({
               Spare-capacity pricing keeps this route lean
             </h3>
             <p className="mt-2 text-sm text-text-secondary">
-              We only show a savings callout when this listing is clearly below a dedicated truck.
+              We only show a savings callout when this listing is clearly below
+              a dedicated truck.
             </p>
           </>
         )}
@@ -66,12 +72,27 @@ export function BookingCheckoutPanel({
 
       <Card className="p-4">
         <p className="section-label">Payment reassurance</p>
-        <h3 className="mt-1 text-lg text-text">Your payment stays protected while the carrier reviews</h3>
+        <h3 className="mt-1 text-lg text-text">
+          Your payment stays protected while the carrier reviews
+        </h3>
         <div className="mt-3 space-y-2 text-sm text-text-secondary">
-          <p>Your card is authorized when you submit the request so the spare-capacity spot can be held.</p>
-          <p>moverrr only captures the payment after the carrier accepts and the fulfilment rules are satisfied.</p>
-          <p>If the carrier never responds or declines, the response window expires instead of turning into a free-form off-platform negotiation.</p>
-          <p>If the route cannot proceed cleanly, ops can review the in-platform proof trail instead of chat screenshots.</p>
+          <p>
+            Your card is authorized when you submit the request so the
+            spare-capacity spot can be held.
+          </p>
+          <p>
+            moverrr only captures the payment after the carrier accepts and the
+            fulfilment rules are satisfied.
+          </p>
+          <p>
+            If the carrier never responds or declines, the response window
+            expires instead of turning into a free-form off-platform
+            negotiation.
+          </p>
+          <p>
+            If the route cannot proceed cleanly, ops can review the in-platform
+            proof trail instead of chat screenshots.
+          </p>
         </div>
       </Card>
 
@@ -80,7 +101,9 @@ export function BookingCheckoutPanel({
           <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-left [&::-webkit-details-marker]:hidden">
             <div>
               <p className="section-label">What happens next</p>
-              <h3 className="mt-1 text-lg text-text">Know the request timeline before you submit</h3>
+              <h3 className="mt-1 text-lg text-text">
+                Know the request timeline before you submit
+              </h3>
             </div>
             <span className="text-xs uppercase tracking-[0.18em] text-text-secondary group-open:hidden">
               Open
@@ -90,26 +113,48 @@ export function BookingCheckoutPanel({
             </span>
           </summary>
           <div className="mt-3 space-y-2 text-sm text-text-secondary">
-            <p>1. You submit the request and moverrr opens the carrier response window.</p>
-            <p>2. If the carrier accepts, the trip becomes active and the handoff stays coordinated in-app.</p>
-            <p>3. Pickup and delivery proof are captured, then you confirm receipt so payout can be released.</p>
-            <p>4. Any extra charges must stay inside the listed add-ons or an admin-reviewed exception.</p>
+            <p>
+              1. You submit the request and moverrr opens the carrier response
+              window.
+            </p>
+            <p>
+              2. If the carrier accepts, the trip becomes active and the handoff
+              stays coordinated in-app.
+            </p>
+            <p>
+              3. Pickup and delivery proof are captured, then you confirm
+              receipt so payout can be released.
+            </p>
+            <p>
+              4. Any extra charges must stay inside the listed add-ons or an
+              admin-reviewed exception.
+            </p>
           </div>
         </details>
       </Card>
 
       <Card className="p-4">
         <p className="section-label">Keep It In-Platform</p>
-        <h3 className="mt-1 text-lg text-text">Do not move payment or side-deals outside moverrr</h3>
+        <h3 className="mt-1 text-lg text-text">
+          Do not move payment or side-deals outside moverrr
+        </h3>
         <div className="mt-3 space-y-2 text-sm text-text-secondary">
-          <p>The booking amount, proof record, and dispute path all depend on the transaction staying in moverrr.</p>
-          <p>If a carrier asks for cash, bank transfer, or a day-of-job extra outside the listed add-ons, stop and report it in-platform.</p>
+          <p>
+            The booking amount, proof record, and dispute path all depend on the
+            transaction staying in moverrr.
+          </p>
+          <p>
+            If a carrier asks for cash, bank transfer, or a day-of-job extra
+            outside the listed add-ons, stop and report it in-platform.
+          </p>
         </div>
       </Card>
 
       <Card className="p-4">
         <p className="section-label">Safety boundary</p>
-        <h3 className="mt-1 text-lg text-text">Unsafe or regulated loads are not part of this booking</h3>
+        <h3 className="mt-1 text-lg text-text">
+          Unsafe or regulated loads are not part of this booking
+        </h3>
         <div className="mt-3 space-y-2 text-sm text-text-secondary">
           {PROHIBITED_ITEM_POLICY_LINES.map((line) => (
             <p key={line}>{line}</p>
@@ -119,12 +164,17 @@ export function BookingCheckoutPanel({
 
       <Card className="p-4">
         <p className="section-label">Prepare for pickup</p>
-        <h3 className="mt-1 text-lg text-text">Get the handoff ready before the window starts</h3>
+        <h3 className="mt-1 text-lg text-text">
+          Get the handoff ready before the window starts
+        </h3>
         <ul className="mt-3 space-y-2 text-sm text-text-secondary">
           {prepChecklist.map((item) => (
             <li key={item}>{item}</li>
           ))}
-          <li>Measure the item and flag stairs, helpers, or awkward access before paying.</li>
+          <li>
+            Measure the item and flag stairs, helpers, or awkward access before
+            paying.
+          </li>
           {MANUAL_HANDLING_POLICY_LINES.map((line) => (
             <li key={line}>{line}</li>
           ))}
@@ -144,7 +194,10 @@ export function BookingCheckoutPanel({
         trip={trip}
         isAuthenticated={isAuthenticated}
         id="booking-form"
-        onOptionsChange={({ needsStairs: nextNeedsStairs, needsHelper: nextNeedsHelper }) => {
+        onOptionsChange={({
+          needsStairs: nextNeedsStairs,
+          needsHelper: nextNeedsHelper,
+        }) => {
           setNeedsStairs(nextNeedsStairs);
           setNeedsHelper(nextNeedsHelper);
         }}

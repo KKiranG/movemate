@@ -19,7 +19,10 @@ import {
 import { suggestPrice } from "@/lib/pricing/suggest";
 import { formatCurrency, getTodayIsoDate } from "@/lib/utils";
 import type { RoutePriceGuidance, TripDraftVehicleOption } from "@/types/trip";
-import { getTripConflictWarnings, getTripPublishReadiness } from "@/lib/validation/trip";
+import {
+  getTripConflictWarnings,
+  getTripPublishReadiness,
+} from "@/lib/validation/trip";
 
 const steps = ["Route", "When & space", "Price & rules"] as const;
 const acceptOptions = [
@@ -30,13 +33,43 @@ const acceptOptions = [
 ] as const;
 
 const itemPresets = [
-  { id: "mattress", label: "Mattress", accepts: ["furniture"], suggestedSpaceSize: "M" },
-  { id: "fridge", label: "Fridge", accepts: ["appliance"], suggestedSpaceSize: "L" },
-  { id: "sofa", label: "Sofa", accepts: ["furniture"], suggestedSpaceSize: "L" },
-  { id: "washing-machine", label: "Washing machine", accepts: ["appliance"], suggestedSpaceSize: "M" },
-  { id: "marketplace-pickup", label: "Marketplace pickup", accepts: ["furniture", "boxes"], suggestedSpaceSize: "S" },
+  {
+    id: "mattress",
+    label: "Mattress",
+    accepts: ["furniture"],
+    suggestedSpaceSize: "M",
+  },
+  {
+    id: "fridge",
+    label: "Fridge",
+    accepts: ["appliance"],
+    suggestedSpaceSize: "L",
+  },
+  {
+    id: "sofa",
+    label: "Sofa",
+    accepts: ["furniture"],
+    suggestedSpaceSize: "L",
+  },
+  {
+    id: "washing-machine",
+    label: "Washing machine",
+    accepts: ["appliance"],
+    suggestedSpaceSize: "M",
+  },
+  {
+    id: "marketplace-pickup",
+    label: "Marketplace pickup",
+    accepts: ["furniture", "boxes"],
+    suggestedSpaceSize: "S",
+  },
   { id: "boxes", label: "Boxes", accepts: ["boxes"], suggestedSpaceSize: "S" },
-  { id: "office-overflow", label: "Office overflow", accepts: ["boxes", "fragile"], suggestedSpaceSize: "M" },
+  {
+    id: "office-overflow",
+    label: "Office overflow",
+    accepts: ["boxes", "fragile"],
+    suggestedSpaceSize: "M",
+  },
 ] as const satisfies ReadonlyArray<{
   id: string;
   label: string;
@@ -44,7 +77,10 @@ const itemPresets = [
   suggestedSpaceSize: "S" | "M" | "L" | "XL";
 }>;
 
-function getDistanceKm(origin: AddressValue | null, destination: AddressValue | null) {
+function getDistanceKm(
+  origin: AddressValue | null,
+  destination: AddressValue | null,
+) {
   if (!origin || !destination) {
     return 35;
   }
@@ -59,7 +95,10 @@ function getDistanceKm(origin: AddressValue | null, destination: AddressValue | 
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
 
-  return Math.max(1, Math.round(earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))));
+  return Math.max(
+    1,
+    Math.round(earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))),
+  );
 }
 
 export function CarrierTripWizard({
@@ -108,31 +147,55 @@ export function CarrierTripWizard({
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   const [origin, setOrigin] = useState<AddressValue | null>(initialOrigin);
-  const [destination, setDestination] = useState<AddressValue | null>(initialDestination);
+  const [destination, setDestination] = useState<AddressValue | null>(
+    initialDestination,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [spaceSize, setSpaceSize] = useState<"S" | "M" | "L" | "XL">(initialSpaceSize);
+  const [spaceSize, setSpaceSize] = useState<"S" | "M" | "L" | "XL">(
+    initialSpaceSize,
+  );
   const [accepts, setAccepts] = useState<string[]>(initialAccepts);
   const [specialNotes, setSpecialNotes] = useState(initialSpecialNotes);
-  const [detourRadiusKm, setDetourRadiusKm] = useState(initialDetourRadiusKm ?? "5");
-  const [isReturnTrip, setIsReturnTrip] = useState(initialIsReturnTrip);
-  const [tripDate, setTripDate] = useState(initialTripDate ?? getTodayIsoDate());
-  const [timeWindow, setTimeWindow] = useState<"morning" | "afternoon" | "evening" | "flexible">(
-    initialTimeWindow,
+  const [detourRadiusKm, setDetourRadiusKm] = useState(
+    initialDetourRadiusKm ?? "5",
   );
-  const [availableVolumeM3, setAvailableVolumeM3] = useState(initialAvailableVolumeM3 ?? "1");
-  const [availableWeightKg, setAvailableWeightKg] = useState(initialAvailableWeightKg ?? "100");
+  const [isReturnTrip, setIsReturnTrip] = useState(initialIsReturnTrip);
+  const [tripDate, setTripDate] = useState(
+    initialTripDate ?? getTodayIsoDate(),
+  );
+  const [timeWindow, setTimeWindow] = useState<
+    "morning" | "afternoon" | "evening" | "flexible"
+  >(initialTimeWindow);
+  const [availableVolumeM3, setAvailableVolumeM3] = useState(
+    initialAvailableVolumeM3 ?? "1",
+  );
+  const [availableWeightKg, setAvailableWeightKg] = useState(
+    initialAvailableWeightKg ?? "100",
+  );
   const [stairsOk, setStairsOk] = useState(initialStairsOk);
-  const [stairsExtraDollars, setStairsExtraDollars] = useState(initialStairsExtraDollars);
-  const [helperAvailable, setHelperAvailable] = useState(initialHelperAvailable);
-  const [helperExtraDollars, setHelperExtraDollars] = useState(initialHelperExtraDollars);
-  const [publishState, setPublishState] = useState<"draft" | "active">("active");
+  const [stairsExtraDollars, setStairsExtraDollars] = useState(
+    initialStairsExtraDollars,
+  );
+  const [helperAvailable, setHelperAvailable] = useState(
+    initialHelperAvailable,
+  );
+  const [helperExtraDollars, setHelperExtraDollars] = useState(
+    initialHelperExtraDollars,
+  );
+  const [publishState, setPublishState] = useState<"draft" | "active">(
+    "active",
+  );
   const [selectedVehicleId, setSelectedVehicleId] = useState(
     initialVehicleId ?? vehicles[0]?.id ?? "",
   );
-  const [priceGuidance, setPriceGuidance] = useState<RoutePriceGuidance | null>(null);
+  const [priceGuidance, setPriceGuidance] = useState<RoutePriceGuidance | null>(
+    null,
+  );
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
-  const [hasEditedPrice, setHasEditedPrice] = useState(Boolean(initialPriceDollars));
+  const [hasEditedPrice, setHasEditedPrice] = useState(
+    Boolean(initialPriceDollars),
+  );
   const guidanceAbortRef = useRef<AbortController | null>(null);
   const guidanceTimerRef = useRef<number | null>(null);
   const routeDistanceKm = useMemo(
@@ -152,7 +215,8 @@ export function CarrierTripWizard({
     [isReturnTrip, routeDistanceKm, spaceSize],
   );
   const [priceDollars, setPriceDollars] = useState(
-    initialPriceDollars ?? Math.round(pricingSuggestion.midCents / 100).toString(),
+    initialPriceDollars ??
+      Math.round(pricingSuggestion.midCents / 100).toString(),
   );
   const publishIssues = useMemo(
     () =>
@@ -161,7 +225,9 @@ export function CarrierTripWizard({
         spaceSize,
         availableVolumeM3: Number(availableVolumeM3) || 0,
         availableWeightKg: Number(availableWeightKg) || 0,
-        accepts: accepts as Array<"furniture" | "boxes" | "appliance" | "fragile" | "other">,
+        accepts: accepts as Array<
+          "furniture" | "boxes" | "appliance" | "fragile" | "other"
+        >,
         timeWindow,
         specialNotes,
         helperAvailable,
@@ -179,13 +245,19 @@ export function CarrierTripWizard({
       timeWindow,
     ],
   );
-  const blockingPublishIssues = publishIssues.filter((issue) => issue.severity === "blocking");
-  const warningPublishIssues = publishIssues.filter((issue) => issue.severity === "warning");
+  const blockingPublishIssues = publishIssues.filter(
+    (issue) => issue.severity === "blocking",
+  );
+  const warningPublishIssues = publishIssues.filter(
+    (issue) => issue.severity === "warning",
+  );
   const conflictWarnings = useMemo(
     () =>
       getTripConflictWarnings({
         spaceSize,
-        accepts: accepts as Array<"furniture" | "boxes" | "appliance" | "fragile" | "other">,
+        accepts: accepts as Array<
+          "furniture" | "boxes" | "appliance" | "fragile" | "other"
+        >,
         specialNotes,
         helperAvailable,
         stairsOk,
@@ -205,9 +277,16 @@ export function CarrierTripWizard({
     }
 
     setPriceDollars(
-      Math.round((priceGuidance?.medianCents ?? pricingSuggestion.midCents) / 100).toString(),
+      Math.round(
+        (priceGuidance?.medianCents ?? pricingSuggestion.midCents) / 100,
+      ).toString(),
     );
-  }, [hasEditedPrice, initialPriceDollars, priceGuidance?.medianCents, pricingSuggestion.midCents]);
+  }, [
+    hasEditedPrice,
+    initialPriceDollars,
+    priceGuidance?.medianCents,
+    pricingSuggestion.midCents,
+  ]);
 
   function validateCurrentStep(index: number) {
     if (index === 0) {
@@ -217,11 +296,18 @@ export function CarrierTripWizard({
       }
 
       if (vehicles.length > 1 && !selectedVehicleId) {
-        setError("Choose which active vehicle should carry this trip before continuing.");
+        setError(
+          "Choose which active vehicle should carry this trip before continuing.",
+        );
         return false;
       }
 
-      if (!origin?.suburb || !origin.postcode || !destination?.suburb || !destination.postcode) {
+      if (
+        !origin?.suburb ||
+        !origin.postcode ||
+        !destination?.suburb ||
+        !destination.postcode
+      ) {
         setError("Choose origin and destination from the address suggestions.");
         return false;
       }
@@ -251,7 +337,9 @@ export function CarrierTripWizard({
       }
 
       if (publishState === "active" && blockingPublishIssues.length > 0) {
-        setError("Resolve the publish blockers below or save this route as a draft.");
+        setError(
+          "Resolve the publish blockers below or save this route as a draft.",
+        );
         return false;
       }
     }
@@ -374,7 +462,9 @@ export function CarrierTripWizard({
 
     try {
       if (publishState === "active" && blockingPublishIssues.length > 0) {
-        throw new Error("Resolve the publish blockers below or save this route as a draft.");
+        throw new Error(
+          "Resolve the publish blockers below or save this route as a draft.",
+        );
       }
 
       const response = await fetch("/api/trips", {
@@ -397,7 +487,8 @@ export function CarrierTripWizard({
           availableVolumeM3: Number(availableVolumeM3),
           availableWeightKg: Number(availableWeightKg),
           priceCents: Math.round(Number(priceDollars) * 100),
-          suggestedPriceCents: priceGuidance?.medianCents ?? pricingSuggestion.midCents,
+          suggestedPriceCents:
+            priceGuidance?.medianCents ?? pricingSuggestion.midCents,
           accepts,
           stairsOk,
           stairsExtraCents: Math.round(Number(stairsExtraDollars || 0) * 100),
@@ -417,7 +508,9 @@ export function CarrierTripWizard({
       router.push(`/carrier/post?successTripId=${payload.trip.id}`);
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to create trip.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to create trip.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -462,7 +555,7 @@ export function CarrierTripWizard({
             key={label}
             type="button"
             onClick={() => handleStepChange(index)}
-            className={`min-h-[44px] min-w-[44px] rounded-xl border px-3 py-2 text-sm transition-colors ${
+            className={`min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30  min-w-[44px] rounded-xl border px-3 py-2 text-sm transition-colors ${
               index === stepIndex
                 ? "border-accent bg-accent/10 text-accent"
                 : "border-border text-text-secondary active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -475,9 +568,12 @@ export function CarrierTripWizard({
 
       {!canPost ? (
         <div className="rounded-xl border border-warning/20 bg-warning/10 p-4">
-          <p className="text-sm font-medium text-warning">Add an active vehicle first</p>
+          <p className="text-sm font-medium text-warning">
+            Add an active vehicle first
+          </p>
           <p className="mt-1 text-sm text-text-secondary">
-            You can review this route setup now, but posting is blocked until onboarding has an active vehicle.
+            You can review this route setup now, but posting is blocked until
+            onboarding has an active vehicle.
           </p>
           <Button asChild variant="secondary" className="mt-3">
             <a href={onboardingHref}>Go to onboarding</a>
@@ -499,15 +595,19 @@ export function CarrierTripWizard({
               </div>
               {vehicles.length === 1 ? (
                 <div className="rounded-xl border border-border p-3">
-                  <p className="text-sm font-medium text-text">{vehicles[0]?.label}</p>
-                  <p className="mt-1 text-sm text-text-secondary">{vehicles[0]?.detail}</p>
+                  <p className="text-sm font-medium text-text">
+                    {vehicles[0]?.label}
+                  </p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    {vehicles[0]?.detail}
+                  </p>
                 </div>
               ) : (
                 <select
                   name="vehicleId"
                   value={selectedVehicleId}
                   onChange={(event) => setSelectedVehicleId(event.target.value)}
-                  className="min-h-[44px] rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                  className="min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30  rounded-xl border border-border bg-surface px-3 text-sm text-text"
                 >
                   <option value="">Choose a vehicle</option>
                   {vehicles.map((vehicle) => (
@@ -533,7 +633,9 @@ export function CarrierTripWizard({
           />
           <label className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border px-3 py-3 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
             <div>
-              <span className="block text-sm font-medium text-text">Return trip / backload</span>
+              <span className="block text-sm font-medium text-text">
+                Return trip / backload
+              </span>
               <span className="text-xs text-text-secondary">
                 Highlight this as a lower-cost backload for customers.
               </span>
@@ -547,7 +649,9 @@ export function CarrierTripWizard({
           </label>
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-text">Detour radius</span>
+              <span className="text-sm font-medium text-text">
+                Detour radius
+              </span>
               <span className="text-xs text-text-secondary">
                 Controls how far pickups can sit off your route
               </span>
@@ -558,14 +662,16 @@ export function CarrierTripWizard({
                   key={preset.value}
                   type="button"
                   onClick={() => setDetourRadiusKm(String(preset.value))}
-                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                  className={`min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30  rounded-xl border px-3 py-3 text-left text-sm ${
                     detourRadiusKm === String(preset.value)
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
                   }`}
                 >
                   <span className="block font-medium">{preset.label}</span>
-                  <span className="block text-xs opacity-80">{preset.tone}</span>
+                  <span className="block text-xs opacity-80">
+                    {preset.tone}
+                  </span>
                 </button>
               ))}
             </div>
@@ -579,7 +685,8 @@ export function CarrierTripWizard({
               required
             />
             <p className="text-sm text-text-secondary">
-              A wider detour radius increases match volume but also adds more route deviation.
+              A wider detour radius increases match volume but also adds more
+              route deviation.
             </p>
           </div>
         </div>
@@ -605,7 +712,13 @@ export function CarrierTripWizard({
               className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
               value={timeWindow}
               onChange={(event) =>
-                setTimeWindow(event.target.value as "morning" | "afternoon" | "evening" | "flexible")
+                setTimeWindow(
+                  event.target.value as
+                    | "morning"
+                    | "afternoon"
+                    | "evening"
+                    | "flexible",
+                )
               }
             >
               <option value="morning">Morning</option>
@@ -616,10 +729,13 @@ export function CarrierTripWizard({
           </label>
           {timeWindow === "flexible" ? (
             <div className="rounded-xl border border-warning/20 bg-warning/10 p-3">
-              <p className="text-sm font-medium text-warning">Flexible windows need one extra note</p>
+              <p className="text-sm font-medium text-warning">
+                Flexible windows need one extra note
+              </p>
               <p className="mt-1 text-sm text-text-secondary">
-                Customers browse timing certainty first. A short note like after 2pm or call ahead
-                keeps flexible runs trustworthy without turning them into quote requests.
+                Customers browse timing certainty first. A short note like after
+                2pm or call ahead keeps flexible runs trustworthy without
+                turning them into quote requests.
               </p>
             </div>
           ) : null}
@@ -628,7 +744,9 @@ export function CarrierTripWizard({
             <select
               name="spaceSize"
               value={spaceSize}
-              onChange={(event) => setSpaceSize(event.target.value as "S" | "M" | "L" | "XL")}
+              onChange={(event) =>
+                setSpaceSize(event.target.value as "S" | "M" | "L" | "XL")
+              }
               className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
             >
               <option value="S">Small</option>
@@ -638,11 +756,17 @@ export function CarrierTripWizard({
             </select>
           </label>
           <div className="rounded-xl border border-border p-3">
-            <p className="text-sm font-medium text-text">{SPACE_SIZE_LABELS[spaceSize]}</p>
-            <p className="mt-1 text-sm text-text-secondary">{SPACE_SIZE_DESCRIPTIONS[spaceSize]}</p>
+            <p className="text-sm font-medium text-text">
+              {SPACE_SIZE_LABELS[spaceSize]}
+            </p>
+            <p className="mt-1 text-sm text-text-secondary">
+              {SPACE_SIZE_DESCRIPTIONS[spaceSize]}
+            </p>
           </div>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">Available volume (m3)</span>
+            <span className="text-sm font-medium text-text">
+              Available volume (m3)
+            </span>
             <Input
               name="availableVolumeM3"
               type="number"
@@ -654,7 +778,9 @@ export function CarrierTripWizard({
             />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">Available weight (kg)</span>
+            <span className="text-sm font-medium text-text">
+              Available weight (kg)
+            </span>
             <Input
               name="availableWeightKg"
               type="number"
@@ -686,10 +812,13 @@ export function CarrierTripWizard({
                 "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
             </p>
             <p className="mt-2 text-xs text-text-secondary">
-              Built for founder-led price guidance, not a black-box market estimate. Start here, then adjust for access, handling, and route certainty.
+              Built for founder-led price guidance, not a black-box market
+              estimate. Start here, then adjust for access, handling, and route
+              certainty.
             </p>
             <p className="mt-2 text-xs text-text-secondary">
-              Based on an estimated {routeDistanceKm}km between your resolved origin and destination.
+              Based on an estimated {routeDistanceKm}km between your resolved
+              origin and destination.
             </p>
             <p className="mt-2 text-xs text-text-secondary">
               {priceGuidance?.usedFallback
@@ -714,7 +843,8 @@ export function CarrierTripWizard({
                 </h3>
               </div>
               <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-                {blockingPublishIssues.length} blockers · {warningPublishIssues.length} quality nudges
+                {blockingPublishIssues.length} blockers ·{" "}
+                {warningPublishIssues.length} quality nudges
               </span>
             </div>
             {publishIssues.length > 0 ? (
@@ -735,12 +865,15 @@ export function CarrierTripWizard({
               </div>
             ) : (
               <p className="mt-3 text-sm text-text-secondary">
-                Route, capacity, rules, and accepted item types are aligned well enough for browse.
+                Route, capacity, rules, and accepted item types are aligned well
+                enough for browse.
               </p>
             )}
           </div>
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-text">Price in dollars</span>
+            <span className="text-sm font-medium text-text">
+              Price in dollars
+            </span>
             <Input
               name="priceDollars"
               type="number"
@@ -760,11 +893,12 @@ export function CarrierTripWizard({
                 key={preset.id}
                 type="button"
                 onClick={() => applyItemPreset(preset)}
-                className="min-h-[44px] rounded-xl border border-border px-3 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                className="min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30  rounded-xl border border-border px-3 py-3 text-left text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
               >
                 <span className="block font-medium">{preset.label}</span>
                 <span className="block text-xs text-text-secondary">
-                  Suggests space {preset.suggestedSpaceSize} and accepted item types
+                  Suggests space {preset.suggestedSpaceSize} and accepted item
+                  types
                 </span>
               </button>
             ))}
@@ -784,7 +918,7 @@ export function CarrierTripWizard({
                         : [...current, option.value],
                     )
                   }
-                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                  className={`min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30  rounded-xl border px-3 py-3 text-left text-sm ${
                     isSelected
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
@@ -803,7 +937,9 @@ export function CarrierTripWizard({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="section-label">Item-fit warnings</p>
-                  <h3 className="mt-1 text-lg text-text">Review these before publishing</h3>
+                  <h3 className="mt-1 text-lg text-text">
+                    Review these before publishing
+                  </h3>
                 </div>
                 <span className="text-xs uppercase tracking-[0.18em] text-text-secondary">
                   Soft warning only
@@ -811,21 +947,26 @@ export function CarrierTripWizard({
               </div>
               <div className="mt-3 grid gap-2">
                 {conflictWarnings.map((warning) => (
-                  <div key={warning.code} className="rounded-xl border border-white/60 bg-white/70 px-3 py-3 text-sm text-text">
+                  <div
+                    key={warning.code}
+                    className="rounded-xl border border-white/60 bg-white/70 px-3 py-3 text-sm text-text"
+                  >
                     <p className="font-medium text-text">{warning.message}</p>
                     <p className="mt-1">{warning.hint}</p>
                   </div>
                 ))}
               </div>
               <p className="mt-3 text-sm text-text-secondary">
-                You can still publish anyway. These warnings are here to keep route fit and access
-                boundaries legible before customers book.
+                You can still publish anyway. These warnings are here to keep
+                route fit and access boundaries legible before customers book.
               </p>
             </div>
           ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Stairs support</span>
+              <span className="text-sm font-medium text-text">
+                Stairs support
+              </span>
               <select
                 name="stairsOk"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
@@ -837,7 +978,9 @@ export function CarrierTripWizard({
               </select>
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Stairs surcharge (AUD)</span>
+              <span className="text-sm font-medium text-text">
+                Stairs surcharge (AUD)
+              </span>
               <Input
                 name="stairsExtraDollars"
                 type="number"
@@ -849,19 +992,25 @@ export function CarrierTripWizard({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Helper support</span>
+              <span className="text-sm font-medium text-text">
+                Helper support
+              </span>
               <select
                 name="helperAvailable"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
                 value={helperAvailable ? "yes" : "no"}
-                onChange={(event) => setHelperAvailable(event.target.value === "yes")}
+                onChange={(event) =>
+                  setHelperAvailable(event.target.value === "yes")
+                }
               >
                 <option value="no">No helper</option>
                 <option value="yes">Helper available</option>
               </select>
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Helper surcharge (AUD)</span>
+              <span className="text-sm font-medium text-text">
+                Helper surcharge (AUD)
+              </span>
               <Input
                 name="helperExtraDollars"
                 type="number"
@@ -877,20 +1026,26 @@ export function CarrierTripWizard({
               name="status"
               className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
               value={publishState}
-              onChange={(event) => setPublishState(event.target.value as "draft" | "active")}
+              onChange={(event) =>
+                setPublishState(event.target.value as "draft" | "active")
+              }
             >
               <option value="active">Publish now</option>
               <option value="draft">Save as draft</option>
             </select>
             <p className="text-sm text-text-secondary">
-              Quality warnings do not block publishing. Only hard inventory contradictions force a
-              draft-first save.
+              Quality warnings do not block publishing. Only hard inventory
+              contradictions force a draft-first save.
             </p>
           </label>
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-text">Special handling notes</span>
-              <span className="text-xs text-text-secondary">{specialNotes.length}/280</span>
+              <span className="text-sm font-medium text-text">
+                Special handling notes
+              </span>
+              <span className="text-xs text-text-secondary">
+                {specialNotes.length}/280
+              </span>
             </div>
             <div className="flex flex-wrap gap-2">
               {SPECIAL_NOTES_PRESETS.map((note) => (
@@ -898,7 +1053,7 @@ export function CarrierTripWizard({
                   key={note}
                   type="button"
                   onClick={() => appendPresetNote(note)}
-                  className="min-h-[44px] rounded-full border border-border px-3 py-2 text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                  className="min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30  rounded-full border border-border px-3 py-2 text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
                 >
                   {note.replace(/\.$/, "")}
                 </button>
@@ -938,7 +1093,11 @@ export function CarrierTripWizard({
               Next
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting || (!canPost && stepIndex === 0)} className="flex-1">
+            <Button
+              type="submit"
+              disabled={isSubmitting || (!canPost && stepIndex === 0)}
+              className="flex-1"
+            >
               {isSubmitting ? "Saving..." : "Save trip"}
             </Button>
           )}

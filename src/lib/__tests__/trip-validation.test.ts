@@ -11,7 +11,7 @@ function buildTripUpdateInput(
   overrides: Partial<Parameters<typeof tripUpdateSchema.parse>[0]> = {},
 ) {
   return {
-    tripDate: "2026-04-10",
+    tripDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
     timeWindow: "morning",
     spaceSize: "M",
     availableVolumeM3: 1.2,

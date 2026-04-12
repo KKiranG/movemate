@@ -36,7 +36,9 @@ function FunnelStep({
 }) {
   return (
     <div className="rounded-2xl border border-border bg-background p-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">{label}</p>
+      <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+        {label}
+      </p>
       <p className="mt-2 text-2xl text-text">{formatMetric(metric)}</p>
       <p className="mt-2 text-sm text-text-secondary">{helper}</p>
     </div>
@@ -49,10 +51,12 @@ export function OpsFunnelCard({ metrics }: { metrics: ValidationMetric[] }) {
       <div className="space-y-4">
         <div>
           <p className="section-label">Ops funnel</p>
-          <h2 className="mt-1 text-lg text-text">Current demand-to-completion snapshot</h2>
+          <h2 className="mt-1 text-lg text-text">
+            Current demand-to-completion snapshot
+          </h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Weekly 7-day rollups still need backend timestamp support, so this uses the current
-            aggregate metrics feed and keeps the gap visible.
+            Weekly 7-day rollups still need backend timestamp support, so this
+            uses the current aggregate metrics feed and keeps the gap visible.
           </p>
         </div>
 
@@ -80,9 +84,16 @@ export function OpsFunnelCard({ metrics }: { metrics: ValidationMetric[] }) {
         </div>
 
         <div className="grid gap-2 text-sm text-text-secondary sm:grid-cols-3">
-          <p>Fill rate target: {formatMetric(findMetric(metrics, "Fill rate target"))}</p>
-          <p>Carrier reuse: {formatMetric(findMetric(metrics, "Carrier reuse"))}</p>
-          <p>Avg job value: {formatMetric(findMetric(metrics, "Avg job value"))}</p>
+          <p>
+            Fill rate target:{" "}
+            {formatMetric(findMetric(metrics, "Fill rate target"))}
+          </p>
+          <p>
+            Carrier reuse: {formatMetric(findMetric(metrics, "Carrier reuse"))}
+          </p>
+          <p>
+            Avg job value: {formatMetric(findMetric(metrics, "Avg job value"))}
+          </p>
         </div>
       </div>
     </Card>
