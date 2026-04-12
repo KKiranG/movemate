@@ -1504,15 +1504,18 @@ export async function expirePendingBookings(params?: {
   return expiredIds;
 }
 
-export async function getCarrierPayoutDashboard(userId: string) {
+export async function getCarrierPayoutDashboard(
+  userId: string,
+  prefetched?: { bookings?: Booking[]; trips?: Trip[] },
+) {
   const [bookings, carrierRow, trips] = await Promise.all([
-    listCarrierBookings(userId),
+    prefetched?.bookings ? Promise.resolve(prefetched.bookings) : listCarrierBookings(userId),
     createServerSupabaseClient()
       .from("carriers")
       .select("stripe_onboarding_complete")
       .eq("user_id", userId)
       .maybeSingle(),
-    listCarrierTrips(userId),
+    prefetched?.trips ? Promise.resolve(prefetched.trips) : listCarrierTrips(userId),
   ]);
   const tripMap = new Map(trips.map((trip) => [trip.id, trip]));
 
@@ -1708,8 +1711,11 @@ export async function getCarrierPerformanceStats(userId: string) {
   };
 }
 
-export async function getCarrierLaneInsights(userId: string) {
-  const bookings = await listCarrierBookings(userId);
+export async function getCarrierLaneInsights(
+  userId: string,
+  prefetched?: { bookings?: Booking[] },
+) {
+  const bookings = prefetched?.bookings ?? (await listCarrierBookings(userId));
 
   return Array.from(
     bookings
@@ -2019,12 +2025,16 @@ export function buildCarrierTodaySnapshot(params: {
   };
 }
 
-export async function getCarrierTodaySnapshot(userId: string) {
-  const [bookings, trips, payoutDashboard] = await Promise.all([
-    listCarrierBookings(userId),
-    listCarrierTrips(userId),
-    getCarrierPayoutDashboard(userId),
+export async function getCarrierTodaySnapshot(
+  userId: string,
+  prefetched?: { bookings?: Booking[]; trips?: Trip[] },
+) {
+  const [bookings, trips] = await Promise.all([
+    prefetched?.bookings ? Promise.resolve(prefetched.bookings) : listCarrierBookings(userId),
+    prefetched?.trips ? Promise.resolve(prefetched.trips) : listCarrierTrips(userId),
   ]);
+
+  const payoutDashboard = await getCarrierPayoutDashboard(userId, { bookings, trips });
 
   return buildCarrierTodaySnapshot({
     bookings,

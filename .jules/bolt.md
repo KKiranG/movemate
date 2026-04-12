@@ -1,0 +1,3 @@
+## 2024-04-09 - Parallelize dependent queries
+**Learning:** Found an anti-pattern where a Next.js server component (`CarrierDashboardContent`) fetched composite data from helper functions (like `getCarrierTodaySnapshot` and `getCarrierLaneInsights`) in a `Promise.all` alongside base queries, but those helpers individually repeated the exact same base Supabase queries internally (resulting in ~10 redundant requests instead of 3).
+**Action:** Implemented a `prefetched` argument injection pattern. Fetch base arrays concurrently first, then invoke downstream aggregates with the prefetched data. This preserves modularity (helpers can still fetch data independently if called alone) while preventing query multiplication at the dashboard level.

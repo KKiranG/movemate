@@ -41,14 +41,18 @@ function isTripActive(tripDate: string, status?: string | null) {
 }
 
 async function CarrierDashboardContent({ userId }: { userId: string }) {
-  const [carrier, carrierTrips, carrierBookings, laneInsights, todaySnapshot] = await Promise.all([
+  const [carrier, carrierTrips, carrierBookings] = await Promise.all([
     getCarrierByUserId(userId),
     listCarrierTrips(userId),
     listCarrierBookings(userId),
-    getCarrierLaneInsights(userId),
-    getCarrierTodaySnapshot(userId),
   ]);
-  const templates = carrier ? await listCarrierTemplates(carrier.id) : [];
+
+  const [laneInsights, todaySnapshot, templates] = await Promise.all([
+    getCarrierLaneInsights(userId, { bookings: carrierBookings }),
+    getCarrierTodaySnapshot(userId, { bookings: carrierBookings, trips: carrierTrips }),
+    carrier ? listCarrierTemplates(carrier.id) : Promise.resolve([]),
+  ]);
+
   const liveListings = carrierTrips.filter((trip) => isTripActive(trip.tripDate, trip.status)).length;
   const pendingBookings = carrierBookings.filter((booking) => booking.status === "pending");
   const awaitingDecision = carrierBookings.filter((booking) => booking.status === "pending").length;
