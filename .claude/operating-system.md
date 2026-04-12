@@ -171,6 +171,14 @@ CLAUDE.md
 
 Keep always-loaded docs lean. Move deep operational detail into rules or skills close to the work.
 
+## Navigation Files
+
+Read before starting any non-trivial task:
+
+- `.claude/CODEBASE-MAP.md` — file ownership, routes, migrations, components, patterns
+- `.claude/MVP-BOUNDARY.md` — what is in scope; what is explicitly deferred
+- `.claude/DECISION-LOG.md` — settled architectural decisions; do not re-litigate without founder input
+
 ## Capability Index
 
 Current operating-system surfaces:
@@ -227,6 +235,8 @@ Current operating-system surfaces:
   - `spec`
   - `review-pr`
   - `session-start`
+  - `implement-feature`
+  - `context-handoff`
 
 ## Verification Report Format
 

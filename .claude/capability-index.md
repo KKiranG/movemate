@@ -36,6 +36,16 @@ Use this file as the fast inventory of what currently exists.
 | `schema-reviewer` | migrations, RLS, RPC, and typed contract review |
 | `copy-guardian` | wedge-safe product language and trust copy review |
 
+## Navigation and Scope Files
+
+Read these before starting any non-trivial task:
+
+| File | What it answers |
+| --- | --- |
+| `.claude/CODEBASE-MAP.md` | Where is the file that owns X? What routes exist? What are the migrations? |
+| `.claude/MVP-BOUNDARY.md` | Is this feature in scope for the current product cycle? |
+| `.claude/DECISION-LOG.md` | Is this architectural question already settled? |
+
 ## Skills And Workflows
 
 Core workflows:
@@ -60,6 +70,12 @@ Core workflows:
 - `chrome-qa-tester`
 - `monthly-memory-refactor`
 - `write-task`
+
+Implementation and continuity skills:
+- `implement-feature` — end-to-end implementation sequence (schema → types → data → API → UI → verify)
+- `context-handoff` — session start/end/handoff continuity protocol
+- `fix-issue`
+- `spec`
 
 ## Command Catalog
 
