@@ -7,6 +7,8 @@ import { toBookingRequest } from "@/lib/data/mappers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { getBookingByIdForUser } from "@/lib/data/bookings";
+import { getTripById } from "@/lib/data/trips";
+import { sendRequestLifecycleEmail } from "@/lib/notifications";
 import {
   deriveOffersForMoveRequest,
   ensureOfferForMoveRequestSelection,
@@ -16,15 +18,25 @@ import {
 import { getMoveRequestByIdForAdmin, getMoveRequestByIdForCustomer, updateMoveRequestStatus } from "@/lib/data/move-requests";
 import { requireCarrierProfileForUser, requireCustomerProfileForUser } from "@/lib/data/profiles";
 import {
+  ensureRecoveryAlertForMoveRequest,
+  getUnmatchedRequestByMoveRequestId,
+  markRecoveryAlertMatched,
+} from "@/lib/data/unmatched-requests";
+import {
   bookingRequestSchema,
   type BookingRequestActionInput,
   type BookingRequestCreateInput,
+  type BookingRequestCustomerResponseInput,
   type BookingRequestInput,
   type FastMatchBookingRequestInput,
 } from "@/lib/validation/booking-request";
 import type { BookingInput } from "@/lib/validation/booking";
 import type { Booking } from "@/types/booking";
-import type { BookingRequest, BookingRequestStatus } from "@/types/booking-request";
+import type {
+  BookingRequest,
+  BookingRequestStatus,
+  CustomerBookingRequestCard,
+} from "@/types/booking-request";
 import type { CarrierRequestCard } from "@/types/carrier";
 import type { Database } from "@/types/database";
 import type { MoveRequest, Offer } from "@/types/move-request";
@@ -33,6 +45,11 @@ type BookingRequestRow = Database["public"]["Tables"]["booking_requests"]["Row"]
 
 function getResponseDeadline(hours = 12) {
   const clampedHours = Math.min(24, Math.max(12, hours));
+  return new Date(Date.now() + clampedHours * 60 * 60 * 1000).toISOString();
+}
+
+function getClarificationExpiry(hours = 12) {
+  const clampedHours = Math.min(24, Math.max(4, hours));
   return new Date(Date.now() + clampedHours * 60 * 60 * 1000).toISOString();
 }
 
@@ -71,6 +88,43 @@ function createBookingPayloadFromMoveRequest(moveRequest: MoveRequest, offer: Of
 
 function createBookingRequestHash(input: BookingInput) {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
+}
+
+async function getBookingRequestNotificationRecipients(params: {
+  customerId: string;
+  carrierId: string;
+}) {
+  if (!hasSupabaseAdminEnv()) {
+    return {
+      customerEmail: null,
+      carrierEmail: null,
+    };
+  }
+
+  const supabase = createAdminClient();
+  const [{ data: customerRow, error: customerError }, { data: carrierRow, error: carrierError }] =
+    await Promise.all([
+      supabase.from("customers").select("email").eq("id", params.customerId).maybeSingle(),
+      supabase.from("carriers").select("email, business_name").eq("id", params.carrierId).maybeSingle(),
+    ]);
+
+  if (customerError) {
+    throw new AppError(customerError.message, 500, "customer_notification_lookup_failed");
+  }
+
+  if (carrierError) {
+    throw new AppError(carrierError.message, 500, "carrier_notification_lookup_failed");
+  }
+
+  return {
+    customerEmail: customerRow?.email ?? null,
+    carrierEmail: carrierRow?.email ?? null,
+    carrierBusinessName: carrierRow?.business_name ?? "Matching carrier",
+  };
+}
+
+function isFailedTerminalRequestStatus(status: BookingRequestStatus) {
+  return ["declined", "expired", "cancelled"].includes(status);
 }
 
 async function getOpenBookingRequestsForMoveRequest(customerId: string, moveRequestId: string) {
@@ -114,6 +168,138 @@ async function updateBookingRequestById(params: {
   }
 
   return toBookingRequest(data as BookingRequestRow);
+}
+
+async function ensureRecoveryAfterRequestFailure(bookingRequest: BookingRequest) {
+  if (!isFailedTerminalRequestStatus(bookingRequest.status)) {
+    return null;
+  }
+
+  const moveRequest = await getMoveRequestByIdForAdmin(bookingRequest.moveRequestId);
+
+  if (!moveRequest) {
+    return null;
+  }
+
+  if (bookingRequest.requestGroupId) {
+    const groupRequests = await listBookingRequestsInGroup(bookingRequest.requestGroupId);
+    const hasOutstanding = groupRequests.some((request) =>
+      ["pending", "clarification_requested", "accepted", "revoked"].includes(request.status),
+    );
+
+    if (hasOutstanding) {
+      return null;
+    }
+  }
+
+  const recipients = await getBookingRequestNotificationRecipients({
+    customerId: bookingRequest.customerId,
+    carrierId: bookingRequest.carrierId,
+  });
+
+  return ensureRecoveryAlertForMoveRequest({
+    moveRequest,
+    notifyEmail: recipients.customerEmail,
+  });
+}
+
+async function expireStaleBookingRequests() {
+  if (!hasSupabaseAdminEnv()) {
+    return;
+  }
+
+  const supabase = createAdminClient();
+  const now = new Date().toISOString();
+  const [{ data: expiredPendingRows, error: pendingError }, { data: expiredClarificationRows, error: clarificationError }] =
+    await Promise.all([
+      supabase
+        .from("booking_requests")
+        .update({
+          status: "expired",
+          expires_at: now,
+        })
+        .eq("status", "pending")
+        .lte("response_deadline_at", now)
+        .select("*"),
+      supabase
+        .from("booking_requests")
+        .update({
+          status: "expired",
+          expires_at: now,
+        })
+        .eq("status", "clarification_requested")
+        .lte("clarification_expires_at", now)
+        .is("customer_response_at", null)
+        .select("*"),
+    ]);
+
+  if (pendingError) {
+    throw new AppError(pendingError.message, 500, "booking_request_pending_expiry_failed");
+  }
+
+  if (clarificationError) {
+    throw new AppError(
+      clarificationError.message,
+      500,
+      "booking_request_clarification_expiry_failed",
+    );
+  }
+
+  const expiredRequests = [...(expiredPendingRows ?? []), ...(expiredClarificationRows ?? [])].map((row) =>
+    toBookingRequest(row as BookingRequestRow),
+  );
+
+  await Promise.all(
+    expiredRequests.map(async (bookingRequest) => {
+      const [moveRequest, recipients] = await Promise.all([
+        getMoveRequestByIdForAdmin(bookingRequest.moveRequestId),
+        getBookingRequestNotificationRecipients({
+          customerId: bookingRequest.customerId,
+          carrierId: bookingRequest.carrierId,
+        }),
+      ]);
+
+      if (moveRequest && recipients.customerEmail) {
+        await sendRequestLifecycleEmail({
+          bookingRequestId: bookingRequest.id,
+          to: recipients.customerEmail,
+          subject: `Request expired: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+          title: "The request window closed",
+          intro:
+            "This request did not convert into a booking before the response or clarification window ended.",
+          routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+          itemLabel: moveRequest.item.description,
+          statusLabel: "Expired",
+          ctaPath: `/bookings/${bookingRequest.id}`,
+          ctaLabel: "Open request detail",
+          bodyLines: [
+            "moverrr will carry the route into recovery alerts when the move still needs supply.",
+            "You do not need to restart the request from scratch just because one window closed.",
+          ],
+        });
+      }
+
+      await ensureRecoveryAfterRequestFailure(bookingRequest);
+    }),
+  );
+}
+
+async function listBookingRequestsInGroup(requestGroupId: string) {
+  if (!hasSupabaseEnv()) {
+    return [] as BookingRequest[];
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("booking_requests")
+    .select("*")
+    .eq("request_group_id", requestGroupId);
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_request_group_query_failed");
+  }
+
+  return (data ?? []).map((row) => toBookingRequest(row as BookingRequestRow));
 }
 
 async function revokeSiblingBookingRequests(params: {
@@ -193,6 +379,8 @@ export async function createBookingRequest(params: BookingRequestInput) {
 }
 
 export async function getBookingRequestByIdForCarrier(carrierId: string, bookingRequestId: string) {
+  await expireStaleBookingRequests();
+
   if (!hasSupabaseEnv()) {
     return null;
   }
@@ -213,6 +401,8 @@ export async function getBookingRequestByIdForCarrier(carrierId: string, booking
 }
 
 export async function listBookingRequestsForCarrier(carrierId: string) {
+  await expireStaleBookingRequests();
+
   if (!hasSupabaseEnv()) {
     return [] as BookingRequest[];
   }
@@ -322,6 +512,162 @@ export async function listCarrierRequestCards(userId: string) {
     );
 }
 
+export async function getBookingRequestByIdForCustomer(userId: string, bookingRequestId: string) {
+  await expireStaleBookingRequests();
+
+  const customer = await requireCustomerProfileForUser(userId);
+
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("booking_requests")
+    .select("*")
+    .eq("id", bookingRequestId)
+    .eq("customer_id", customer.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_request_lookup_failed");
+  }
+
+  return data ? toBookingRequest(data as BookingRequestRow) : null;
+}
+
+export async function listCustomerRequestCards(userId: string) {
+  await expireStaleBookingRequests();
+
+  const customer = await requireCustomerProfileForUser(userId);
+
+  if (!hasSupabaseEnv()) {
+    return [] as CustomerBookingRequestCard[];
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("booking_requests")
+    .select("*")
+    .eq("customer_id", customer.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_request_query_failed");
+  }
+
+  const requests = (data ?? []).map((row) => toBookingRequest(row as BookingRequestRow));
+  const cards = await Promise.all(
+    requests.map(async (bookingRequest) => {
+      const [moveRequest, offer, trip, recoveryAlert] = await Promise.all([
+        getMoveRequestByIdForCustomer(customer.id, bookingRequest.moveRequestId),
+        getOfferByIdForAdmin(bookingRequest.offerId),
+        getTripById(bookingRequest.listingId),
+        getUnmatchedRequestByMoveRequestId(bookingRequest.moveRequestId),
+      ]);
+
+      if (!moveRequest || !offer) {
+        return null;
+      }
+
+      return {
+        id: bookingRequest.id,
+        moveRequestId: bookingRequest.moveRequestId,
+        offerId: bookingRequest.offerId,
+        listingId: bookingRequest.listingId,
+        bookingId: bookingRequest.bookingId ?? null,
+        requestGroupId: bookingRequest.requestGroupId ?? null,
+        status: bookingRequest.status,
+        itemDescription: moveRequest.item.description,
+        pickupSuburb: moveRequest.route.pickupSuburb,
+        dropoffSuburb: moveRequest.route.dropoffSuburb,
+        requestedTotalPriceCents: bookingRequest.requestedTotalPriceCents,
+        responseDeadlineAt: bookingRequest.responseDeadlineAt,
+        preferredDate: moveRequest.route.preferredDate ?? null,
+        carrierBusinessName: trip?.carrier.businessName ?? "Matching carrier",
+        fitExplanation: offer.matchExplanation,
+        typeLabel: bookingRequest.requestGroupId ? "Fast Match" : "Request to Book",
+        clarificationReason: bookingRequest.clarificationReason ?? null,
+        clarificationMessage: bookingRequest.clarificationMessage ?? null,
+        clarificationRequestedAt: bookingRequest.clarificationRequestedAt ?? null,
+        clarificationExpiresAt: bookingRequest.clarificationExpiresAt ?? null,
+        customerResponse: bookingRequest.customerResponse ?? null,
+        customerResponseAt: bookingRequest.customerResponseAt ?? null,
+        recoveryAlertId: recoveryAlert?.id ?? null,
+        createdAt: bookingRequest.createdAt,
+      } satisfies CustomerBookingRequestCard;
+    }),
+  );
+
+  return cards.filter((card): card is NonNullable<typeof card> => Boolean(card));
+}
+
+export async function respondToBookingRequestClarification(
+  userId: string,
+  bookingRequestId: string,
+  input: BookingRequestCustomerResponseInput,
+) {
+  const bookingRequest = await getBookingRequestByIdForCustomer(userId, bookingRequestId);
+
+  if (!bookingRequest) {
+    throw new AppError("Booking request not found.", 404, "booking_request_not_found");
+  }
+
+  if (bookingRequest.status !== "clarification_requested") {
+    throw new AppError(
+      "This request is not waiting on a clarification reply.",
+      409,
+      "booking_request_not_waiting_for_customer",
+    );
+  }
+
+  if (bookingRequest.customerResponseAt || bookingRequest.customerResponse) {
+    throw new AppError(
+      "This clarification round already has a customer reply.",
+      409,
+      "booking_request_clarification_already_answered",
+    );
+  }
+
+  if (
+    bookingRequest.clarificationExpiresAt &&
+    new Date(bookingRequest.clarificationExpiresAt).getTime() <= Date.now()
+  ) {
+    await updateBookingRequestById({
+      bookingRequestId,
+      patch: {
+        status: "expired",
+        expires_at: new Date().toISOString(),
+      },
+    });
+
+    throw new AppError(
+      "This clarification window already expired. Start from the next viable match instead.",
+      409,
+      "booking_request_clarification_expired",
+    );
+  }
+
+  if ((bookingRequest.clarificationRoundCount ?? 0) > 1) {
+    throw new AppError(
+      "This request has already used its clarification allowance.",
+      409,
+      "booking_request_clarification_limit_reached",
+    );
+  }
+
+  return updateBookingRequestById({
+    bookingRequestId,
+    patch: {
+      status: "pending",
+      customer_response: input.customerResponse,
+      customer_response_at: new Date().toISOString(),
+      response_deadline_at: getResponseDeadline(),
+      clarification_expires_at: null,
+    },
+  });
+}
+
 export async function createRequestToBook(userId: string, input: BookingRequestCreateInput) {
   const customer = await requireCustomerProfileForUser(userId);
   const moveRequest = await getMoveRequestByIdForCustomer(customer.id, input.moveRequestId);
@@ -358,6 +704,31 @@ export async function createRequestToBook(userId: string, input: BookingRequestC
   });
 
   await updateMoveRequestStatus(moveRequest.id, "booking_requested");
+
+  const recipients = await getBookingRequestNotificationRecipients({
+    customerId: customer.id,
+    carrierId: offer.carrierId,
+  });
+
+  if (recipients.carrierEmail) {
+    await sendRequestLifecycleEmail({
+      bookingRequestId: bookingRequest.id,
+      to: recipients.carrierEmail,
+      subject: `New request to review: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+      title: "A customer requested space on your trip",
+      intro:
+        "Review the route, fit, and access details in moverrr and decide inside the bounded response window.",
+      routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+      itemLabel: moveRequest.item.description,
+      statusLabel: "Pending",
+      ctaPath: "/carrier/requests",
+      ctaLabel: "Open requests",
+      bodyLines: [
+        "Use Accept, Decline, or one factual clarification round only.",
+        "Keep the full decision trail in moverrr so support and payout logic stay clean later.",
+      ],
+    });
+  }
 
   return {
     moveRequest,
@@ -441,6 +812,37 @@ export async function createFastMatchBookingRequests(
 
   await updateMoveRequestStatus(moveRequest.id, "booking_requested");
 
+  await Promise.all(
+    bookingRequests.map(async (bookingRequest) => {
+      const recipients = await getBookingRequestNotificationRecipients({
+        customerId: customer.id,
+        carrierId: bookingRequest.carrierId,
+      });
+
+      if (!recipients.carrierEmail) {
+        return;
+      }
+
+      await sendRequestLifecycleEmail({
+        bookingRequestId: bookingRequest.id,
+        to: recipients.carrierEmail,
+        subject: `Fast Match request: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+        title: "Fast Match sent this move request to you",
+        intro:
+          "The customer asked moverrr to reach a few fitting carriers at once. If you accept first, the rest of the group closes automatically.",
+        routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+        itemLabel: moveRequest.item.description,
+        statusLabel: "Pending",
+        ctaPath: "/carrier/requests",
+        ctaLabel: "Open requests",
+        bodyLines: [
+          `You are one of up to ${bookingRequests.length} carriers in this Fast Match group.`,
+          "Accept only if the route, fit, and access details look workable as stated.",
+        ],
+      });
+    }),
+  );
+
   return {
     moveRequest,
     requestGroupId,
@@ -485,13 +887,26 @@ export async function applyCarrierBookingRequestAction(
   }
 
   if (input.action === "clarify") {
+    if ((bookingRequest.clarificationRoundCount ?? 0) >= 1) {
+      throw new AppError(
+        "This request already used its single clarification round.",
+        409,
+        "booking_request_clarification_limit_reached",
+      );
+    }
+
     return {
       bookingRequest: await updateBookingRequestById({
         bookingRequestId,
         patch: {
           status: "clarification_requested",
+          clarification_round_count: 1,
           clarification_reason: input.clarificationReason ?? null,
+          clarification_requested_at: new Date().toISOString(),
+          clarification_expires_at: getClarificationExpiry(),
           clarification_message: input.clarificationMessage ?? null,
+          customer_response: null,
+          customer_response_at: null,
           responded_at: new Date().toISOString(),
         },
       }),
@@ -508,6 +923,35 @@ export async function applyCarrierBookingRequestAction(
     });
 
     await updateOfferStatus(declinedRequest.offerId, "rejected");
+    const [moveRequest, recipients] = await Promise.all([
+      getMoveRequestByIdForAdmin(declinedRequest.moveRequestId),
+      getBookingRequestNotificationRecipients({
+        customerId: declinedRequest.customerId,
+        carrierId: declinedRequest.carrierId,
+      }),
+    ]);
+
+    if (moveRequest && recipients.customerEmail) {
+      await sendRequestLifecycleEmail({
+        bookingRequestId: declinedRequest.id,
+        to: recipients.customerEmail,
+        subject: `Request declined: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+        title: "This carrier declined the request",
+        intro:
+          "The request did not convert with this carrier, but moverrr can carry the move into the next recovery step.",
+        routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+        itemLabel: moveRequest.item.description,
+        statusLabel: "Declined",
+        ctaPath: `/bookings/${declinedRequest.id}`,
+        ctaLabel: "Open request detail",
+        bodyLines: [
+          "Use the request detail to see the next-best recovery path.",
+          "There is no need to reopen the same negotiation off-platform.",
+        ],
+      });
+    }
+
+    await ensureRecoveryAfterRequestFailure(declinedRequest);
 
     return {
       bookingRequest: declinedRequest,
@@ -580,6 +1024,31 @@ export async function applyCarrierBookingRequestAction(
 
   await updateOfferStatus(acceptedRequest.offerId, "selected");
   await updateMoveRequestStatus(acceptedRequest.moveRequestId, "booked");
+  await markRecoveryAlertMatched(acceptedRequest.moveRequestId);
+
+  const recipients = await getBookingRequestNotificationRecipients({
+    customerId: acceptedRequest.customerId,
+    carrierId: acceptedRequest.carrierId,
+  });
+
+  if (moveRequest && recipients.customerEmail) {
+    await sendRequestLifecycleEmail({
+      bookingRequestId: acceptedRequest.id,
+      to: recipients.customerEmail,
+      subject: `Request accepted: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+      title: "A carrier accepted your request",
+      intro:
+        "The request is now a live booking in moverrr, so proof, payment, and fulfilment updates move into the booking record.",
+      routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
+      itemLabel: moveRequest.item.description,
+      statusLabel: "Accepted",
+      ctaPath: `/bookings/${bookingId}`,
+      ctaLabel: "Open booking",
+      bodyLines: [
+        "Use the booking record from here forward for fulfilment, proof, and disputes.",
+      ],
+    });
+  }
 
   if (acceptedRequest.requestGroupId) {
     await revokeSiblingBookingRequests({

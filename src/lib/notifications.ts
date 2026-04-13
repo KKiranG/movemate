@@ -2,6 +2,7 @@ import { Resend } from "resend";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasResendEnv } from "@/lib/env";
+import { buildEmailHtml } from "@/lib/email";
 import { captureAppError } from "@/lib/sentry";
 import type { Database } from "@/types/database";
 
@@ -130,4 +131,89 @@ export async function sendBookingTransactionalEmail(params: {
     .eq("id", insertedRow.id);
 
   return result;
+}
+
+export async function sendRequestLifecycleEmail(params: {
+  bookingRequestId: string;
+  to: string;
+  subject: string;
+  title: string;
+  intro: string;
+  routeLabel: string;
+  itemLabel: string;
+  statusLabel: string;
+  ctaPath: string;
+  ctaLabel: string;
+  bodyLines?: string[];
+}) {
+  return sendTransactionalEmail({
+    to: params.to,
+    subject: params.subject,
+    html: buildEmailHtml({
+      eyebrow: "Request update",
+      title: params.title,
+      intro: params.intro,
+      summaryRows: [
+        { label: "Request", value: params.bookingRequestId.slice(0, 8).toUpperCase() },
+        { label: "Route", value: params.routeLabel },
+        { label: "Item", value: params.itemLabel },
+        { label: "Status", value: params.statusLabel },
+      ],
+      bodyLines: params.bodyLines,
+      ctaHref: new URL(params.ctaPath, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").toString(),
+      ctaLabel: params.ctaLabel,
+      closingNote:
+        "Keep replies, payment changes, and any disputes inside moverrr so the request and booking trail stay usable.",
+    }),
+  });
+}
+
+export async function sendAlertLifecycleEmail(params: {
+  to: string;
+  subject: string;
+  title: string;
+  intro: string;
+  routeLabel: string;
+  ctaPath: string;
+  ctaLabel: string;
+  bodyLines?: string[];
+}) {
+  return sendTransactionalEmail({
+    to: params.to,
+    subject: params.subject,
+    html: buildEmailHtml({
+      eyebrow: "Route alert",
+      title: params.title,
+      intro: params.intro,
+      summaryRows: [{ label: "Route", value: params.routeLabel }],
+      bodyLines: params.bodyLines,
+      ctaHref: new URL(params.ctaPath, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").toString(),
+      ctaLabel: params.ctaLabel,
+      closingNote:
+        "Alerts are meant to carry the same move intent forward when spare-capacity supply is not immediately available.",
+    }),
+  });
+}
+
+export async function sendTripFreshnessNotification(params: {
+  to: string;
+  subject: string;
+  title: string;
+  intro: string;
+  routeLabel: string;
+  ctaPath: string;
+  ctaLabel: string;
+}) {
+  return sendTransactionalEmail({
+    to: params.to,
+    subject: params.subject,
+    html: buildEmailHtml({
+      eyebrow: "Trip freshness",
+      title: params.title,
+      intro: params.intro,
+      summaryRows: [{ label: "Route", value: params.routeLabel }],
+      ctaHref: new URL(params.ctaPath, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").toString(),
+      ctaLabel: params.ctaLabel,
+    }),
+  });
 }

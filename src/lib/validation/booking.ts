@@ -89,6 +89,7 @@ export interface BookingTrustIssue {
   code:
     | "prohibited_item"
     | "off_platform_payment_request"
+    | "manual_handling_photo_required"
     | "manual_handling_helper_recommended"
     | "manual_handling_access_notes_missing";
   severity: BookingTrustIssueSeverity;
@@ -103,6 +104,7 @@ export interface BookingTrustIssue {
     | "pickupAccessNotes"
     | "dropoffAccessNotes"
     | "needsHelper"
+    | "itemPhotoUrls"
   >;
 }
 
@@ -115,6 +117,7 @@ export interface BookingTrustInput {
   needsHelper?: boolean;
   pickupAccessNotes?: string;
   dropoffAccessNotes?: string;
+  itemPhotoCount?: number;
 }
 
 export function getBookingTrustIssues(input: BookingTrustInput) {
@@ -130,6 +133,7 @@ export function getBookingTrustIssues(input: BookingTrustInput) {
   const accessNotesProvided = Boolean(
     input.pickupAccessNotes?.trim() || input.dropoffAccessNotes?.trim(),
   );
+  const hasPhotoEvidence = (input.itemPhotoCount ?? 0) > 0;
 
   for (const rule of PROHIBITED_ITEM_RULES) {
     if (rule.pattern.test(joinedText)) {
@@ -164,6 +168,16 @@ export function getBookingTrustIssues(input: BookingTrustInput) {
       message: "This looks like a bulky or one-person-risky item. Re-check whether a helper is needed.",
       hint: "Heavy, awkward, or bulky pieces usually need the helper toggle and clearer handling expectations.",
         path: ["needsHelper", "itemWeightKg", "itemWeightBand", "itemSizeClass"],
+    });
+  }
+
+  if (looksManualHandlingRisk && !hasPhotoEvidence) {
+    issues.push({
+      code: "manual_handling_photo_required",
+      severity: "blocking",
+      message: "Add at least one item photo before sending a bulky or risky request.",
+      hint: "The carrier needs a real item photo for awkward, heavy, or oversized jobs before they can decide safely.",
+      path: ["itemPhotoUrls"],
     });
   }
 

@@ -4,6 +4,12 @@ import type { Trip } from "@/types/trip";
 import type { CarrierProfile } from "@/types/carrier";
 import type { TripSearchResult } from "@/types/trip";
 
+function getDayOffset(fromDate: string, toDate: string) {
+  const from = new Date(`${fromDate}T00:00:00`);
+  const to = new Date(`${toDate}T00:00:00`);
+  return Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
+}
+
 export function getTripCustomerPricePreview(basePriceCents: number) {
   return calculateBookingBreakdown({
     basePriceCents,
@@ -93,6 +99,62 @@ export function getTripFitConfidenceLabel(matchScore?: number | null) {
   }
 
   return "Needs approval";
+}
+
+export function getTripNearbyDateExplanation(params: {
+  preferredDate?: string | null;
+  tripDate: string;
+}) {
+  if (!params.preferredDate || params.preferredDate === params.tripDate) {
+    return null;
+  }
+
+  const offset = getDayOffset(params.preferredDate, params.tripDate);
+
+  if (offset === 0) {
+    return null;
+  }
+
+  const absoluteDays = Math.abs(offset);
+  const unit = absoluteDays === 1 ? "day" : "days";
+
+  return offset > 0
+    ? `${absoluteDays} ${unit} after your preferred date`
+    : `${absoluteDays} ${unit} before your preferred date`;
+}
+
+export function getTripFitReviewExplanation(
+  trip: Pick<Trip, "rules" | "spaceSize"> | Pick<TripSearchResult, "breakdown" | "matchScore" | "rules" | "spaceSize">,
+) {
+  if (!("breakdown" in trip) || typeof trip.matchScore !== "number") {
+    return null;
+  }
+
+  if (trip.matchScore >= 70) {
+    return null;
+  }
+
+  const pickupDistanceKm = trip.breakdown.pickupDistanceKm ?? 0;
+  const dropoffDistanceKm = trip.breakdown.dropoffDistanceKm ?? 0;
+  const farthestDistanceKm = Math.max(pickupDistanceKm, dropoffDistanceKm);
+
+  if (trip.matchScore >= 50) {
+    if (farthestDistanceKm > 2) {
+      return `Review photos first because one end of the handoff sits about ${farthestDistanceKm.toFixed(1)} km off the core route.`;
+    }
+
+    if (trip.spaceSize === "S" || trip.spaceSize === "M") {
+      return "Review photos first so the carrier can confirm the item shape and handling fit this spare-capacity space.";
+    }
+
+    return "Review photos first so the carrier can confirm the item sits cleanly inside the available spare space.";
+  }
+
+  if (!trip.rules.stairsOk || !trip.rules.helperAvailable) {
+    return "Needs approval because the route or handling rules still need a manual fit check before the carrier can say yes.";
+  }
+
+  return "Needs approval because the route fit is borderline enough that the carrier has to manually review it first.";
 }
 
 export function getTripRouteFitLabel(

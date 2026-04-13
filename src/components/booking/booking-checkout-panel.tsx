@@ -13,14 +13,19 @@ import {
 } from "@/lib/constants";
 import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
 import { formatCurrency } from "@/lib/utils";
+import type { MoveRequest } from "@/types/move-request";
 import type { Trip } from "@/types/trip";
 
 export function BookingCheckoutPanel({
   trip,
   isAuthenticated,
+  existingMoveRequest,
+  initialOfferId,
 }: {
   trip: Trip;
   isAuthenticated: boolean;
+  existingMoveRequest?: MoveRequest | null;
+  initialOfferId?: string | null;
 }) {
   const [needsStairs, setNeedsStairs] = useState(false);
   const [needsHelper, setNeedsHelper] = useState(false);
@@ -186,6 +191,8 @@ export function BookingCheckoutPanel({
         isAuthenticated={isAuthenticated}
         id="booking-form"
         requestMode={requestMode}
+        existingMoveRequest={existingMoveRequest}
+        initialOfferId={initialOfferId}
         onRequestModeChange={setRequestMode}
         onOptionsChange={({ needsStairs: nextNeedsStairs, needsHelper: nextNeedsHelper }) => {
           setNeedsStairs(nextNeedsStairs);

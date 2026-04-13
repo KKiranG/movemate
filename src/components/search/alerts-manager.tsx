@@ -4,10 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { getRouteAlertPrimaryAction } from "@/lib/alert-presenters";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { SavedSearch } from "@/types/customer";
+import type { UnmatchedRequest } from "@/types/alert";
+import { formatDateTime } from "@/lib/utils";
 
 function AlertCard({ alert }: { alert: SavedSearch }) {
   const router = useRouter();
@@ -150,13 +153,117 @@ function AlertCard({ alert }: { alert: SavedSearch }) {
   );
 }
 
-export function AlertsManager({ alerts }: { alerts: SavedSearch[] }) {
+function RouteRequestCard({ routeRequest }: { routeRequest: UnmatchedRequest }) {
+  const primaryAction = getRouteAlertPrimaryAction(routeRequest);
+  const statusText =
+    routeRequest.status === "matched"
+      ? "A new viable match was found for the same move request."
+      : routeRequest.status === "expired" || routeRequest.status === "cancelled"
+        ? "This recovery path closed without a new fit."
+        : "moverrr is still watching this route after a request failed to convert.";
+
+  return (
+    <Card className="p-4">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="section-label">Recovery alert</p>
+            <h2 className="mt-1 text-heading text-text">
+              {routeRequest.pickupSuburb} to {routeRequest.dropoffSuburb}
+            </h2>
+            <p className="mt-1 text-body text-text-secondary">
+              {statusText}
+            </p>
+          </div>
+          <span
+            className={`rounded-xl px-3 py-2 text-caption ${
+              routeRequest.status === "active"
+                ? "bg-success/10 text-success"
+                : routeRequest.status === "matched"
+                  ? "bg-accent/10 text-accent"
+                  : "bg-black/[0.04] text-text-secondary dark:bg-white/[0.06]"
+            }`}
+          >
+            {routeRequest.status.replaceAll("_", " ")}
+          </span>
+        </div>
+        <div className="grid gap-2 text-sm text-text-secondary">
+          <p>{routeRequest.itemDescription}</p>
+          {routeRequest.preferredDate ? <p>Preferred date: {routeRequest.preferredDate}</p> : null}
+          {routeRequest.status === "matched" && routeRequest.matchedAt ? (
+            <p>Matched {formatDateTime(routeRequest.matchedAt)}.</p>
+          ) : null}
+          <p>
+            {routeRequest.lastNotifiedAt
+              ? `Last route alert sent ${formatDateTime(routeRequest.lastNotifiedAt)}.`
+              : "No recovered match has been sent yet."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild type="button">
+            <Link href={primaryAction.href}>{primaryAction.label}</Link>
+          </Button>
+          <Button asChild type="button" variant="secondary">
+            <Link href="/bookings">Open requests</Link>
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export function AlertsManager({
+  alerts,
+  routeRequests,
+}: {
+  alerts: SavedSearch[];
+  routeRequests: UnmatchedRequest[];
+}) {
+  const activeRouteRequests = routeRequests.filter((entry) => entry.status === "active");
+  const matchedRouteRequests = routeRequests.filter((entry) => entry.status === "matched");
+  const expiredRouteRequests = routeRequests.filter((entry) =>
+    ["expired", "cancelled"].includes(entry.status),
+  );
+
   return (
     <div className="grid gap-4">
+      {activeRouteRequests.length > 0 ? (
+        <div className="grid gap-4">
+          <div>
+            <p className="section-label">Recovered route alerts</p>
+            <h2 className="mt-1 text-lg text-text">Move intent carried forward after a failed request</h2>
+          </div>
+          {activeRouteRequests.map((routeRequest) => (
+            <RouteRequestCard key={routeRequest.id} routeRequest={routeRequest} />
+          ))}
+        </div>
+      ) : null}
       {alerts.map((alert) => (
         <AlertCard key={alert.id} alert={alert} />
       ))}
-      {alerts.length === 0 ? (
+      {matchedRouteRequests.length > 0 ? (
+        <div className="grid gap-4">
+          <div>
+            <p className="section-label">Matched alerts</p>
+            <h2 className="mt-1 text-lg text-text">Recovered demand that now has a viable route</h2>
+          </div>
+          {matchedRouteRequests.map((routeRequest) => (
+            <RouteRequestCard key={routeRequest.id} routeRequest={routeRequest} />
+          ))}
+        </div>
+      ) : null}
+      {expiredRouteRequests.length > 0 ? (
+        <div className="grid gap-4">
+          <div>
+            <p className="section-label">Expired alerts</p>
+            <h2 className="mt-1 text-lg text-text">Recovery paths that closed without a new fit</h2>
+          </div>
+          {expiredRouteRequests.map((routeRequest) => (
+            <RouteRequestCard key={routeRequest.id} routeRequest={routeRequest} />
+          ))}
+        </div>
+      ) : null}
+      {alerts.length === 0 && routeRequests.length === 0 ? (
         <Card className="p-4">
           <p className="subtle-text">No alerts yet. Turn on a route alert from search when moverrr does not find the right fit.</p>
         </Card>

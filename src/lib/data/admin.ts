@@ -10,6 +10,46 @@ import { sanitizeText } from "@/lib/utils";
 import { getTripPublishReadiness } from "@/lib/validation/trip";
 import type { ValidationMetric } from "@/types/admin";
 
+export async function getCorridorDemandSnapshot(params: {
+  pickupSuburb: string;
+  dropoffSuburb: string;
+  recentSinceIso: string;
+}) {
+  if (!hasSupabaseAdminEnv()) {
+    return null;
+  }
+
+  const supabase = createAdminClient();
+  const [{ count: openAlertCount, error: openAlertError }, { count: recentDemandCount, error: recentDemandError }] =
+    await Promise.all([
+      supabase
+        .from("unmatched_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("pickup_suburb", params.pickupSuburb)
+        .eq("dropoff_suburb", params.dropoffSuburb)
+        .in("status", ["active", "notified"]),
+      supabase
+        .from("unmatched_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("pickup_suburb", params.pickupSuburb)
+        .eq("dropoff_suburb", params.dropoffSuburb)
+        .gte("created_at", params.recentSinceIso),
+    ]);
+
+  if (openAlertError) {
+    throw new AppError(openAlertError.message, 500, "corridor_open_alert_count_failed");
+  }
+
+  if (recentDemandError) {
+    throw new AppError(recentDemandError.message, 500, "corridor_recent_demand_count_failed");
+  }
+
+  return {
+    openAlertCount: openAlertCount ?? 0,
+    recentDemandCount: recentDemandCount ?? 0,
+  };
+}
+
 export async function listAdminDisputes() {
   if (!hasSupabaseAdminEnv()) {
     return [];

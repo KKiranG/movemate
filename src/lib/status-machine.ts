@@ -24,7 +24,7 @@ export const ALLOWED_BOOKING_REQUEST_TRANSITIONS: Record<
   BookingRequestStatus[]
 > = {
   pending: ["clarification_requested", "accepted", "declined", "expired", "cancelled", "revoked"],
-  clarification_requested: ["accepted", "declined", "cancelled", "expired", "revoked"],
+  clarification_requested: ["pending", "accepted", "declined", "cancelled", "expired", "revoked"],
   accepted: [],
   declined: [],
   expired: [],

@@ -11,6 +11,8 @@ import {
 import {
   getBaseCustomerPriceCents,
   getTripFitConfidenceLabel,
+  getTripFitReviewExplanation,
+  getTripNearbyDateExplanation,
   getTripRouteFitLabel,
   getTripFitSummary,
   getTripTimingBadges,
@@ -22,6 +24,7 @@ import type { Trip, TripSearchResult } from "@/types/trip";
 interface TripCardProps {
   trip: Trip | TripSearchResult;
   href?: string;
+  preferredDate?: string;
 }
 
 function isTripSearchResult(trip: Trip | TripSearchResult): trip is TripSearchResult {
@@ -49,7 +52,7 @@ const SPACE_SIZE_EXAMPLES: Record<Trip["spaceSize"], string> = {
   XL: "Usually suits large furniture or most of a spare bay",
 };
 
-export function TripCard({ trip, href }: TripCardProps) {
+export function TripCard({ trip, href, preferredDate }: TripCardProps) {
   const isFullyBooked = trip.remainingCapacityPct <= 0 || trip.status === "booked_full";
   const timingBadges = getTripTimingBadges(trip);
   const trustRow = getTripTrustStack(trip).map((label) =>
@@ -64,6 +67,11 @@ export function TripCard({ trip, href }: TripCardProps) {
   const cardHref = isFullyBooked ? searchHref : href;
   const fitLabel = isTripSearchResult(trip) ? getTripFitConfidenceLabel(trip.matchScore) : "Likely fits";
   const routeFitLabel = getTripRouteFitLabel(trip);
+  const fitReviewExplanation = isTripSearchResult(trip) ? getTripFitReviewExplanation(trip) : null;
+  const nearbyDateExplanation = getTripNearbyDateExplanation({
+    preferredDate,
+    tripDate: trip.tripDate,
+  });
 
   const content = (
     <Card className="p-4">
@@ -108,6 +116,9 @@ export function TripCard({ trip, href }: TripCardProps) {
               <div className="rounded-xl border border-border px-3 py-2">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">Timing</p>
                 <p className="mt-1 text-sm font-medium text-text">{formatDate(trip.tripDate)}</p>
+                {nearbyDateExplanation ? (
+                  <p className="mt-1 text-xs text-text-secondary">{nearbyDateExplanation}</p>
+                ) : null}
               </div>
             </div>
             <TimeBar timeWindow={trip.timeWindow} />
@@ -121,6 +132,9 @@ export function TripCard({ trip, href }: TripCardProps) {
                 Why this matches
               </p>
               <p className="mt-1 text-sm text-text">{getTripFitSummary(trip)}</p>
+              {fitReviewExplanation ? (
+                <p className="mt-2 text-xs text-text-secondary">{fitReviewExplanation}</p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
               <span>{SPACE_SIZE_EXAMPLES[trip.spaceSize]}</span>
