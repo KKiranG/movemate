@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageIntro } from "@/components/layout/page-intro";
 import { Card } from "@/components/ui/card";
 import { requirePageSessionUser } from "@/lib/auth";
+import { getCarrierActivationLabel } from "@/lib/carrier-activation";
 import { getCarrierByUserId } from "@/lib/data/carriers";
 
 export const metadata: Metadata = {
@@ -29,8 +30,9 @@ export default async function CarrierAccountPage() {
           <h2 className="mt-1 text-lg text-text">{carrier?.businessName ?? user.email ?? "Carrier account"}</h2>
           <div className="mt-3 grid gap-2 text-sm text-text-secondary">
             <p>Email: {user.email ?? "Not available"}</p>
-            <p>Verification: {carrier?.verificationStatus?.replaceAll("_", " ") ?? "Not started"}</p>
+            <p>Activation: {carrier ? getCarrierActivationLabel(carrier.activationStatus) : "Not started"}</p>
             <p>Payout setup: {carrier?.stripeOnboardingComplete ? "Ready" : "Still required"}</p>
+            <p>ABN trust booster: {carrier?.abnVerified ? "Verified" : carrier?.abn ? "Provided" : "Not added"}</p>
           </div>
         </Card>
 

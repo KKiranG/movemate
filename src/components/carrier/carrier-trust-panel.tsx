@@ -1,5 +1,6 @@
 import { PrivateProofTile } from "@/components/booking/private-proof-tile";
 import { Card } from "@/components/ui/card";
+import { getCarrierActivationLabel, isCarrierActivationLive } from "@/lib/carrier-activation";
 import { PRIVATE_BUCKETS } from "@/lib/constants";
 import type { Booking } from "@/types/booking";
 import type { CarrierProfile } from "@/types/carrier";
@@ -59,17 +60,19 @@ export async function CarrierTrustPanel({
 
   const badges = [
     {
-      label: "ID checked",
-      ready: carrier.verificationStatus === "verified",
+      label: "Activation gate",
+      ready: isCarrierActivationLive(carrier.activationStatus),
       helper:
-        carrier.verificationStatus === "verified"
-          ? "Manual verification approved."
-          : "Still waiting on admin review.",
+        isCarrierActivationLive(carrier.activationStatus)
+          ? "Ops approved this carrier for live marketplace work."
+          : `${getCarrierActivationLabel(carrier.activationStatus)}. Live requests stay blocked until this clears.`,
     },
     {
       label: "Business details",
-      ready: Boolean(carrier.abn && carrier.serviceSuburbs.length > 0 && carrier.contactName),
-      helper: carrier.abn ? "ABN and service area supplied." : "Add ABN and service suburbs.",
+      ready: Boolean(carrier.serviceSuburbs.length > 0 && carrier.contactName),
+      helper: carrier.abnVerified
+        ? "ABN is on file and marked as an extra trust booster."
+        : "ABN is optional for activation but still worth adding as a trust signal.",
     },
     {
       label: "Payout ready",
@@ -80,13 +83,12 @@ export async function CarrierTrustPanel({
     },
     {
       label: "Docs current",
-      ready:
-        isDocumentCurrent(carrier.licenceExpiryDate) &&
-        isDocumentCurrent(carrier.insuranceExpiryDate),
+      ready: isDocumentCurrent(carrier.licenceExpiryDate) && isDocumentCurrent(carrier.insuranceExpiryDate),
       helper:
-        isDocumentCurrent(carrier.licenceExpiryDate) &&
-        isDocumentCurrent(carrier.insuranceExpiryDate)
-          ? "Licence and insurance are in date."
+        isDocumentCurrent(carrier.licenceExpiryDate) && isDocumentCurrent(carrier.insuranceExpiryDate)
+          ? carrier.insuranceVerified
+            ? "Licence and insurance are current and insurance has been reviewed."
+            : "Licence and insurance are current."
           : "Expired or missing dates will slow trust review.",
     },
     {

@@ -1,4 +1,5 @@
 import { requirePageSessionUser } from "@/lib/auth";
+import { getCarrierActivationLabel } from "@/lib/carrier-activation";
 import { CarrierOnboardingForm } from "@/components/carrier/carrier-onboarding-form";
 import type { Metadata } from "next";
 
@@ -30,9 +31,9 @@ const steps = [
       Boolean(carrier.licencePhotoUrl && carrier.insurancePhotoUrl),
   },
   {
-    label: "Manual admin approval before search visibility",
+    label: "Activation approval before live marketplace visibility",
     isComplete: (carrier: NonNullable<Awaited<ReturnType<typeof getCarrierByUserId>>>) =>
-      carrier.verificationStatus === "verified",
+      carrier.activationStatus === "active",
   },
 ] as const;
 
@@ -59,8 +60,8 @@ export default async function CarrierOnboardingPage() {
           <p className="section-label">Steps</p>
           <div className="grid gap-2">
             {onboardingSteps.map((step, index) => (
-              <div
-                key={step.label}
+            <div
+              key={step.label}
                 className={`rounded-xl border px-3 py-2 ${
                   step.complete ? "border-success/30 bg-success/10" : "border-border"
                 }`}
@@ -71,6 +72,11 @@ export default async function CarrierOnboardingPage() {
               </div>
             ))}
           </div>
+          {existingCarrier ? (
+            <p className="text-sm text-text-secondary">
+              Current activation state: {getCarrierActivationLabel(existingCarrier.activationStatus)}
+            </p>
+          ) : null}
         </div>
       </Card>
 

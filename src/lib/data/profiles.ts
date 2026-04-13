@@ -39,7 +39,7 @@ export async function getCarrierProfileForUser(userId: string) {
   const supabase = createServerSupabaseClient();
   const { data, error } = await supabase
     .from("carriers")
-    .select("id, email")
+    .select("id, email, activation_status, verification_status")
     .eq("user_id", userId)
     .maybeSingle();
 

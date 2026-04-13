@@ -4,7 +4,7 @@ import type { Booking, BookingEvent, BookingPriceBreakdown } from "@/types/booki
 import type { BookingRequest } from "@/types/booking-request";
 import type { CarrierProfile, Vehicle } from "@/types/carrier";
 import type { Database } from "@/types/database";
-import type { UnmatchedRequest } from "@/types/alert";
+import type { CustomerConciergeOffer, UnmatchedRequest } from "@/types/alert";
 import type { MoveRequest, Offer } from "@/types/move-request";
 import type { Trip, TripSearchResult } from "@/types/trip";
 
@@ -17,6 +17,7 @@ type MoveRequestRow = Database["public"]["Tables"]["move_requests"]["Row"];
 type OfferRow = Database["public"]["Tables"]["offers"]["Row"];
 type BookingRequestRow = Database["public"]["Tables"]["booking_requests"]["Row"];
 type UnmatchedRequestRow = Database["public"]["Tables"]["unmatched_requests"]["Row"];
+type ConciergeOfferRow = Database["public"]["Tables"]["concierge_offers"]["Row"];
 
 export interface ListingJoinedRecord extends ListingRow {
   carrier: CarrierRow | null;
@@ -60,6 +61,40 @@ function parsePoint(
   return {};
 }
 
+function parseStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+    : [];
+}
+
+function deriveCarrierActivationStatus(row: CarrierRow) {
+  if ("activation_status" in row && typeof row.activation_status === "string" && row.activation_status) {
+    return row.activation_status;
+  }
+
+  if (row.verification_status === "verified") {
+    return "active" as const;
+  }
+
+  if (row.verification_status === "submitted") {
+    return "pending_review" as const;
+  }
+
+  if (row.verification_status === "rejected") {
+    return "rejected" as const;
+  }
+
+  if (
+    row.onboarding_completed_at ||
+    row.verification_submitted_at ||
+    (row.business_name?.trim() ?? "").length > 0
+  ) {
+    return "activation_started" as const;
+  }
+
+  return "not_started" as const;
+}
+
 export function toCarrierProfile(row: CarrierRow): CarrierProfile {
   return {
     id: row.id,
@@ -75,6 +110,11 @@ export function toCarrierProfile(row: CarrierRow): CarrierProfile {
     vehiclePhotoUrl: row.vehicle_photo_url,
     isVerified: row.is_verified,
     verificationStatus: row.verification_status,
+    activationStatus: deriveCarrierActivationStatus(row),
+    abnVerified: Boolean((row as CarrierRow & { abn_verified?: boolean }).abn_verified ?? row.abn),
+    insuranceVerified: Boolean(
+      (row as CarrierRow & { insurance_verified?: boolean }).insurance_verified ?? row.insurance_photo_url,
+    ),
     verificationSubmittedAt: row.verification_submitted_at,
     verifiedAt: row.verified_at,
     verificationNotes: row.verification_notes,
@@ -147,7 +187,11 @@ export function toTrip(record: ListingJoinedRecord): Trip {
       destinationPostcode: record.destination_postcode,
       destinationLatitude: destination.latitude,
       destinationLongitude: destination.longitude,
-      via: [],
+      waypoints: parseStringArray("waypoint_suburbs" in record ? record.waypoint_suburbs : []).map((suburb) => ({
+        suburb,
+      })),
+      via: parseStringArray("waypoint_suburbs" in record ? record.waypoint_suburbs : []),
+      polyline: "route_polyline" in record ? record.route_polyline : null,
       label: `${record.origin_suburb} → ${record.destination_suburb}`,
     },
     tripDate: record.trip_date,
@@ -156,6 +200,10 @@ export function toTrip(record: ListingJoinedRecord): Trip {
     availableVolumeM3: Number(record.available_volume_m3 ?? 0),
     availableWeightKg: Number(record.available_weight_kg ?? 0),
     detourRadiusKm: Number(record.detour_radius_km),
+    detourTolerance:
+      "detour_tolerance_label" in record && record.detour_tolerance_label
+        ? record.detour_tolerance_label
+        : "standard",
     priceCents: record.price_cents,
     suggestedPriceCents: record.suggested_price_cents,
     dedicatedEstimateCents,
@@ -171,7 +219,21 @@ export function toTrip(record: ListingJoinedRecord): Trip {
       "checkin_2h_requested_at" in record ? record.checkin_2h_requested_at : undefined,
     freshnessSuspendedAt:
       "freshness_suspended_at" in record ? record.freshness_suspended_at : undefined,
+    freshnessMissCount:
+      "freshness_miss_count" in record ? Number(record.freshness_miss_count ?? 0) : undefined,
+    freshnessLastAction:
+      "freshness_last_action" in record ? record.freshness_last_action : undefined,
+    freshnessSuspensionReason:
+      "freshness_suspension_reason" in record ? record.freshness_suspension_reason : undefined,
+    lastFreshnessConfirmedAt:
+      "last_freshness_confirmed_at" in record ? record.last_freshness_confirmed_at : undefined,
+    lastFreshnessUnsuspendedAt:
+      "last_freshness_unsuspended_at" in record ? record.last_freshness_unsuspended_at : undefined,
     publishAt: record.publish_at,
+    recurrence: {
+      rule: "recurrence_rule" in record ? record.recurrence_rule : null,
+      days: parseStringArray("recurrence_days" in record ? record.recurrence_days : []),
+    },
     rules: {
       accepts: [
         ...(record.accepts_furniture ? ["furniture" as const] : []),
@@ -262,12 +324,15 @@ export function toBooking(record: BookingJoinedRecord): Booking {
     bookingReference: record.booking_reference ?? record.id.slice(0, 8).toUpperCase(),
     listingId: record.listing_id,
     flow: {
-      source: "legacy_booking",
+      source:
+        "booking_request_id" in record && typeof record.booking_request_id === "string"
+          ? "booking_request"
+          : "legacy_booking",
       listingId: record.listing_id,
-      moveRequestId: null,
-      offerId: null,
-      bookingRequestId: null,
-      requestGroupId: null,
+      moveRequestId: "move_request_id" in record ? record.move_request_id : null,
+      offerId: "offer_id" in record ? record.offer_id : null,
+      bookingRequestId: "booking_request_id" in record ? record.booking_request_id : null,
+      requestGroupId: "request_group_id" in record ? record.request_group_id : null,
     },
     carrierId: record.carrier_id,
     customerId: record.customer_id,
@@ -450,6 +515,33 @@ export function toUnmatchedRequest(row: UnmatchedRequestRow): UnmatchedRequest {
     expiresAt: row.expires_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+export function toCustomerConciergeOffer(params: {
+  row: ConciergeOfferRow;
+  carrierBusinessName?: string | null;
+  tripDate?: string | null;
+  timeWindow?: string | null;
+}): CustomerConciergeOffer {
+  return {
+    id: params.row.id,
+    unmatchedRequestId: params.row.unmatched_request_id,
+    moveRequestId: params.row.move_request_id,
+    listingId: params.row.listing_id,
+    offerId: params.row.offer_id,
+    bookingRequestId: params.row.booking_request_id,
+    carrierId: params.row.carrier_id,
+    carrierBusinessName: params.carrierBusinessName ?? "Matching carrier",
+    quotedTotalPriceCents: params.row.quoted_total_price_cents,
+    status: params.row.status,
+    note: params.row.note,
+    tripDate: params.tripDate ?? null,
+    timeWindow: params.timeWindow ?? null,
+    sentAt: params.row.sent_at,
+    respondedAt: params.row.responded_at,
+    createdAt: params.row.created_at,
+    updatedAt: params.row.updated_at,
   };
 }
 

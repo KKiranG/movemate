@@ -147,7 +147,33 @@ export async function upsertCarrierOnboarding(
     throw new AppError("Carrier profile could not be reloaded.", 500, "carrier_reload_failed");
   }
 
-  return carrier;
+  if (hasSupabaseEnv()) {
+    const activationStatus =
+      carrier.stripeOnboardingComplete &&
+      carrier.businessName &&
+      carrier.contactName &&
+      carrier.phone &&
+      carrier.vehiclePhotoUrl &&
+      carrier.licencePhotoUrl &&
+      carrier.insurancePhotoUrl
+        ? "pending_review"
+        : "activation_started";
+
+    const { error: activationError } = await supabase
+      .from("carriers")
+      .update({
+        activation_status: activationStatus,
+        abn_verified: Boolean(carrier.abn),
+        insurance_verified: Boolean(carrier.insurancePhotoUrl),
+      })
+      .eq("id", carrierId);
+
+    if (activationError) {
+      throw new AppError(activationError.message, 500, "carrier_activation_state_update_failed");
+    }
+  }
+
+  return (await getCarrierById(carrierId)) ?? carrier;
 }
 
 export async function getPublicCarrierProfile(carrierId: string) {
@@ -397,6 +423,9 @@ export async function verifyCarrier(params: {
   const patch: Database["public"]["Tables"]["carriers"]["Update"] = {
     is_verified: params.isApproved,
     verification_status: params.isApproved ? "verified" : "rejected",
+    activation_status: params.isApproved ? "active" : "rejected",
+    abn_verified: params.isApproved,
+    insurance_verified: params.isApproved,
     verified_at: params.isApproved ? new Date().toISOString() : null,
     verification_notes: params.notes ? sanitizeText(params.notes) : null,
   };

@@ -71,7 +71,7 @@ The carrier home adapts to lifecycle stage:
 - trip templates for repeat routes (quick-repost)
 - booking progression, disputes, and reviews
 - admin verification and dispute handling
-- saved searches / Alert the Network demand capture
+- route alerts / Alert the Network demand capture
 
 ## Core product question
 

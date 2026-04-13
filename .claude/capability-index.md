@@ -16,8 +16,8 @@ Use this file as the fast inventory of what currently exists.
 | `payments-and-payouts.md` | Stripe, webhook, payout, payment admin surfaces | funds flow, payout timing, reconciliation, holds |
 | `supabase-schema.md` | `supabase/**`, `src/types/database.ts` | migration, RLS, RPC, rollback, and type sync discipline |
 | `analytics-and-metrics.md` | analytics, admin metrics, experiment docs | marketplace questions first, events second |
-| `customer-trust.md` | customer browse, trip detail, booking, saved-search surfaces | transparent pricing, trust copy, next-step clarity |
-| `carrier-growth.md` | onboarding, posting, templates, carrier dashboard | speed to live supply, repeat posting, quality nudges |
+| `customer-trust.md` | customer search, trip detail, booking, alert surfaces | transparent pricing, trust copy, next-step clarity |
+| `carrier-growth.md` | onboarding, posting, templates, carrier home | speed to live supply, repeat posting, quality nudges |
 | `admin-operations.md` | admin pages and ops data helpers | queue legibility, ownership, manual override safety |
 
 ## Agent Roles

@@ -22,6 +22,15 @@ import type { RoutePriceGuidance, TripDraftVehicleOption } from "@/types/trip";
 import { getTripConflictWarnings, getTripPublishReadiness } from "@/lib/validation/trip";
 
 const steps = ["Route", "When & space", "Price & rules"] as const;
+const weekdayOptions = [
+  { value: "mon", label: "Mon" },
+  { value: "tue", label: "Tue" },
+  { value: "wed", label: "Wed" },
+  { value: "thu", label: "Thu" },
+  { value: "fri", label: "Fri" },
+  { value: "sat", label: "Sat" },
+  { value: "sun", label: "Sun" },
+] as const;
 const acceptOptions = [
   { value: "furniture", label: "Furniture" },
   { value: "boxes", label: "Boxes" },
@@ -115,11 +124,16 @@ export function CarrierTripWizard({
   const [accepts, setAccepts] = useState<string[]>(initialAccepts);
   const [specialNotes, setSpecialNotes] = useState(initialSpecialNotes);
   const [detourRadiusKm, setDetourRadiusKm] = useState(initialDetourRadiusKm ?? "5");
+  const [detourToleranceLabel, setDetourToleranceLabel] = useState<"tight" | "standard" | "flexible">("standard");
+  const [waypointOne, setWaypointOne] = useState("");
+  const [waypointTwo, setWaypointTwo] = useState("");
   const [isReturnTrip, setIsReturnTrip] = useState(initialIsReturnTrip);
   const [tripDate, setTripDate] = useState(initialTripDate ?? getTodayIsoDate());
   const [timeWindow, setTimeWindow] = useState<"morning" | "afternoon" | "evening" | "flexible">(
     initialTimeWindow,
   );
+  const [recurrenceRule, setRecurrenceRule] = useState("");
+  const [recurrenceDays, setRecurrenceDays] = useState<string[]>([]);
   const [availableVolumeM3, setAvailableVolumeM3] = useState(initialAvailableVolumeM3 ?? "1");
   const [availableWeightKg, setAvailableWeightKg] = useState(initialAvailableWeightKg ?? "100");
   const [stairsOk, setStairsOk] = useState(initialStairsOk);
@@ -390,6 +404,11 @@ export function CarrierTripWizard({
           destinationPostcode: destination.postcode,
           destinationLatitude: destination.latitude,
           destinationLongitude: destination.longitude,
+          waypointSuburbs: [waypointOne.trim(), waypointTwo.trim()].filter(Boolean),
+          routePolyline: [origin.latitude, origin.longitude, destination.latitude, destination.longitude].join(","),
+          recurrenceRule: recurrenceRule.trim() || undefined,
+          recurrenceDays,
+          detourToleranceLabel,
           detourRadiusKm: Number(detourRadiusKm),
           tripDate,
           timeWindow,
@@ -546,11 +565,50 @@ export function CarrierTripWizard({
             />
           </label>
           <div className="grid gap-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-text">Optional waypoint 1</span>
+                <Input
+                  value={waypointOne}
+                  onChange={(event) => setWaypointOne(event.target.value)}
+                  placeholder="E.g. Alexandria"
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-medium text-text">Optional waypoint 2</span>
+                <Input
+                  value={waypointTwo}
+                  onChange={(event) => setWaypointTwo(event.target.value)}
+                  placeholder="E.g. Newtown"
+                />
+              </label>
+            </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-text">Detour radius</span>
               <span className="text-xs text-text-secondary">
                 Controls how far pickups can sit off your route
               </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                { value: "tight", label: "Tight", tone: "Best for direct lanes and strict fit." },
+                { value: "standard", label: "Standard", tone: "Balanced corridor matching." },
+                { value: "flexible", label: "Flexible", tone: "Allows wider off-route pickups." },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setDetourToleranceLabel(option.value as "tight" | "standard" | "flexible")}
+                  className={`min-h-[44px] rounded-xl border px-3 py-3 text-left text-sm ${
+                    detourToleranceLabel === option.value
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                  }`}
+                >
+                  <span className="block font-medium">{option.label}</span>
+                  <span className="block text-xs opacity-80">{option.tone}</span>
+                </button>
+              ))}
             </div>
             <div className="grid gap-2 sm:grid-cols-3">
               {DETOUR_RADIUS_PRESETS.map((preset) => (
@@ -614,6 +672,42 @@ export function CarrierTripWizard({
               <option value="flexible">Flexible</option>
             </select>
           </label>
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-text">Repeat this lane weekly</span>
+              <span className="text-xs text-text-secondary">Optional for repeat corridors</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {weekdayOptions.map((option) => {
+                const selected = recurrenceDays.includes(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      setRecurrenceDays((current) =>
+                        current.includes(option.value)
+                          ? current.filter((day) => day !== option.value)
+                          : [...current, option.value],
+                      )
+                    }
+                    className={`min-h-[44px] rounded-xl border px-3 py-2 text-sm ${
+                      selected
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-border text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <Input
+              value={recurrenceRule}
+              onChange={(event) => setRecurrenceRule(event.target.value)}
+              placeholder="Optional ops note like every school day or fortnightly"
+            />
+          </div>
           {timeWindow === "flexible" ? (
             <div className="rounded-xl border border-warning/20 bg-warning/10 p-3">
               <p className="text-sm font-medium text-warning">Flexible windows need one extra note</p>

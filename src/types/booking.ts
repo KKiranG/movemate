@@ -63,10 +63,10 @@ export type BookingFlowCompatibility =
   | {
       source: "legacy_booking";
       listingId: string;
-      moveRequestId?: null;
-      offerId?: null;
-      bookingRequestId?: null;
-      requestGroupId?: null;
+      moveRequestId?: string | null;
+      offerId?: string | null;
+      bookingRequestId?: string | null;
+      requestGroupId?: string | null;
     }
   | {
       source: "booking_request";

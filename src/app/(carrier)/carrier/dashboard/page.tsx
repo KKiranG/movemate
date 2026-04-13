@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { getCarrierActivationLabel, isCarrierActivationLive } from "@/lib/carrier-activation";
 import { LiveBookingsList } from "@/components/carrier/live-bookings-list";
 import { PendingBookingsAlert } from "@/components/carrier/pending-bookings-alert";
 import { QuickPostTemplates } from "@/components/carrier/quick-post-templates";
@@ -41,7 +42,7 @@ function isTripActive(tripDate: string, status?: string | null) {
   );
 }
 
-async function CarrierDashboardContent({ userId }: { userId: string }) {
+async function CarrierHomeContent({ userId }: { userId: string }) {
   const [carrier, carrierTrips, carrierBookings, carrierRequestCards] = await Promise.all([
     getCarrierByUserId(userId),
     listCarrierTrips(userId),
@@ -96,11 +97,11 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/carrier/trips" className="block min-h-11 active:opacity-95">
           <Card className="p-4">
-          <p className="section-label">Live listings</p>
+          <p className="section-label">Live trips</p>
           <p className="mt-2 text-3xl text-text">{liveListings}</p>
           </Card>
         </Link>
-        <Link href="/carrier/trips?filter=pending" className="block min-h-11 active:opacity-95">
+        <Link href="/carrier/requests" className="block min-h-11 active:opacity-95">
           <Card className="p-4">
           <p className="section-label">Awaiting decision</p>
           <p className="mt-2 text-3xl text-text">{awaitingDecision}</p>
@@ -122,15 +123,17 @@ async function CarrierDashboardContent({ userId }: { userId: string }) {
 
       <TripChecklist carrier={carrier} />
 
-      {carrier && carrier.verificationStatus !== "verified" ? (
+      {carrier && !isCarrierActivationLive(carrier.activationStatus) ? (
         <Card className="border-warning/20 bg-warning/10 p-4">
-          <p className="section-label">Verification</p>
+          <p className="section-label">Activation</p>
           <h2 className="mt-1 text-lg text-text">
-            {carrier.verificationStatus === "rejected" ? "Action needed to get verified" : "Verification still in progress"}
+            {carrier.activationStatus === "rejected"
+              ? "Action needed before supply can go live again"
+              : `${getCarrierActivationLabel(carrier.activationStatus)} before live publishing`}
           </h2>
           <p className="mt-2 text-sm text-text-secondary">
             {carrier.verificationNotes ??
-              "Check your onboarding details, expiry dates, and uploaded documents so admin can approve you quickly."}
+              "Check onboarding, documents, payout setup, and ops notes so the activation gate can clear quickly."}
           </p>
         </Card>
       ) : null}
@@ -378,11 +381,11 @@ export default async function CarrierDashboardPage() {
         }
       />
 
-      <ErrorBoundary fallback={<TripListSkeleton />}>
-        <Suspense fallback={<TripListSkeleton />}>
-          <CarrierDashboardContent userId={user.id} />
-        </Suspense>
-      </ErrorBoundary>
+          <ErrorBoundary fallback={<TripListSkeleton />}>
+            <Suspense fallback={<TripListSkeleton />}>
+              <CarrierHomeContent userId={user.id} />
+            </Suspense>
+          </ErrorBoundary>
     </main>
   );
 }

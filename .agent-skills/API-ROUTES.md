@@ -15,11 +15,17 @@
 ### Need-first flow (customer)
 
 - `POST /api/move-requests` — create a MoveRequest (wizard completion)
-- `GET /api/move-requests/[id]/offers` — retrieve match-ranked Offers for a MoveRequest
+- `GET /api/offers?moveRequestId=...` — retrieve match-ranked Offers for a MoveRequest
 - `POST /api/booking-requests` — create a booking request (single or Fast Match group)
+- `POST /api/booking-requests/fast-match` — create a capped Fast Match request group
 - `PATCH /api/booking-requests/[id]` — accept / decline / request clarification (carrier-facing)
 - `POST /api/unmatched-requests` — Alert the Network (zero-match demand capture)
 - `PATCH /api/unmatched-requests/[id]` — update status (customer cancels, match found)
+- `GET /api/alerts`
+- `POST /api/alerts`
+- `PATCH /api/alerts/[id]`
+- `DELETE /api/alerts/[id]`
+- `PATCH /api/concierge-offers/[id]` — customer accepts or declines a founder-sourced concierge offer
 
 ### Carrier-facing
 
@@ -36,7 +42,7 @@
 
 ### Customer-facing (bookings)
 
-- `POST /api/bookings` — create booking from accepted booking request
+- `POST /api/bookings` — deprecated guard; bookings are created from accepted booking requests
 - `GET /api/bookings`
 - `PATCH /api/bookings/[id]`
 - `POST /api/bookings/[id]/confirm-receipt`
@@ -44,10 +50,10 @@
 - `POST /api/bookings/[id]/review`
 - `POST /api/bookings/[id]/condition-adjustment` — carrier triggers structured adjustment
 - `PATCH /api/bookings/[id]/condition-adjustment` — customer accepts or rejects adjustment
-- `GET /api/saved-searches`
-- `POST /api/saved-searches`
-- `DELETE /api/saved-searches/[id]`
-- `PATCH /api/saved-searches/[id]`
+- `GET /api/saved-searches` — compatibility wrapper around alerts
+- `POST /api/saved-searches` — compatibility wrapper around alerts
+- `DELETE /api/saved-searches/[id]` — compatibility wrapper around alerts
+- `PATCH /api/saved-searches/[id]` — compatibility wrapper around alerts
 
 ### Payments
 
@@ -68,8 +74,8 @@
 - `POST /api/admin/carriers/[id]/verify`
 - `PATCH /api/admin/disputes/[id]`
 - `GET /api/admin/rate-limit`
-- `POST /api/admin/concierge-offers` — founder creates concierge offer for an unmatched request
-- `PATCH /api/admin/concierge-offers/[id]` — update concierge offer status
+- `POST /api/concierge-offers` — founder creates and sends concierge offer for an unmatched request
+- `PATCH /api/concierge-offers/[id]` — admin cancels, or customer accepts/declines, a concierge offer
 
 ## API boundary rules
 

@@ -41,11 +41,20 @@ export interface OperatorTask {
 export interface ConciergeOfferRecord {
   id: string;
   unmatchedRequestId: string;
+  customerId?: string | null;
+  moveRequestId?: string | null;
+  listingId?: string | null;
+  offerId?: string | null;
+  bookingRequestId?: string | null;
   carrierId: string;
+  carrierBusinessName?: string | null;
   operatorTaskId?: string | null;
   status: "draft" | "sent" | "accepted" | "declined" | "cancelled";
   quotedTotalPriceCents: number;
   note?: string | null;
+  sentAt?: string | null;
+  respondedAt?: string | null;
+  cancelledReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
