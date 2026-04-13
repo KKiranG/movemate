@@ -1,6 +1,7 @@
 import { hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { toGeographyPoint, toMoveRequest } from "@/lib/data/mappers";
+import { getCustomerProfileForUser } from "@/lib/data/profiles";
 import { moveRequestSchema, type MoveRequestInput } from "@/lib/validation/move-request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
@@ -99,6 +100,17 @@ export async function listMoveRequestsForCustomer(customerId: string) {
   }
 
   return (data ?? []).map((row) => toMoveRequest(row as MoveRequestRow));
+}
+
+export async function listRecentMoveRequestsForUser(userId: string, limit = 3) {
+  const customer = await getCustomerProfileForUser(userId);
+
+  if (!customer) {
+    return [] as MoveRequest[];
+  }
+
+  const requests = await listMoveRequestsForCustomer(customer.id);
+  return requests.slice(0, Math.max(1, limit));
 }
 
 export async function updateMoveRequestStatus(moveRequestId: string, status: MoveRequest["status"]) {

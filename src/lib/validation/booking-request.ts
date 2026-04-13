@@ -36,11 +36,15 @@ export const bookingRequestSchema = z.object({
     .optional(),
   requestedTotalPriceCents: z.number().int().min(0),
   responseDeadlineAt: z.string().datetime({ offset: true }),
+  clarificationRoundCount: z.number().int().min(0).max(1).optional(),
   clarificationReason: z
     .enum(["item_details", "access_details", "timing", "photos", "other"])
     .optional(),
+  clarificationRequestedAt: z.string().datetime({ offset: true }).optional(),
+  clarificationExpiresAt: z.string().datetime({ offset: true }).optional(),
   clarificationMessage: optionalSanitizedString(280),
   customerResponse: optionalSanitizedString(280),
+  customerResponseAt: z.string().datetime({ offset: true }).optional(),
   respondedAt: z.string().datetime({ offset: true }).optional(),
   expiresAt: z.string().datetime({ offset: true }).optional(),
 });
@@ -99,3 +103,14 @@ export const bookingRequestActionSchema = z
 export type BookingRequestCreateInput = z.infer<typeof bookingRequestCreateSchema>;
 export type FastMatchBookingRequestInput = z.infer<typeof fastMatchBookingRequestSchema>;
 export type BookingRequestActionInput = z.infer<typeof bookingRequestActionSchema>;
+
+export const bookingRequestCustomerResponseSchema = z.object({
+  customerResponse: optionalSanitizedString(280).refine(
+    (value) => Boolean(value),
+    "Add the missing detail before sending your reply.",
+  ),
+});
+
+export type BookingRequestCustomerResponseInput = z.infer<
+  typeof bookingRequestCustomerResponseSchema
+>;

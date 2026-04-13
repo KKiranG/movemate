@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { RecentMoveRequests } from "@/components/customer/recent-move-requests";
 import { ConfigBanner } from "@/components/shared/config-banner";
 import { SearchBar } from "@/components/search/search-bar";
+import { getOptionalSessionUser } from "@/lib/auth";
+import { listRecentMoveRequestsForUser } from "@/lib/data/move-requests";
 import { hasSupabaseEnv } from "@/lib/env";
 import { getTodayIsoDate } from "@/lib/utils";
 
@@ -51,19 +54,28 @@ const trustPoints = [
 export default async function HomePage() {
   const sampleDate = getTodayIsoDate();
   const showDevBanner = process.env.NODE_ENV === "development" && !hasSupabaseEnv();
+  const user = await getOptionalSessionUser();
+  const recentMoveRequests = user ? await listRecentMoveRequestsForUser(user.id, 3) : [];
+  const hasRecentMoveRequests = recentMoveRequests.length > 0;
 
   return (
     <main id="main-content" className="page-shell">
       <section className="grid gap-6 pt-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
         <div className="flex flex-col gap-4">
-          <p className="section-label">Need-first spare-capacity marketplace</p>
+          <p className="section-label">
+            {hasRecentMoveRequests
+              ? "Welcome back to your move queue"
+              : "Need-first spare-capacity marketplace"}
+          </p>
           <h1 className="max-w-2xl text-4xl leading-tight text-text sm:text-5xl">
-            Tell us the move. We&apos;ll rank the best spare-capacity matches.
+            {hasRecentMoveRequests
+              ? "Start a new move or reopen a recent request"
+              : "Tell us the move. We&apos;ll rank the best spare-capacity matches."}
           </h1>
           <p className="max-w-2xl text-base leading-7 text-text-secondary sm:text-lg">
-            moverrr is built for the awkward middle: furniture, appliances,
-            boxes, and small business runs that are too big for parcel delivery
-            and too small for a full dedicated truck.
+            {hasRecentMoveRequests
+              ? "Your recent move requests are below. Start a fresh need declaration here when the next job is different."
+              : "moverrr is built for the awkward middle: furniture, appliances, boxes, and small business runs that are too big for parcel delivery and too small for a full dedicated truck."}
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -110,6 +122,8 @@ export default async function HomePage() {
           <ConfigBanner message="Add Supabase, Maps, and Stripe environment variables to switch this shell into the live MVP. The UI is ready, but the backend services need credentials." />
         </section>
       ) : null}
+
+      {hasRecentMoveRequests ? <RecentMoveRequests requests={recentMoveRequests} /> : null}
 
       <section className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-4">

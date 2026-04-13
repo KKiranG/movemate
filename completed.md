@@ -8,6 +8,171 @@
 
 ## 2026-04-13 — Vocabulary-layer alignment for alerts, fit labels, privacy, and customer-facing copy
 
+### `COMP-2026-04-13-14` — Returning-customer Home now surfaces recent move requests
+- Moved from active backlog:
+  - `B81`
+- When: `2026-04-13`
+- Where:
+  - `src/app/page.tsx`
+  - `src/components/customer/recent-move-requests.tsx`
+  - `src/lib/data/move-requests.ts`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - Returning customers were still landing on the same first-time homepage state, even though the blueprint says Home should evolve into a recent-requests plus new-search entry surface after the first completed use of the product.
+- What changed:
+  - Added a recent-move-requests data helper keyed off the signed-in customer profile.
+  - Added a dedicated Recent Move Requests homepage section with status labels and action-led links back into bookings or the recovered move-request search flow.
+  - Updated the homepage hero copy so signed-in returning customers see a “welcome back” framing while still keeping the need-first search entry front and center.
+- Verification:
+  - `npm run check`
+  - `rg -n "Recent move requests|Pick up where you left off|Welcome back to your move queue|Open this move|Restart this move" src/app/page.tsx src/components/customer/recent-move-requests.tsx src/lib/data/move-requests.ts`
+  - `node --import tsx --input-type=module -e "import { listRecentMoveRequestsForUser } from './src/lib/data/move-requests.ts'; console.log(typeof listRecentMoveRequestsForUser);"`
+  - Note: live populated recent-request cards still depend on a configured Supabase session with real customer data in the running environment.
+
+### `COMP-2026-04-13-13` — Customer support/dispute entry points and safe request-to-account payment continuity
+- Moved from active backlog:
+  - `B80`
+- When: `2026-04-13`
+- Where:
+  - `src/app/(customer)/account/page.tsx`
+  - `src/app/(customer)/bookings/[id]/page.tsx`
+  - `src/components/booking/booking-form.tsx`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - Customers still lacked clearly labeled support, dispute, and policy entry points in the real booking/account surfaces, and the request-confirmation flow still had no safe way to step out toward payment/account help without risking confusion or draft loss.
+- What changed:
+  - Added a support-and-disputes section to Account with direct paths into bookings, support email, and policy pages.
+  - Added an explicit support/dispute/policy action card to booking detail so customers can quickly choose between email support, the dispute section, and governing policy references from the live booking record.
+  - Added a payment-preparation continuity section in Account plus a request-confirmation link that safely returns customers back to the same trip/request path after checking account/payment help.
+  - Rewrote backlog item `B79` to reflect the real remaining work after implementation discovery: true self-serve customer payment-method management still requires stored Stripe customer identity and backend support that do not yet exist in this repo.
+- Verification:
+  - `npm run check`
+  - `node --input-type=module - <<'EOF'\nconst tripId='trip-123';\nconst moveRequestId='move-123';\nconst offerId='offer-123';\nconst tripParams = new URLSearchParams();\ntripParams.set('moveRequestId', moveRequestId);\ntripParams.set('offerId', offerId);\nconst returnTo = \`/trip/\${tripId}?\${tripParams.toString()}\`;\nconst next = new URLSearchParams({ focus:'payments', returnTo });\nconsole.log(\`/account?\${next.toString()}\`);\nEOF`
+  - `rg -n "Payment preparation|Return to your saved request draft|Support and disputes|Open dispute section|Email support" src/app/(customer) src/components/booking`
+  - Note: this batch intentionally does not claim true customer card management because the repo still lacks persisted customer Stripe identity and billing-portal/setup-intent plumbing.
+
+### `COMP-2026-04-13-12` — Nearby-date language, borderline-fit guidance, and detail-only route context map
+- Moved from active backlog:
+  - `B73`, `B74`, and `B75`
+- When: `2026-04-13`
+- Where:
+  - `src/app/(customer)/search/page.tsx`
+  - `src/app/(customer)/trip/[id]/page.tsx`
+  - `src/components/trip/trip-card.tsx`
+  - `src/components/trip/trip-detail-summary.tsx`
+  - `src/lib/maps/directions.ts`
+  - `src/lib/trip-presenters.ts`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - Results and detail still made customers do too much date math on sparse corridors, fit-confidence labels still lacked enough practical meaning on borderline offers, and trip detail still had no visual route-context explainer after selection.
+- What changed:
+  - Added presenter helpers for plain-language nearby-date offsets so results and detail can say things like "2 days after your preferred date" instead of relying on raw calendar comparison.
+  - Updated result cards and nearby-date recovery links to show timing-offset explanations when the returned trip date differs from the customer’s preferred date.
+  - Added a presenter-backed "Review photos first" explanation path for borderline-fit results so customers understand why a route needs an extra fit check before request submission.
+  - Added a small detail-only route-context map block using an inline SVG corridor preview, plus supporting route-context helpers in `src/lib/maps/directions.ts`, so maps now explain the trip after selection without becoming the discovery layer.
+- Verification:
+  - `npm run check`
+  - `node --import tsx --input-type=module -e "import { getTripNearbyDateExplanation, getTripFitReviewExplanation } from './src/lib/trip-presenters.ts'; console.log(JSON.stringify({ before: getTripNearbyDateExplanation({ preferredDate: '2026-04-20', tripDate: '2026-04-18' }), after: getTripNearbyDateExplanation({ preferredDate: '2026-04-20', tripDate: '2026-04-22' }), review: getTripFitReviewExplanation({ breakdown: { pickupDistanceKm: 3.2, dropoffDistanceKm: 1.1, routeFit: 0, destinationFit: 0, reliability: 0, priceFit: 0 }, matchScore: 58, rules: { accepts: ['furniture'], stairsOk: true, stairsExtraCents: 0, helperAvailable: true, helperExtraCents: 0 }, spaceSize: 'M' }) }, null, 2));"`
+  - `node --import tsx --input-type=module -e "import { getRouteContextMap } from './src/lib/maps/directions.ts'; console.log(JSON.stringify(getRouteContextMap({ originLatitude: -33.815, originLongitude: 151.001, destinationLatitude: -33.91, destinationLongitude: 151.19 }), null, 2));"`
+  - `rg -n "after your preferred date|before your preferred date|Review photos first|Route context map|corridor-style view" src/app src/components src/lib`
+  - Note: this route map is intentionally a lightweight explanatory preview rather than turn-by-turn navigation, so it stays within the blueprint’s map-light discovery constraint.
+
+### `COMP-2026-04-13-11` — Alerts maturity, recovered move-request deep links, and grounded zero-match activity cues
+- Moved from active backlog:
+  - `B72`, `B78`, and `B82`
+- When: `2026-04-13`
+- Where:
+  - `src/app/(customer)/search/page.tsx`
+  - `src/app/(customer)/trip/[id]/page.tsx`
+  - `src/components/booking/booking-checkout-panel.tsx`
+  - `src/components/booking/booking-form.tsx`
+  - `src/components/search/alerts-manager.tsx`
+  - `src/lib/alert-presenters.ts`
+  - `src/lib/data/admin.ts`
+  - `src/lib/data/unmatched-requests.ts`
+  - `src/lib/notifications.ts`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - Zero-match recovery still lacked grounded trust cues, matched recovery alerts still dropped customers into a generic search restart instead of the same move intent, and the Alerts page still grouped resolved alert history too loosely to support clear operational follow-up.
+- What changed:
+  - Added corridor activity summaries built from real upcoming trip counts, recent same-corridor trip posts, and aggregated unmatched-demand counts so zero-match recovery can show grounded route activity where data exists instead of vague reassurance.
+  - Added a shared route-alert presenter layer and updated recovery-alert handling so matched alerts now point to `/search?moveRequestId=...` and route customers back into the original move request with recovered offers, plus matched-alert lifecycle emails now use that same deep link.
+  - Reworked the search results page to reopen a saved move request when `moveRequestId` is present, render the recovered offers tied to that request, and carry `moveRequestId` and `offerId` through to trip detail.
+  - Updated trip detail and request submission so recovered matched flows can reuse the same move request when the details are unchanged, while still falling back to a new move request if the customer materially edits the payload.
+  - Split customer Alerts into active recovery alerts, matched alerts, and expired alerts with clearer state language and state-specific primary actions.
+- Verification:
+  - `npm run check`
+  - `node --import tsx --input-type=module -e "import { buildRouteAlertSearchHref, getRouteAlertPrimaryAction } from './src/lib/alert-presenters.ts'; console.log(JSON.stringify({ matched: buildRouteAlertSearchHref({ pickupSuburb: 'Parramatta', dropoffSuburb: 'Newtown', preferredDate: '2026-04-20', itemCategory: 'furniture', moveRequestId: '123e4567-e89b-42d3-a456-426614174000', preferMoveRequest: true }), active: getRouteAlertPrimaryAction({ id:'1', status:'active', pickupSuburb:'Parramatta', dropoffSuburb:'Newtown', pickupLatitude:0, pickupLongitude:0, dropoffLatitude:0, dropoffLongitude:0, itemDescription:'Desk', notificationCount:0, expiresAt:'2026-04-20T00:00:00Z', createdAt:'2026-04-13T00:00:00Z', updatedAt:'2026-04-13T00:00:00Z' }).href }, null, 2));"`
+  - `node --import tsx --input-type=module -e "import { getRouteAlertPrimaryAction } from './src/lib/alert-presenters.ts'; console.log(JSON.stringify(getRouteAlertPrimaryAction({ id:'1', status:'matched', moveRequestId:'123e4567-e89b-42d3-a456-426614174000', pickupSuburb:'Parramatta', dropoffSuburb:'Newtown', pickupLatitude:0, pickupLongitude:0, dropoffLatitude:0, dropoffLongitude:0, itemDescription:'Desk', itemCategory:'furniture', notificationCount:1, matchedAt:'2026-04-13T02:00:00Z', expiresAt:'2026-04-20T00:00:00Z', createdAt:'2026-04-13T00:00:00Z', updatedAt:'2026-04-13T00:00:00Z' }), null, 2));"`
+  - `rg -n "Matched alerts|Expired alerts|Corridor activity|Recovered move request|Open recovered matches" src/app src/components src/lib`
+  - Note: full persisted recovery-link exercise still depends on configured Supabase user/admin access in the running environment, so the deep-link continuity verification here is code-path and helper-path based rather than a live authenticated browser walkthrough.
+
+### `COMP-2026-04-13-10` — Recovery alerts, bulky-photo enforcement, and request lifecycle notifications
+- Moved from active backlog:
+  - `B77`, `A28`, `A40`, and `A43`
+- When: `2026-04-13`
+- Where:
+  - `src/app/(customer)/alerts/page.tsx`
+  - `src/app/(customer)/bookings/[id]/page.tsx`
+  - `src/components/search/alerts-manager.tsx`
+  - `src/components/booking/booking-form.tsx`
+  - `src/lib/data/booking-requests.ts`
+  - `src/lib/data/unmatched-requests.ts`
+  - `src/lib/notifications.ts`
+  - `src/lib/validation/booking.ts`
+  - `src/types/booking-request.ts`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - The customer request loop still broke down after a decline or expiry, Fast Match failure could still strand the user without a real continuation path, bulky-item photos were still optional in cases where carriers need them to decide safely, and the notification layer still only partially covered the request-era product model.
+- What changed:
+  - Added blocking bulky-item photo validation to the request confirmation flow, so awkward, oversized, or heavy items cannot be sent without at least one supporting photo.
+  - Added request-failure recovery behavior in the booking-request data layer so single-request declines/expiries and all-failed Fast Match groups create or reuse unmatched-demand recovery alerts instead of leaving the move intent stranded.
+  - Updated request detail and Alerts surfaces so customers can follow the next-best recovery CTA straight into recovery alerts or a route re-search path that preserves the original move intent.
+  - Extended the notification layer with request lifecycle emails, alert lifecycle emails, and a trip-freshness notification hook, then wired request creation, request decline, request expiry, and recovery-alert creation into that layer while leaving the existing proof/payout booking notifications in place.
+- Verification:
+  - `npm run check`
+  - `node --import tsx --input-type=module -e "import { getBookingTrustIssues } from './src/lib/validation/booking.ts'; console.log(JSON.stringify({ noPhoto: getBookingTrustIssues({ itemDescription: 'Three-seat sofa', itemSizeClass: 'L', itemWeightBand: '50_to_100kg', needsHelper: true, itemPhotoCount: 0 }).map((issue) => issue.code), withPhoto: getBookingTrustIssues({ itemDescription: 'Three-seat sofa', itemSizeClass: 'L', itemWeightBand: '50_to_100kg', needsHelper: true, itemPhotoCount: 1 }).map((issue) => issue.code) }, null, 2));"`
+  - `rg -n "recovery alerts|Find the next-best match|Search the route again|Route alert active|Request expired|Request declined" src/app/(customer) src/components/search src/lib/data/booking-requests.ts src/lib/data/unmatched-requests.ts src/lib/notifications.ts`
+  - Note: request and alert emails degrade safely if Resend is not configured, and live persisted recovery-alert creation still depends on configured Supabase admin access in the running environment.
+
+### `COMP-2026-04-13-09` — Customer request tracking, one-round clarification replies, and blueprint-aligned booking timelines
+- Moved from active backlog:
+  - `B31`, `A09`, `D13`, and `A41`
+- When: `2026-04-13`
+- Where:
+  - `supabase/migrations/028_request_clarifications.sql`
+  - `src/app/api/booking-requests/[id]/route.ts`
+  - `src/app/(customer)/bookings/page.tsx`
+  - `src/app/(customer)/bookings/[id]/page.tsx`
+  - `src/components/booking/booking-status-stepper.tsx`
+  - `src/components/booking/request-clarification-response-form.tsx`
+  - `src/lib/data/booking-requests.ts`
+  - `src/lib/data/mappers.ts`
+  - `src/lib/status-machine.ts`
+  - `src/lib/validation/booking-request.ts`
+  - `src/types/booking-request.ts`
+  - `src/types/database.ts`
+  - `todolist.md`
+  - `completed.md`
+- Why:
+  - Customer-side request tracking was still missing after the request-flow foundations landed, which meant users could submit Request-to-Book or Fast Match but had no real way to track pending requests, answer factual clarification once, or understand the boundary between pre-acceptance request state and the accepted booking timeline.
+- What changed:
+  - Added the clarification persistence migration with explicit one-round fields, clarification expiry, customer-response tracking, a bounded clarification-round counter, an index for stale clarification cleanup, and a customer update policy on `booking_requests`.
+  - Extended the booking-request type, mapper, validation, and data layer so clarification rounds can be requested once, customer replies can move the request back to `pending`, and stale clarification requests auto-expire before customer or carrier reads.
+  - Extended `GET/PATCH /api/booking-requests/[id]` so customers can read their own request record and send a single factual clarification reply through the same resource instead of relying on shadow messaging.
+  - Reworked customer `Bookings` into a request-and-booking surface, added pre-acceptance request detail inside `/bookings/[id]`, added the clarification reply form, and updated the status stepper so both request and accepted-booking timelines now use blueprint-aligned language such as Accepted, Pickup Due, and Delivered Pending Confirmation.
+- Verification:
+  - `npm run check`
+  - `node --import tsx --input-type=module -e "import { bookingRequestCustomerResponseSchema } from './src/lib/validation/booking-request.ts'; console.log(JSON.stringify({ valid: bookingRequestCustomerResponseSchema.safeParse({ customerResponse: 'Pickup is one flight up with a wide stairwell.' }).success, invalid: bookingRequestCustomerResponseSchema.safeParse({ customerResponse: '   ' }).success }, null, 2));"`
+  - `node --import tsx --input-type=module -e "import { GET, PATCH } from './src/app/api/booking-requests/[id]/route.ts'; const getRes = await GET(new Request('http://localhost/api/booking-requests/00000000-0000-0000-0000-000000000000'), { params: { id: '00000000-0000-0000-0000-000000000000' } }); console.log('get', getRes.status, await getRes.text()); const patchRes = await PATCH(new Request('http://localhost/api/booking-requests/00000000-0000-0000-0000-000000000000', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ customerResponse: 'Pickup is on the second level with lift access.' }) }), { params: { id: '00000000-0000-0000-0000-000000000000' } }); console.log('patch', patchRes.status, await patchRes.text());"`
+  - `rg -n "Track requests and bookings|Request detail|open-ended|reply to clarification" src/app/(customer)/bookings src/components/booking src/lib/data/booking-requests.ts`
+  - Note: live authenticated request reads and clarification updates still need a configured Supabase environment to exercise the full persisted path; route-level verification in this worktree covered the expected unauthenticated `401` guard behavior.
+
 ### `COMP-2026-04-13-08` — Customer trip detail now submits staged Request-to-Book and Fast Match flows
 - Moved from active backlog:
   - `B28`, `B29`, `B30`, and `B76`

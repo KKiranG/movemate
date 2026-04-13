@@ -13,19 +13,47 @@ import {
 import {
   getTripCustomerPricePreview,
   getTripFitConfidenceLabel,
+  getTripFitReviewExplanation,
+  getTripNearbyDateExplanation,
   getTripRouteFitLabel,
 } from "@/lib/trip-presenters";
+import { getRouteContextMap } from "@/lib/maps/directions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Trip } from "@/types/trip";
 
 interface TripDetailSummaryProps {
   trip: Trip;
+  preferredDate?: string;
 }
 
-export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
+export function TripDetailSummary({ trip, preferredDate }: TripDetailSummaryProps) {
   const pricingPreview = getTripCustomerPricePreview(trip.priceCents);
   const routeFitLabel = getTripRouteFitLabel(trip);
   const fitConfidenceLabel = getTripFitConfidenceLabel();
+  const fitReviewExplanation = getTripFitReviewExplanation({
+    breakdown: {
+      pickupDistanceKm: 0,
+      dropoffDistanceKm: 0,
+      routeFit: 0,
+      destinationFit: 0,
+      reliability: 0,
+      priceFit: 0,
+    },
+    matchScore:
+      routeFitLabel === "Needs approval" ? 40 : fitConfidenceLabel === "Review photos" ? 55 : 75,
+    rules: trip.rules,
+    spaceSize: trip.spaceSize,
+  });
+  const nearbyDateExplanation = getTripNearbyDateExplanation({
+    preferredDate,
+    tripDate: trip.tripDate,
+  });
+  const routeMap = getRouteContextMap({
+    originLatitude: trip.route.originLatitude,
+    originLongitude: trip.route.originLongitude,
+    destinationLatitude: trip.route.destinationLatitude,
+    destinationLongitude: trip.route.destinationLongitude,
+  });
   const includedItems = [
     "Route-fit transport on a trip that is already happening",
     "Pickup and dropoff inside the stated corridor radius",
@@ -64,6 +92,7 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               <span>{formatDate(trip.tripDate)}</span>
               <span>{fitConfidenceLabel}</span>
               <span>{routeFitLabel}</span>
+              {nearbyDateExplanation ? <span>{nearbyDateExplanation}</span> : null}
               {trip.isReturnTrip ? (
                 <Badge className="border-success/20 bg-success/10 text-success">Return trip</Badge>
               ) : null}
@@ -73,6 +102,9 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
               You are requesting spare room on a trip that is already happening, so the price is
               usually lower than hiring a dedicated truck for the whole job.
             </p>
+            {fitReviewExplanation ? (
+              <p className="text-sm text-text-secondary">{fitReviewExplanation}</p>
+            ) : null}
           </div>
           <div className="text-right">
             <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Customer total</p>
@@ -201,6 +233,51 @@ export function TripDetailSummary({ trip }: TripDetailSummaryProps) {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
+          {routeMap ? (
+            <div className="rounded-xl border border-border p-3 sm:col-span-2">
+              <p className="section-label">Route context map</p>
+              <p className="mt-2 text-sm text-text-secondary">
+                This is a corridor-style view of the trip, shown only after selection so it explains
+                fit without turning maps into the discovery layer.
+              </p>
+              <div className="mt-3 overflow-hidden rounded-xl border border-border bg-[linear-gradient(180deg,#f7fbff_0%,#eef6ff_100%)] px-3 py-3">
+                <svg
+                  viewBox={`0 0 ${routeMap.width} ${routeMap.height}`}
+                  className="h-[140px] w-full"
+                  role="img"
+                  aria-label={`Route context from ${trip.route.originSuburb} to ${trip.route.destinationSuburb}`}
+                >
+                  <path
+                    d={routeMap.corridorPath}
+                    fill="none"
+                    stroke="rgba(18, 90, 187, 0.16)"
+                    strokeWidth="18"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={routeMap.corridorPath}
+                    fill="none"
+                    stroke="#125abb"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                  <circle cx={routeMap.start.x} cy={routeMap.start.y} r="7" fill="#0a7a43" />
+                  <circle cx={routeMap.end.x} cy={routeMap.end.y} r="7" fill="#125abb" />
+                  <text x={routeMap.start.x + 10} y={routeMap.start.y - 8} fontSize="11" fill="#1f2937">
+                    Pickup
+                  </text>
+                  <text x={routeMap.end.x + 10} y={routeMap.end.y - 8} fontSize="11" fill="#1f2937">
+                    Drop-off
+                  </text>
+                </svg>
+              </div>
+              <div className="mt-3 grid gap-2 text-sm text-text-secondary sm:grid-cols-3">
+                <p>Route fit: {routeFitLabel}</p>
+                <p>Corridor pickup range: about {trip.detourRadiusKm} km</p>
+                <p>{nearbyDateExplanation ? `Timing: ${nearbyDateExplanation}` : "Timing matches the trip date shown above."}</p>
+              </div>
+            </div>
+          ) : null}
           <div className="rounded-xl border border-border p-3">
             <p className="section-label">Prohibited items</p>
             <div className="mt-2 space-y-2 text-sm text-text-secondary">

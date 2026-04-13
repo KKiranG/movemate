@@ -90,12 +90,6 @@
   - **Why:** Alert the Network and request-state flows rely on notification delivery as a core product behavior.
   - **Done when:** Preferences exist in schema and types and can gate downstream notification sends.
 
-- [ ] **D13** — Add request clarification tracking with one-round enforcement
-  - **File(s):** `new file: supabase/migrations/028_request_clarifications.sql`, `src/types/booking-request.ts`, `src/lib/data/bookings.ts`
-  - **What:** Store clarification reasons, response state, and expiry so clarification stays factual and bounded.
-  - **Why:** The blueprint permits clarification for missing facts but rejects negotiation gravity and repeated loops.
-  - **Done when:** One clarification round can be persisted and cannot loop indefinitely.
-
 - [ ] **D14** — Add trip freshness fields and suspension reasons
   - **File(s):** `new file: supabase/migrations/030_trip_freshness.sql`, `src/types/trip.ts`, `src/lib/data/trips.ts`
   - **What:** Add 24-hour and 2-hour check-in state, timestamps, and suspension reason storage to trips.
@@ -157,12 +151,6 @@
   - **What:** Route operator-created concierge matches into the same booking-request and booking flow used for normal marketplace fulfilment.
   - **Why:** Founder concierge is allowed only if it does not create shadow ops or off-platform transaction paths.
   - **Done when:** Concierge offers can be created, accepted, and fulfilled without bypassing core payment, proof, or payout logic.
-
-- [ ] **A09** — Add a factual clarification path distinct from condition adjustment
-  - **File(s):** `src/lib/data/bookings.ts`, `new file: src/lib/validation/booking-request.ts`, `src/types/booking-request.ts`
-  - **What:** Support one clarification round for missing or contradictory facts before accept or decline, without price bargaining.
-  - **Why:** The blueprint allows factual clarification but rejects freeform message loops and negotiation gravity.
-  - **Done when:** Carriers can request clarification for predefined reasons and customers can answer once before the request resolves.
 
 - [ ] **A10** — Enforce one-round condition adjustments with predefined reason codes and amounts
   - **File(s):** `src/lib/data/bookings.ts`, `src/lib/status-machine.ts`, `src/types/condition-adjustment.ts`
@@ -332,12 +320,6 @@
   - **Why:** The blueprint defines zero-match capture as an alert system, not a passive saved query.
   - **Done when:** The no-match panel creates or updates an alert-backed unmatched request instead of a saved search.
 
-- [ ] **B31** — Update the customer booking timeline to the blueprint booking states
-  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/components/booking/booking-status-stepper.tsx`, `src/types/booking.ts`
-  - **What:** Change the customer timeline to reflect request accepted, pickup due, delivered pending confirmation, completed, and disputed states.
-  - **Why:** The current timeline is too close to legacy booking states and does not express request-to-book and payout timing properly.
-  - **Done when:** Customer booking detail shows a blueprint-aligned status timeline that matches backend states.
-
 - [ ] **B32** — Remove direct carrier-contact panels from customer booking detail
   - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/lib/data/bookings.ts`, `src/types/booking.ts`
   - **What:** Remove or replace the direct carrier contact panel with structured coordination history and on-platform status tools.
@@ -466,12 +448,6 @@
   - **Why:** Condition adjustments are a controlled exception path and need explicit state transitions.
   - **Done when:** Customers can accept or reject one adjustment through a dedicated API and the booking updates correctly.
 
-- [ ] **A28** — Add event hooks for requests, alerts, proof, payout, and trip-freshness notifications
-  - **File(s):** `src/lib/notifications.ts`, `src/lib/data/bookings.ts`, `src/lib/data/trips.ts`
-  - **What:** Wire blueprint-required events into the notification layer instead of the older booking-only triggers.
-  - **Why:** Notifications are core product behavior for request handling, alerts, and stale-supply protection.
-  - **Done when:** The notification layer is event-complete for requests, alerts, proof, payout, and freshness failures.
-
 - [ ] **A30** — Notify non-winning Fast Match carriers when another carrier accepts first
   - **File(s):** `src/lib/notifications.ts`, `src/lib/data/bookings.ts`, `new file: src/app/api/booking-requests/fast-match/route.ts`
   - **What:** Send explicit revocation outcomes to sibling Fast Match carriers when another carrier wins the request.
@@ -528,65 +504,11 @@
   - **Why:** A more structured flow needs clear progress cues to reduce abandonment and keep trust high.
   - **Done when:** Wizard and request-confirmation screens show a consistent step progress pattern.
 
-- [ ] **B72** — Add real corridor-activity cues to zero-match recovery
-  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/lib/data/unmatched-requests.ts`, `src/lib/data/admin.ts`
-  - **What:** Show credible corridor activity counts or route cadence where real data exists during Alert the Network capture.
-  - **Why:** The blueprint allows trust-building route activity cues only when they are grounded in real data.
-  - **Done when:** Zero-match recovery can show corridor activity cues without fabricating supply or route density.
-
-- [ ] **B73** — Add nearby-date expansion with plain-language timing offsets
-  - **File(s):** `src/app/(customer)/search/page.tsx`, `src/lib/trip-presenters.ts`, `src/lib/data/trips.ts`
-  - **What:** Present nearby-date alternatives using language like "2 days after your preferred date" instead of date-only lists.
-  - **Why:** The blueprint wants timing meaning, not extra calendar math, on the results surface.
-  - **Done when:** Nearby-date offers explain their timing offset in customer language on results and detail surfaces.
-
-- [ ] **B74** — Add "Review photos" explanation on borderline-fit offers
-  - **File(s):** `src/components/trip/trip-card.tsx`, `src/components/trip/trip-detail-summary.tsx`, `src/lib/trip-presenters.ts`
-  - **What:** Explain why a borderline offer needs photo review and what will happen next if selected.
-  - **Why:** Fit-confidence labels need practical meaning if they are going to reduce uncertainty rather than add it.
-  - **Done when:** Borderline-fit offers show a short explanation of the photo-review expectation before request submission.
-
-- [ ] **B75** — Add a small explanatory route map on detail pages only
-  - **File(s):** `src/components/trip/trip-detail-summary.tsx`, `src/lib/maps/directions.ts`, `src/app/(customer)/trip/[id]/page.tsx`
-  - **What:** Add a route-context map to detail pages that explains fit and detour context without becoming a primary discovery tool.
-  - **Why:** The blueprint allows maps to explain fit after selection, but not to lead the flow.
-  - **Done when:** Detail pages can render a secondary map context block and the home/results surfaces still remain map-light.
-
-- [ ] **B77** — Add next-best recovery CTA after a single request declines or expires
-  - **File(s):** `src/app/(customer)/bookings/[id]/page.tsx`, `src/lib/data/trips.ts`, `src/lib/notifications.ts`
-  - **What:** Route customers to the next-best viable offer or alert capture when a single request fails.
-  - **Why:** Sequential request flow should feel recoverable without dumping the customer back into a cold archive.
-  - **Done when:** Declined or expired single requests surface a next-best action that preserves move intent.
-
-- [ ] **B78** — Add matched-alert deep links back into the exact move request
-  - **File(s):** `new file: src/app/(customer)/alerts/page.tsx`, `src/lib/notifications.ts`, `new file: src/lib/data/unmatched-requests.ts`
-  - **What:** Make matched alerts open the recovered move request and its newly viable offers instead of generic search results.
-  - **Why:** Alert recovery should feel like continuation of the same need, not a new browsing session.
-  - **Done when:** Matched-alert notifications land customers on the original move request with the relevant recovered offers.
-
-- [ ] **B79** — Add payment-method management entry from the request-confirmation flow
-  - **File(s):** `src/components/booking/booking-form.tsx`, `src/app/(customer)/account/page.tsx`, `src/lib/stripe/client.ts`
-  - **What:** Give customers a clear way to manage payment methods without losing their move request during confirmation.
-  - **Why:** The request flow now authorizes payment before acceptance and should not strand customers during payment setup.
-  - **Done when:** Customers can add or update payment methods from the request-confirmation flow and return safely to submission.
-
-- [ ] **B80** — Add support and dispute entry points to Account and booking detail
-  - **File(s):** `src/app/(customer)/account/page.tsx`, `src/app/(customer)/bookings/[id]/page.tsx`, `src/components/booking/dispute-form.tsx`
-  - **What:** Add clearly labeled support, dispute, and policy entry points that fit the new booking and payout lifecycle.
-  - **Why:** Structured trust includes visible help and dispute paths, not just backend states.
-  - **Done when:** Customers can reach support and dispute tools from Account and booking detail without searching through unrelated pages.
-
-- [ ] **B81** — Add a request-summary surface to customer Home after first use
-  - **File(s):** `src/app/page.tsx`, `new file: src/components/customer/recent-move-requests.tsx`, `new file: src/lib/data/move-requests.ts`
-  - **What:** Show recent move requests and a "Start a new move" CTA on Home after a customer has used the flow once.
-  - **Why:** The blueprint says Home can evolve into recent searches and new search entry after first use.
-  - **Done when:** Returning customers see recent move requests on Home instead of a blank first-time state.
-
-- [ ] **B82** — Add matched and expired sections to customer Alerts with clear state language
-  - **File(s):** `new file: src/app/(customer)/alerts/page.tsx`, `new file: src/components/search/alerts-manager.tsx`, `new file: src/lib/data/unmatched-requests.ts`
-  - **What:** Organize alert history into matched and expired sections with clear explanations of what each state means.
-  - **Why:** Alert history needs operational clarity to replace the current saved-search mindset.
-  - **Done when:** The Alerts page clearly separates active, matched, and expired demand with state-specific copy.
+- [ ] **B79** — Add real customer payment-method management backed by stored Stripe customer identity
+  - **File(s):** `src/components/booking/booking-form.tsx`, `src/app/(customer)/account/page.tsx`, `src/lib/stripe/client.ts`, `src/types/database.ts`, `src/lib/data/bookings.ts`
+  - **What:** Persist a customer Stripe identity and add actual add/update payment-method flows from Account and request confirmation rather than just continuity links.
+  - **Why:** The request flow needs genuine self-serve payment-method management before acceptance; the current repo only supports safe return-to-request continuity and booking-level payment retries.
+  - **Done when:** Customers can open a real payment-method management flow from request confirmation or Account, update their card details, and return to the in-progress request safely.
 
 ### Carrier Experience
 
@@ -740,29 +662,11 @@
   - **Why:** Need persistence and recovery are central to sparse-supply behavior and cannot rely on ephemeral form state.
   - **Done when:** Expired move requests can be reactivated or duplicated in a controlled way without corrupting alert state.
 
-- [ ] **A40** — Handle all-Fast-Match-declined outcomes by routing into alert capture
-  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/notifications.ts`, `new file: src/lib/data/unmatched-requests.ts`
-  - **What:** Define the post-failure path when all Fast Match requests decline or expire so the customer lands in alert recovery instead of a dead end.
-  - **Why:** Fast Match exists to reduce latency, but it still needs a clear sparse-supply fallback.
-  - **Done when:** Failed Fast Match groups automatically transition customers into the correct recovery flow.
-
-- [ ] **A41** — Handle clarification expiry when the customer never responds
-  - **File(s):** `src/lib/data/bookings.ts`, `src/lib/status-machine.ts`, `src/types/booking-request.ts`
-  - **What:** Add explicit expiry and follow-on behavior for clarification requests that receive no customer response.
-  - **Why:** Clarification is bounded in the blueprint and cannot become an indefinite limbo state.
-  - **Done when:** Clarification requests expire cleanly and move the request into the correct follow-up outcome.
-
 - [ ] **A42** — Recompute offer pricing previews when access facts change before submission
   - **File(s):** `src/components/booking/booking-form.tsx`, `src/lib/pricing/breakdown.ts`, `src/lib/data/trips.ts`
   - **What:** Update offer and confirmation pricing previews whenever the customer changes structured access facts during confirmation.
   - **Why:** The blueprint promises deterministic pricing from structured inputs and requires real-time recalculation before commitment.
   - **Done when:** Editing access facts in confirmation updates the total and breakdown before the request is submitted.
-
-- [ ] **A43** — Block request creation when required bulky-item photos are missing
-  - **File(s):** `src/components/booking/booking-form.tsx`, `src/app/api/upload/route.ts`, `src/lib/validation/move-request.ts`
-  - **What:** Add explicit blocking validation and UI treatment for missing required photos on bulky-item flows.
-  - **Why:** Photo truth is a core trust and fit control and should fail loudly before request creation.
-  - **Done when:** Missing required bulky-item photos produce a blocking validation state with a clear next action.
 
 - [ ] **A44** — Add structured decline reasons without turning declines into free-text support work
   - **File(s):** `src/components/carrier/pending-bookings-alert.tsx`, `src/lib/data/bookings.ts`, `src/types/booking-request.ts`

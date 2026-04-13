@@ -19,7 +19,8 @@ import {
 import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
 import { getBookingTrustIssues } from "@/lib/validation/booking";
 import { formatCurrency } from "@/lib/utils";
-import type { Trip } from "@/types/trip";
+import type { MoveRequest } from "@/types/move-request";
+import type { ItemCategory, Trip } from "@/types/trip";
 
 interface ResolvedAddress {
   label: string;
@@ -36,6 +37,8 @@ interface BookingFormProps {
   isAuthenticated: boolean;
   id?: string;
   requestMode: RequestMode;
+  existingMoveRequest?: MoveRequest | null;
+  initialOfferId?: string | null;
   onRequestModeChange?: (mode: RequestMode) => void;
   onOptionsChange?: (options: {
     needsStairs: boolean;
@@ -58,27 +61,61 @@ export function BookingForm({
   isAuthenticated,
   id,
   requestMode,
+  existingMoveRequest,
+  initialOfferId,
   onRequestModeChange,
   onOptionsChange,
 }: BookingFormProps) {
   const router = useRouter();
-  const [pickup, setPickup] = useState<ResolvedAddress | null>(null);
-  const [dropoff, setDropoff] = useState<ResolvedAddress | null>(null);
+  const [pickup, setPickup] = useState<ResolvedAddress | null>(
+    existingMoveRequest
+      ? {
+          label: existingMoveRequest.route.pickupAddress,
+          suburb: existingMoveRequest.route.pickupSuburb,
+          postcode: existingMoveRequest.route.pickupPostcode,
+          latitude: existingMoveRequest.route.pickupLatitude,
+          longitude: existingMoveRequest.route.pickupLongitude,
+        }
+      : null,
+  );
+  const [dropoff, setDropoff] = useState<ResolvedAddress | null>(
+    existingMoveRequest
+      ? {
+          label: existingMoveRequest.route.dropoffAddress,
+          suburb: existingMoveRequest.route.dropoffSuburb,
+          postcode: existingMoveRequest.route.dropoffPostcode,
+          latitude: existingMoveRequest.route.dropoffLatitude,
+          longitude: existingMoveRequest.route.dropoffLongitude,
+        }
+      : null,
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [itemDescription, setItemDescription] = useState("");
-  const [itemCategory, setItemCategory] = useState("furniture");
-  const [itemSizeClass, setItemSizeClass] = useState<"" | "S" | "M" | "L" | "XL">("");
+  const [itemDescription, setItemDescription] = useState(existingMoveRequest?.item.description ?? "");
+  const [itemCategory, setItemCategory] = useState<ItemCategory>(
+    existingMoveRequest?.item.category ?? "furniture",
+  );
+  const [itemSizeClass, setItemSizeClass] = useState<"" | "S" | "M" | "L" | "XL">(
+    existingMoveRequest?.item.sizeClass ?? "",
+  );
   const [itemWeightBand, setItemWeightBand] = useState<
     "" | "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg"
-  >("");
-  const [itemDimensions, setItemDimensions] = useState("");
-  const [itemWeightKg, setItemWeightKg] = useState("");
-  const [pickupAccessNotes, setPickupAccessNotes] = useState("");
-  const [dropoffAccessNotes, setDropoffAccessNotes] = useState("");
-  const [specialInstructions, setSpecialInstructions] = useState("");
-  const [needsStairs, setNeedsStairs] = useState(false);
-  const [needsHelper, setNeedsHelper] = useState(false);
+  >(existingMoveRequest?.item.weightBand ?? "");
+  const [itemDimensions, setItemDimensions] = useState(existingMoveRequest?.item.dimensions ?? "");
+  const [itemWeightKg, setItemWeightKg] = useState(
+    existingMoveRequest?.item.weightKg ? String(existingMoveRequest.item.weightKg) : "",
+  );
+  const [pickupAccessNotes, setPickupAccessNotes] = useState(
+    existingMoveRequest?.route.pickupAccessNotes ?? "",
+  );
+  const [dropoffAccessNotes, setDropoffAccessNotes] = useState(
+    existingMoveRequest?.route.dropoffAccessNotes ?? "",
+  );
+  const [specialInstructions, setSpecialInstructions] = useState(
+    existingMoveRequest?.specialInstructions ?? "",
+  );
+  const [needsStairs, setNeedsStairs] = useState(existingMoveRequest?.needsStairs ?? false);
+  const [needsHelper, setNeedsHelper] = useState(existingMoveRequest?.needsHelper ?? false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStage, setSubmissionStage] = useState<
@@ -87,7 +124,7 @@ export function BookingForm({
   const [successState, setSuccessState] = useState<RequestSuccessState | null>(null);
   const [activeStage, setActiveStage] = useState<FormStage>("item");
   const draftKey = useMemo(() => `moverrr:request-draft:${trip.id}`, [trip.id]);
-  const moveRequestIdRef = useRef<string | null>(null);
+  const moveRequestIdRef = useRef<string | null>(existingMoveRequest?.id ?? null);
   const stairsUnsupported = needsStairs && !trip.rules.stairsOk;
   const isAddressResolved = Boolean(pickup && dropoff);
   const pricing = calculateBookingBreakdown({
@@ -107,6 +144,27 @@ export function BookingForm({
       `${trip.route.destinationSuburb} NSW ${trip.route.destinationPostcode ?? ""}`.trim(),
     [trip.route.destinationPostcode, trip.route.destinationSuburb],
   );
+  const accountReturnHref = useMemo(() => {
+    const tripParams = new URLSearchParams();
+
+    if (moveRequestIdRef.current) {
+      tripParams.set("moveRequestId", moveRequestIdRef.current);
+    } else if (existingMoveRequest?.id) {
+      tripParams.set("moveRequestId", existingMoveRequest.id);
+    }
+
+    if (initialOfferId) {
+      tripParams.set("offerId", initialOfferId);
+    }
+
+    const returnTo = `/trip/${trip.id}${tripParams.toString() ? `?${tripParams.toString()}` : ""}`;
+    const next = new URLSearchParams({
+      focus: "payments",
+      returnTo,
+    });
+
+    return `/account?${next.toString()}`;
+  }, [existingMoveRequest?.id, initialOfferId, trip.id]);
   const trustIssues = useMemo(
     () =>
       getBookingTrustIssues({
@@ -118,6 +176,7 @@ export function BookingForm({
         needsHelper,
         pickupAccessNotes,
         dropoffAccessNotes,
+        itemPhotoCount: photoFile ? 1 : (existingMoveRequest?.item.photoUrls.length ?? 0),
       }),
     [
       dropoffAccessNotes,
@@ -127,7 +186,9 @@ export function BookingForm({
       itemWeightBand,
       needsHelper,
       pickupAccessNotes,
+      photoFile,
       specialInstructions,
+      existingMoveRequest?.item.photoUrls.length,
     ],
   );
   const blockingTrustIssues = trustIssues.filter((issue) => issue.severity === "blocking");
@@ -159,7 +220,7 @@ export function BookingForm({
     try {
       const parsed = JSON.parse(draft) as Partial<{
         itemDescription: string;
-        itemCategory: string;
+        itemCategory: ItemCategory;
         itemSizeClass: "" | "S" | "M" | "L" | "XL";
         itemWeightBand: "" | "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg";
         itemDimensions: string;
@@ -252,6 +313,40 @@ export function BookingForm({
     };
   }, [photoFile]);
 
+  function canReuseExistingMoveRequest() {
+    if (!existingMoveRequest || photoFile) {
+      return false;
+    }
+
+    if (!pickup || !dropoff) {
+      return false;
+    }
+
+    return (
+      itemDescription.trim() === existingMoveRequest.item.description &&
+      itemCategory === existingMoveRequest.item.category &&
+      (itemSizeClass || null) === (existingMoveRequest.item.sizeClass ?? null) &&
+      (itemWeightBand || null) === (existingMoveRequest.item.weightBand ?? null) &&
+      (itemDimensions.trim() || null) === (existingMoveRequest.item.dimensions ?? null) &&
+      (itemWeightKg.trim() ? Number(itemWeightKg) : null) === (existingMoveRequest.item.weightKg ?? null) &&
+      pickup.label === existingMoveRequest.route.pickupAddress &&
+      pickup.suburb === existingMoveRequest.route.pickupSuburb &&
+      pickup.postcode === existingMoveRequest.route.pickupPostcode &&
+      pickup.latitude === existingMoveRequest.route.pickupLatitude &&
+      pickup.longitude === existingMoveRequest.route.pickupLongitude &&
+      (pickupAccessNotes.trim() || null) === (existingMoveRequest.route.pickupAccessNotes ?? null) &&
+      dropoff.label === existingMoveRequest.route.dropoffAddress &&
+      dropoff.suburb === existingMoveRequest.route.dropoffSuburb &&
+      dropoff.postcode === existingMoveRequest.route.dropoffPostcode &&
+      dropoff.latitude === existingMoveRequest.route.dropoffLatitude &&
+      dropoff.longitude === existingMoveRequest.route.dropoffLongitude &&
+      (dropoffAccessNotes.trim() || null) === (existingMoveRequest.route.dropoffAccessNotes ?? null) &&
+      needsStairs === existingMoveRequest.needsStairs &&
+      needsHelper === existingMoveRequest.needsHelper &&
+      (specialInstructions.trim() || null) === (existingMoveRequest.specialInstructions ?? null)
+    );
+  }
+
   async function uploadPhotoIfNeeded() {
     if (!photoFile) {
       return [] as string[];
@@ -314,13 +409,15 @@ export function BookingForm({
     return payload.moveRequest as { id: string };
   }
 
-  async function createSingleRequest(moveRequestId: string) {
+  async function createSingleRequest(moveRequestId: string, reuseExistingMoveRequest: boolean) {
     const response = await fetch("/api/booking-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         moveRequestId,
-        listingId: trip.id,
+        ...(reuseExistingMoveRequest && initialOfferId
+          ? { offerId: initialOfferId }
+          : { listingId: trip.id }),
       }),
     });
     const payload = await response.json();
@@ -415,7 +512,11 @@ export function BookingForm({
     setError(null);
 
     if (!isAuthenticated) {
-      router.push(`/login?next=/trip/${trip.id}`);
+      const next = new URLSearchParams({
+        ...(existingMoveRequest ? { moveRequestId: existingMoveRequest.id } : {}),
+        ...(initialOfferId ? { offerId: initialOfferId } : {}),
+      }).toString();
+      router.push(`/login?next=/trip/${trip.id}${next ? `?${next}` : ""}`);
       return;
     }
 
@@ -430,16 +531,18 @@ export function BookingForm({
       setSubmissionStage("uploading_photo");
       const itemPhotoUrls = await uploadPhotoIfNeeded();
       setSubmissionStage("creating_move_request");
+      const reuseExistingMoveRequest =
+        moveRequestIdRef.current !== null && canReuseExistingMoveRequest();
       const moveRequest =
-        moveRequestIdRef.current === null
+        !reuseExistingMoveRequest
           ? await createMoveRequest(itemPhotoUrls)
-          : { id: moveRequestIdRef.current };
+          : { id: moveRequestIdRef.current! };
 
       moveRequestIdRef.current = moveRequest.id;
       setSubmissionStage("creating_request");
 
       if (requestMode === "single") {
-        const result = await createSingleRequest(moveRequest.id);
+        const result = await createSingleRequest(moveRequest.id, reuseExistingMoveRequest);
         setSuccessState({
           moveRequestId: moveRequest.id,
           requestMode,
@@ -583,7 +686,7 @@ export function BookingForm({
                 name="itemCategory"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
                 value={itemCategory}
-                onChange={(event) => setItemCategory(event.target.value)}
+                onChange={(event) => setItemCategory(event.target.value as ItemCategory)}
               >
                 <option value="furniture">Furniture</option>
                 <option value="boxes">Boxes</option>
@@ -1000,6 +1103,21 @@ export function BookingForm({
             <p className="mt-3 text-xs text-text-secondary">
               No off-platform payment or side-deal extras. If anything changes after review, it must stay inside moverrr.
             </p>
+          </div>
+
+          <div className="rounded-xl border border-border bg-black/[0.02] p-4 text-sm text-text-secondary dark:bg-white/[0.04]">
+            <p className="font-medium text-text">Payment setup and return path</p>
+            <div className="mt-2 grid gap-2">
+              <p>
+                Need to check payment details before sending? moverrr keeps this request draft on
+                this device, so you can jump to account and come back safely.
+              </p>
+              <div className="pt-1">
+                <Button asChild variant="secondary" className="min-h-[44px]">
+                  <Link href={accountReturnHref}>Review payment help in account</Link>
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-xl border border-border bg-black/[0.02] p-4 text-sm text-text-secondary dark:bg-white/[0.04]">

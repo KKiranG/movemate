@@ -555,9 +555,13 @@ export interface Database {
           status: "pending" | "clarification_requested" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
           requested_total_price_cents: number;
           response_deadline_at: string;
+          clarification_round_count: number;
           clarification_reason: "item_details" | "access_details" | "timing" | "photos" | "other" | null;
+          clarification_requested_at: string | null;
+          clarification_expires_at: string | null;
           clarification_message: string | null;
           customer_response: string | null;
+          customer_response_at: string | null;
           responded_at: string | null;
           expires_at: string | null;
           created_at: string;
@@ -575,9 +579,13 @@ export interface Database {
           status?: "pending" | "clarification_requested" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
           requested_total_price_cents: number;
           response_deadline_at: string;
+          clarification_round_count?: number;
           clarification_reason?: "item_details" | "access_details" | "timing" | "photos" | "other" | null;
+          clarification_requested_at?: string | null;
+          clarification_expires_at?: string | null;
           clarification_message?: string | null;
           customer_response?: string | null;
+          customer_response_at?: string | null;
           responded_at?: string | null;
           expires_at?: string | null;
           created_at?: string;

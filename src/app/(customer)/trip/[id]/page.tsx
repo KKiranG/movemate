@@ -9,6 +9,8 @@ import { ShareTripButton } from "@/components/trip/share-trip-button";
 import { Card } from "@/components/ui/card";
 import { TripDetailSummary } from "@/components/trip/trip-detail-summary";
 import { getOptionalSessionUser } from "@/lib/auth";
+import { getMoveRequestByIdForCustomer } from "@/lib/data/move-requests";
+import { getCustomerProfileForUser } from "@/lib/data/profiles";
 import { getTripById } from "@/lib/data/trips";
 import { calculateBookingBreakdown } from "@/lib/pricing/breakdown";
 
@@ -71,6 +73,11 @@ export default async function TripDetailPage({
   const searchWhen = getSearchValue(resolvedSearchParams.when);
   const searchWhat = getSearchValue(resolvedSearchParams.what);
   const searchBackload = getSearchValue(resolvedSearchParams.backload);
+  const moveRequestId = getSearchValue(resolvedSearchParams.moveRequestId);
+  const offerId = getSearchValue(resolvedSearchParams.offerId);
+  const customer = user ? await getCustomerProfileForUser(user.id) : null;
+  const existingMoveRequest =
+    customer && moveRequestId ? await getMoveRequestByIdForCustomer(customer.id, moveRequestId) : null;
   const price = `$${Math.round(trip.priceCents / 100)}`;
   const savingsCents = Math.max(0, trip.dedicatedEstimateCents - trip.priceCents);
   const startingPricing = calculateBookingBreakdown({
@@ -87,6 +94,7 @@ export default async function TripDetailPage({
     when: searchWhen || trip.tripDate,
     ...(searchWhat ? { what: searchWhat } : {}),
     ...(searchBackload ? { backload: searchBackload } : {}),
+    ...(moveRequestId ? { moveRequestId } : {}),
   }).toString()}`;
   const similarTripsHref = `/search?${new URLSearchParams({
     from: trip.route.originSuburb,
@@ -107,7 +115,7 @@ export default async function TripDetailPage({
         }
       />
 
-      <TripDetailSummary trip={trip} />
+      <TripDetailSummary trip={trip} preferredDate={searchWhen || existingMoveRequest?.route.preferredDate || undefined} />
       <StickyBookingCta
         priceCents={startingPricing.totalPriceCents}
         savingsCents={savingsCents}
@@ -118,7 +126,12 @@ export default async function TripDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         {isBookable ? (
-          <BookingCheckoutPanel trip={trip} isAuthenticated={Boolean(user)} />
+          <BookingCheckoutPanel
+            trip={trip}
+            isAuthenticated={Boolean(user)}
+            existingMoveRequest={existingMoveRequest}
+            initialOfferId={offerId || null}
+          />
         ) : (
           <Card className="p-4">
             <p className="section-label">Trip availability</p>
