@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 
+import { getCarrierActivationBlockers } from "@/lib/carrier-activation";
 import { FileSelectionPreview } from "@/components/ui/file-selection-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,28 +73,7 @@ function readDraft(storageScope: string, defaultEmail: string) {
 }
 
 function getVerificationBlockers(carrier?: CarrierProfile | null) {
-  if (!carrier) {
-    return [
-      "Complete business details, vehicle details, and both verification documents.",
-      "Add document expiry dates so we can remind you before they lapse.",
-    ];
-  }
-
-  if (carrier.verificationStatus === "rejected") {
-    return [
-      carrier.verificationNotes ?? "Admin review flagged an issue with the submission.",
-      "Replace the rejected document or details, then resubmit this form.",
-    ];
-  }
-
-  if (carrier.verificationStatus === "submitted") {
-    return [
-      "Your application is under review.",
-      carrier.verificationNotes ?? "We will contact you if any document or detail needs changes.",
-    ];
-  }
-
-  return [];
+  return getCarrierActivationBlockers(carrier);
 }
 
 export function CarrierOnboardingForm({

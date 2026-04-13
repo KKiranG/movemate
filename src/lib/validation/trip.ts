@@ -11,6 +11,8 @@ const categorySet = z.enum([
   "other",
 ]);
 
+const tripWeekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+
 function isTodayOrLater(value: string) {
   const parsedDate = new Date(`${value}T00:00:00`);
 
@@ -285,6 +287,11 @@ export const tripSchema = z
     destinationPostcode: z.string().min(4).max(8),
     destinationLatitude: z.number().min(-90).max(90),
     destinationLongitude: z.number().min(-180).max(180),
+    waypointSuburbs: z.array(z.string().trim().min(2).max(120)).max(2).default([]),
+    routePolyline: z.string().trim().min(6).max(10000).optional(),
+    recurrenceRule: z.string().trim().max(120).optional(),
+    recurrenceDays: z.array(tripWeekday).max(7).default([]),
+    detourToleranceLabel: z.enum(["tight", "standard", "flexible"]).default("standard"),
     detourRadiusKm: z.number().min(0).max(30),
     tripDate: futureTripDate,
     timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
@@ -311,11 +318,16 @@ export const tripSchema = z
 export const tripUpdateSchema = z
   .object({
     vehicleId: z.string().uuid().optional(),
+    waypointSuburbs: z.array(z.string().trim().min(2).max(120)).max(2).default([]),
+    routePolyline: z.string().trim().min(6).max(10000).optional(),
+    recurrenceRule: z.string().trim().max(120).optional(),
+    recurrenceDays: z.array(tripWeekday).max(7).default([]),
     tripDate: futureTripDate,
     timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]),
     spaceSize: z.enum(["S", "M", "L", "XL"]),
     availableVolumeM3: z.number().min(0.1).max(8),
     availableWeightKg: z.number().min(20).max(500),
+    detourToleranceLabel: z.enum(["tight", "standard", "flexible"]).default("standard"),
     detourRadiusKm: z.number().min(0).max(30),
     priceCents: z.number().min(1000).max(100000),
     accepts: z.array(categorySet).min(1),

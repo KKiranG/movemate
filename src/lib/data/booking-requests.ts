@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import { isCarrierActivationLive } from "@/lib/carrier-activation";
 import { canTransitionBookingRequest } from "@/lib/status-machine";
 import { hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
@@ -270,6 +271,33 @@ async function updateBookingRequestById(params: {
   }
 
   return toBookingRequest(data as BookingRequestRow);
+}
+
+async function attachRequestFlowToBooking(params: {
+  bookingId: string;
+  moveRequestId: string;
+  offerId: string;
+  bookingRequestId: string;
+  requestGroupId?: string | null;
+}) {
+  if (!hasSupabaseAdminEnv()) {
+    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      move_request_id: params.moveRequestId,
+      offer_id: params.offerId,
+      booking_request_id: params.bookingRequestId,
+      request_group_id: params.requestGroupId ?? null,
+    })
+    .eq("id", params.bookingId);
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_request_flow_attach_failed");
+  }
 }
 
 async function ensureRecoveryAfterRequestFailure(bookingRequest: BookingRequest) {
@@ -1250,6 +1278,24 @@ export async function applyCarrierBookingRequestAction(
   input: BookingRequestActionInput,
 ): Promise<{ bookingRequest: BookingRequest; booking?: Booking | null }> {
   const carrier = await requireCarrierProfileForUser(userId);
+  const carrierActivationStatus =
+    carrier.activation_status ??
+    (carrier.verification_status === "verified"
+      ? "active"
+      : carrier.verification_status === "submitted"
+        ? "pending_review"
+        : carrier.verification_status === "rejected"
+          ? "rejected"
+          : "activation_started");
+
+  if (input.action === "accept" && !isCarrierActivationLive(carrierActivationStatus)) {
+    throw new AppError(
+      "Only active carriers can accept marketplace requests.",
+      409,
+      "carrier_not_active",
+    );
+  }
+
   const bookingRequest = await getBookingRequestByIdForCarrier(carrier.id, bookingRequestId);
 
   if (!bookingRequest) {
@@ -1426,6 +1472,14 @@ export async function applyCarrierBookingRequestAction(
   if (error || !bookingId) {
     throw new AppError(error?.message ?? "Could not create the accepted booking.", 500, "booking_create_failed");
   }
+
+  await attachRequestFlowToBooking({
+    bookingId,
+    moveRequestId: bookingRequest.moveRequestId,
+    offerId: bookingRequest.offerId,
+    bookingRequestId,
+    requestGroupId: bookingRequest.requestGroupId ?? null,
+  });
 
   const acceptedRequest = await updateBookingRequestById({
     bookingRequestId,

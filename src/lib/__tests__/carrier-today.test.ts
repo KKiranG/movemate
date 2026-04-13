@@ -24,7 +24,9 @@ function createTrip(overrides: Partial<Trip> = {}): Trip {
       overrides.route ?? {
         originSuburb: "Marrickville",
         destinationSuburb: "Surry Hills",
+        waypoints: [],
         via: [],
+        polyline: null,
         label: "Marrickville -> Surry Hills",
       },
     tripDate: overrides.tripDate ?? "2026-04-05",
@@ -33,6 +35,7 @@ function createTrip(overrides: Partial<Trip> = {}): Trip {
     availableVolumeM3: overrides.availableVolumeM3 ?? 5,
     availableWeightKg: overrides.availableWeightKg ?? 100,
     detourRadiusKm: overrides.detourRadiusKm ?? 10,
+    detourTolerance: overrides.detourTolerance ?? "standard",
     priceCents: overrides.priceCents ?? 10000,
     suggestedPriceCents: overrides.suggestedPriceCents ?? 10000,
     dedicatedEstimateCents: overrides.dedicatedEstimateCents ?? 16000,
@@ -201,7 +204,9 @@ test("buildCarrierTodaySnapshot scores active trips into healthy, watch, and ris
         route: {
           originSuburb: "Newtown",
           destinationSuburb: "Bondi",
+          waypoints: [],
           via: [],
+          polyline: null,
           label: "Newtown -> Bondi",
         },
         tripDate: "2026-04-05",
@@ -211,7 +216,9 @@ test("buildCarrierTodaySnapshot scores active trips into healthy, watch, and ris
         route: {
           originSuburb: "Parramatta",
           destinationSuburb: "Redfern",
+          waypoints: [],
           via: [],
+          polyline: null,
           label: "Parramatta -> Redfern",
         },
         tripDate: "2026-04-06",
@@ -221,7 +228,9 @@ test("buildCarrierTodaySnapshot scores active trips into healthy, watch, and ris
         route: {
           originSuburb: "Ryde",
           destinationSuburb: "Chatswood",
+          waypoints: [],
           via: [],
+          polyline: null,
           label: "Ryde -> Chatswood",
         },
         tripDate: "2026-04-07",

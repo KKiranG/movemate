@@ -586,6 +586,7 @@ export async function listAdminAlertQueueData() {
           matchedAt: string | null;
           moveRequestId: string | null;
           carrierSuggestions: Array<{
+            listingId: string;
             carrierId: string;
             businessName: string;
             tripDate: string;
@@ -687,7 +688,7 @@ export async function listAdminAlertQueueData() {
       const [{ data: carrierSuggestions }, conciergeOffers] = await Promise.all([
         supabase
           .from("capacity_listings")
-          .select("carrier_id, trip_date, time_window, price_cents, carriers!inner(business_name)")
+          .select("id, carrier_id, trip_date, time_window, price_cents, carriers!inner(business_name)")
           .eq("origin_suburb", row.pickup_suburb)
           .eq("destination_suburb", row.dropoff_suburb)
           .in("status", ["active", "booked_partial"])
@@ -706,6 +707,7 @@ export async function listAdminAlertQueueData() {
         moveRequestId: row.move_request_id,
         status: row.status as "active" | "notified" | "matched" | "expired",
         carrierSuggestions: (carrierSuggestions ?? []).map((listing) => ({
+          listingId: listing.id,
           carrierId: listing.carrier_id,
           businessName:
             (listing.carriers as { business_name?: string } | null)?.business_name ?? "Carrier",

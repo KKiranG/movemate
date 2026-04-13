@@ -13,6 +13,20 @@ export type ItemSizeCategory = "S" | "M" | "L" | "XL";
 
 export type TripFlowSource = "legacy_listing" | "offer";
 
+export type TripDetourTolerance = "tight" | "standard" | "flexible";
+
+export interface TripWaypoint {
+  suburb: string;
+  postcode?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface TripRecurrence {
+  rule?: string | null;
+  days: string[];
+}
+
 export interface TripFlowCompatibility {
   source: TripFlowSource;
   listingId: string;
@@ -31,7 +45,9 @@ export interface TripRoute {
   destinationAddress?: string;
   destinationLatitude?: number;
   destinationLongitude?: number;
+  waypoints: TripWaypoint[];
   via: string[];
+  polyline?: string | null;
   label: string;
 }
 
@@ -62,6 +78,7 @@ export interface Trip {
   availableVolumeM3: number;
   availableWeightKg: number;
   detourRadiusKm: number;
+  detourTolerance: TripDetourTolerance;
   priceCents: number;
   suggestedPriceCents?: number | null;
   dedicatedEstimateCents: number;
@@ -87,6 +104,7 @@ export interface Trip {
   lastFreshnessConfirmedAt?: string | null;
   lastFreshnessUnsuspendedAt?: string | null;
   publishAt?: string | null;
+  recurrence?: TripRecurrence;
   rules: TripRules;
 }
 

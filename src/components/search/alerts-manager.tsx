@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { RouteAlert } from "@/types/customer";
-import type { UnmatchedRequest } from "@/types/alert";
+import type { CustomerConciergeOffer, UnmatchedRequest } from "@/types/alert";
 import { formatDateTime } from "@/lib/utils";
 
 function AlertCard({ alert }: { alert: RouteAlert }) {
@@ -212,12 +212,89 @@ function RouteRequestCard({ routeRequest }: { routeRequest: UnmatchedRequest }) 
   );
 }
 
+function ConciergeOfferCard({ offer }: { offer: CustomerConciergeOffer }) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function respond(action: "accept" | "decline") {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/concierge-offers/${offer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to update this concierge offer.");
+      }
+
+      if (action === "accept" && payload.bookingRequest?.id) {
+        router.push(`/bookings/${payload.bookingRequest.id}`);
+        return;
+      }
+
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to update this concierge offer.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="section-label">Founder concierge</p>
+            <h2 className="mt-1 text-heading text-text">{offer.carrierBusinessName}</h2>
+            <p className="mt-1 text-body text-text-secondary">
+              {offer.tripDate ? `${offer.tripDate} · ${offer.timeWindow ?? "timing to confirm"} · ` : ""}
+              Founder-sourced corridor match routed back into normal booking flow.
+            </p>
+          </div>
+          <span className="rounded-xl bg-accent/10 px-3 py-2 text-caption text-accent">
+            {offer.status.replaceAll("_", " ")}
+          </span>
+        </div>
+        <div className="grid gap-2 text-sm text-text-secondary">
+          <p>Total price {new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(offer.quotedTotalPriceCents / 100)}</p>
+          {offer.note ? <p>{offer.note}</p> : null}
+          {offer.sentAt ? <p>Sent {formatDateTime(offer.sentAt)}.</p> : null}
+        </div>
+        {offer.status === "sent" ? (
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" disabled={isSubmitting} onClick={() => void respond("accept")}>
+              {isSubmitting ? "Sending request..." : "Accept and send request"}
+            </Button>
+            <Button type="button" variant="secondary" disabled={isSubmitting} onClick={() => void respond("decline")}>
+              Decline
+            </Button>
+          </div>
+        ) : offer.bookingRequestId ? (
+          <Button asChild type="button">
+            <Link href={`/bookings/${offer.bookingRequestId}`}>Open request</Link>
+          </Button>
+        ) : null}
+        {error ? <p className="text-sm text-error">{error}</p> : null}
+      </div>
+    </Card>
+  );
+}
+
 export function AlertsManager({
   alerts,
   routeRequests,
+  conciergeOffers,
 }: {
   alerts: RouteAlert[];
   routeRequests: UnmatchedRequest[];
+  conciergeOffers: CustomerConciergeOffer[];
 }) {
   const activeRouteRequests = routeRequests.filter((entry) => entry.status === "active");
   const matchedRouteRequests = routeRequests.filter((entry) => entry.status === "matched");
@@ -227,6 +304,17 @@ export function AlertsManager({
 
   return (
     <div className="grid gap-4">
+      {conciergeOffers.length > 0 ? (
+        <div className="grid gap-4">
+          <div>
+            <p className="section-label">Founder-sourced matches</p>
+            <h2 className="mt-1 text-lg text-text">Manual recovery routed back into moverrr</h2>
+          </div>
+          {conciergeOffers.map((offer) => (
+            <ConciergeOfferCard key={offer.id} offer={offer} />
+          ))}
+        </div>
+      ) : null}
       {activeRouteRequests.length > 0 ? (
         <div className="grid gap-4">
           <div>
@@ -263,7 +351,7 @@ export function AlertsManager({
           ))}
         </div>
       ) : null}
-      {alerts.length === 0 && routeRequests.length === 0 ? (
+      {alerts.length === 0 && routeRequests.length === 0 && conciergeOffers.length === 0 ? (
         <Card className="p-4">
           <p className="subtle-text">No alerts yet. Turn on a route alert from search when moverrr does not find the right fit.</p>
         </Card>

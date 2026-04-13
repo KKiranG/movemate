@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { requirePageSessionUser } from "@/lib/auth";
+import { listConciergeOffersForCustomer } from "@/lib/data/concierge-offers";
 import { listUnmatchedRequestsForCustomer } from "@/lib/data/unmatched-requests";
 import { listUserAlertsWithOptions } from "@/lib/data/alerts";
 import { PageIntro } from "@/components/layout/page-intro";
@@ -13,11 +14,12 @@ export const metadata: Metadata = {
 
 export default async function AlertsPage() {
   const user = await requirePageSessionUser();
-  const [alerts, routeRequests] = await Promise.all([
+  const [alerts, routeRequests, conciergeOffers] = await Promise.all([
     listUserAlertsWithOptions(user.id, {
       includeInactive: true,
     }),
     listUnmatchedRequestsForCustomer(user.id),
+    listConciergeOffersForCustomer(user.id),
   ]);
 
   return (
@@ -28,7 +30,7 @@ export default async function AlertsPage() {
         description="Keep route alerts active, review recovery alerts from declined or expired requests, and pause or resume follow-up when your move need changes."
       />
 
-      <AlertsManager alerts={alerts} routeRequests={routeRequests} />
+      <AlertsManager alerts={alerts} routeRequests={routeRequests} conciergeOffers={conciergeOffers} />
     </main>
   );
 }

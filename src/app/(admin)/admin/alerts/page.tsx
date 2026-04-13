@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ConciergeOfferActions } from "@/components/admin/concierge-offer-actions";
 import { ConciergeOfferForm } from "@/components/admin/concierge-offer-form";
 import { OperatorTaskActions } from "@/components/admin/operator-task-actions";
 import { TripFreshnessActions } from "@/components/admin/trip-freshness-actions";
@@ -118,6 +119,18 @@ export default async function AdminAlertsPage() {
                                   <p className="mt-1 text-sm text-text-secondary">
                                     {offer.note ?? "No note recorded."}
                                   </p>
+                                  <p className="mt-1 text-xs text-text-secondary">
+                                    {offer.sentAt
+                                      ? `Sent ${new Date(offer.sentAt).toLocaleString("en-AU")}`
+                                      : "Not sent yet"}
+                                    {offer.respondedAt
+                                      ? ` · responded ${new Date(offer.respondedAt).toLocaleString("en-AU")}`
+                                      : ""}
+                                  </p>
+                                  <ConciergeOfferActions
+                                    conciergeOfferId={offer.id}
+                                    status={offer.status}
+                                  />
                                 </div>
                               ))
                             ) : (

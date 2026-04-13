@@ -8,9 +8,9 @@ Use this file to navigate the codebase quickly. Every agent should read the rele
 
 | Route Group | URL Prefix | Who Uses It |
 |---|---|---|
-| `src/app/(customer)/` | `/bookings`, `/search`, `/trip/[id]`, `/saved-searches`, `/carrier/[id]` | Customers |
-| `src/app/(carrier)/carrier/` | `/carrier/dashboard`, `/carrier/post`, `/carrier/trips`, `/carrier/today`, `/carrier/templates`, `/carrier/payouts`, `/carrier/onboarding`, `/carrier/stats` | Carriers |
-| `src/app/(admin)/admin/` | `/admin/dashboard`, `/admin/bookings`, `/admin/carriers`, `/admin/disputes`, `/admin/payments`, `/admin/verification` | Operators |
+| `src/app/(customer)/` | `/bookings`, `/search`, `/trip/[id]`, `/alerts`, `/carrier/[id]`, `/account` | Customers |
+| `src/app/(carrier)/carrier/` | `/carrier/dashboard`, `/carrier/requests`, `/carrier/post`, `/carrier/trips`, `/carrier/today`, `/carrier/templates`, `/carrier/payouts`, `/carrier/onboarding`, `/carrier/stats`, `/carrier/account` | Carriers |
+| `src/app/(admin)/admin/` | `/admin/dashboard`, `/admin/alerts`, `/admin/bookings`, `/admin/carriers`, `/admin/disputes`, `/admin/payments`, `/admin/verification` | Operators |
 | `src/app/(auth)/` | `/login`, `/signup`, `/carrier/signup`, `/reset-password`, `/verify` | Auth flows |
 | `src/app/(marketing)/` | `/become-a-carrier`, `/privacy`, `/terms`, `/trust` | Public pages |
 | `src/app/` root | `/` (homepage), `/sitemap.ts`, `/robots.ts` | Public root |
@@ -44,10 +44,16 @@ Route groups use parentheses notation `(name)` for layout/auth isolation — the
 |---|---|
 | `src/lib/data/bookings.ts` | Create, update, cancel, capture bookings; status transitions with guards; carrier payout holds |
 | `src/lib/data/trips.ts` | Create, search, retrieve trips; listing search with PostGIS matching |
-| `src/lib/data/carriers.ts` | Carrier profiles, vehicles, verification status, payout methods |
+| `src/lib/data/carriers.ts` | Carrier profiles, activation state, vehicles, payout methods |
 | `src/lib/data/templates.ts` | Trip template CRUD |
 | `src/lib/data/listings.ts` | Carrier availability listings and pricing guidance |
-| `src/lib/data/saved-searches.ts` | Customer saved search CRUD |
+| `src/lib/data/saved-searches.ts` | Compatibility wrapper backing legacy saved-search routes while alerts replace them |
+| `src/lib/data/alerts.ts` | Route alert CRUD for live customer alert flows |
+| `src/lib/data/move-requests.ts` | Move request creation, lookup, and recent-request continuity |
+| `src/lib/data/offers.ts` | Ranked offer retrieval and persistence |
+| `src/lib/data/booking-requests.ts` | Request-to-Book and Fast Match lifecycle |
+| `src/lib/data/unmatched-requests.ts` | Alert-the-Network and recovery-demand lifecycle |
+| `src/lib/data/concierge-offers.ts` | Founder concierge offers routed back into booking requests |
 | `src/lib/data/feedback.ts` | Disputes, reviews, review responses |
 | `src/lib/data/admin.ts` | Admin-only operations: payment capture, dispute resolution, carrier verification |
 | `src/lib/data/mappers.ts` | DB row → TypeScript type converters. `toBooking()`, `toTrip()`, etc. |
@@ -74,7 +80,7 @@ Route groups use parentheses notation `(name)` for layout/auth isolation — the
 
 | Route | Key files | High-risk? |
 |---|---|---|
-| `POST /api/bookings` | `src/app/api/bookings/route.ts` | Yes — atomic creation |
+| `POST /api/bookings` | `src/app/api/bookings/route.ts` | Deprecated guard — creation must flow through booking requests |
 | `PATCH /api/bookings/[id]` | `src/app/api/bookings/[id]/route.ts` | Yes — state machine |
 | `POST /api/bookings/[id]/confirm-receipt` | `[id]/confirm-receipt/route.ts` | Yes — triggers payout |
 | `POST /api/bookings/[id]/dispute` | `[id]/dispute/route.ts` | Yes — blocks payout |
@@ -86,6 +92,14 @@ Route groups use parentheses notation `(name)` for layout/auth isolation — the
 | `PATCH /api/admin/disputes/[id]` | `admin/disputes/[id]/route.ts` | Admin-only |
 | `POST /api/admin/bookings/[id]/capture` | `admin/bookings/[id]/capture/route.ts` | Admin-only, financial |
 | `GET /api/search` | `search/route.ts` | Public, spatial query |
+| `POST /api/move-requests` | `move-requests/route.ts` | Yes — request creation |
+| `GET /api/offers` | `offers/route.ts` | Yes — ranked match retrieval |
+| `POST /api/booking-requests` | `booking-requests/route.ts` | Yes — Request-to-Book |
+| `POST /api/booking-requests/fast-match` | `booking-requests/fast-match/route.ts` | Yes — sibling request creation |
+| `PATCH /api/booking-requests/[id]` | `booking-requests/[id]/route.ts` | Yes — request-state transitions |
+| `GET/POST /api/alerts` | `alerts/route.ts` | Customer alert lifecycle |
+| `PATCH/DELETE /api/alerts/[id]` | `alerts/[id]/route.ts` | Customer alert lifecycle |
+| `PATCH /api/concierge-offers/[id]` | `concierge-offers/[id]/route.ts` | Yes — customer/admin concierge actions |
 | `POST /api/upload` | `upload/route.ts` | Auth required |
 | `GET/POST /api/trips` | `trips/route.ts` | Carrier-facing |
 | `POST /api/trips/templates/[id]/post` | `templates/[id]/post/route.ts` | Quick-post path |
@@ -97,8 +111,8 @@ Route groups use parentheses notation `(name)` for layout/auth isolation — the
 | Directory | Key components |
 |---|---|
 | `src/components/booking/` | `booking-checkout-panel.tsx`, `booking-form.tsx`, `booking-status-timeline.tsx`, `booking-dispute-form.tsx`, `booking-review-form.tsx` |
-| `src/components/carrier/` | `carrier-onboarding-*.tsx`, `carrier-post-form.tsx`, `carrier-template-*.tsx`, `carrier-dashboard-*.tsx` |
-| `src/components/search/` | `search-bar.tsx`, `search-filters.tsx`, `saved-searches-manager.tsx` |
+| `src/components/carrier/` | `carrier-onboarding-*.tsx`, `carrier-post-form.tsx`, `carrier-template-*.tsx`, `pending-bookings-alert.tsx`, `request-clarification-sheet.tsx` |
+| `src/components/search/` | `search-bar.tsx`, `search-filters.tsx`, `alerts-manager.tsx`, `save-alert-form.tsx` |
 | `src/components/trip/` | `trip-card.tsx`, `trip-detail-summary.tsx` |
 | `src/components/admin/` | Admin verification, dispute, booking, payment panels |
 | `src/components/auth/` | `login-form.tsx`, `signup-form.tsx` |

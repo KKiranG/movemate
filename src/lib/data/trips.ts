@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 
+import { isCarrierActivationLive } from "@/lib/carrier-activation";
 import { SEARCH_PAGE_SIZE, SEARCH_REVALIDATE_SECONDS } from "@/lib/constants";
 import { buildBookingEmail } from "@/lib/email";
 import { hasMapsEnv, hasSupabaseAdminEnv, hasSupabaseEnv } from "@/lib/env";
@@ -113,7 +114,7 @@ async function getCarrierAndActiveVehicles(userId: string) {
   const supabase = createServerSupabaseClient();
   const { data: carrier, error: carrierError } = await supabase
     .from("carriers")
-    .select("id")
+    .select("id, activation_status, verification_status")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -735,6 +736,24 @@ export async function createTripForCarrier(userId: string, input: TripInput) {
     );
   }
 
+  const carrierActivationStatus =
+    carrier.activation_status ??
+    (carrier.verification_status === "verified"
+      ? "active"
+      : carrier.verification_status === "submitted"
+        ? "pending_review"
+        : carrier.verification_status === "rejected"
+          ? "rejected"
+          : "activation_started");
+
+  if (parsed.data.status === "active" && !isCarrierActivationLive(carrierActivationStatus)) {
+    throw new AppError(
+      "Finish activation before publishing live supply. Save this route as draft until ops approval is complete.",
+      409,
+      "carrier_not_active",
+    );
+  }
+
   const insertPayload = {
     carrier_id: carrier.id,
     vehicle_id: vehicle.id,
@@ -750,6 +769,11 @@ export async function createTripForCarrier(userId: string, input: TripInput) {
       parsed.data.destinationLongitude,
       parsed.data.destinationLatitude,
     ),
+    waypoint_suburbs: parsed.data.waypointSuburbs,
+    route_polyline: parsed.data.routePolyline ?? null,
+    recurrence_rule: parsed.data.recurrenceRule?.trim() || null,
+    recurrence_days: parsed.data.recurrenceDays,
+    detour_tolerance_label: parsed.data.detourToleranceLabel,
     detour_radius_km: parsed.data.detourRadiusKm,
     trip_date: parsed.data.tripDate,
     time_window: parsed.data.timeWindow,
@@ -912,11 +936,16 @@ export async function updateTripForCarrier(
     .from("capacity_listings")
     .update({
       vehicle_id: selectedVehicle?.id,
+      waypoint_suburbs: parsed.data.waypointSuburbs,
+      route_polyline: parsed.data.routePolyline?.trim() || null,
+      recurrence_rule: parsed.data.recurrenceRule?.trim() || null,
+      recurrence_days: parsed.data.recurrenceDays,
       trip_date: parsed.data.tripDate,
       time_window: parsed.data.timeWindow,
       space_size: parsed.data.spaceSize,
       available_volume_m3: parsed.data.availableVolumeM3,
       available_weight_kg: parsed.data.availableWeightKg,
+      detour_tolerance_label: parsed.data.detourToleranceLabel,
       detour_radius_km: parsed.data.detourRadiusKm,
       price_cents: parsed.data.priceCents,
       accepts_furniture: parsed.data.accepts.includes("furniture"),

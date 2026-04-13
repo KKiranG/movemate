@@ -60,7 +60,7 @@ export default async function Image({
               background: trip?.isReturnTrip ? "rgba(0, 166, 81, 0.08)" : "#fff",
             }}
           >
-            {trip?.isReturnTrip ? "Return trip backload" : "Browse-first listing"}
+            {trip?.isReturnTrip ? "Return trip backload" : "Spare-capacity match"}
           </div>
           <div
             style={{

@@ -31,3 +31,23 @@ export interface UnmatchedRequest {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CustomerConciergeOffer {
+  id: string;
+  unmatchedRequestId: string;
+  moveRequestId?: string | null;
+  listingId?: string | null;
+  offerId?: string | null;
+  bookingRequestId?: string | null;
+  carrierId: string;
+  carrierBusinessName: string;
+  quotedTotalPriceCents: number;
+  status: "draft" | "sent" | "accepted" | "declined" | "cancelled";
+  note?: string | null;
+  tripDate?: string | null;
+  timeWindow?: string | null;
+  sentAt?: string | null;
+  respondedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1856,3 +1856,27 @@
   - PostGIS, core marketplace tables, matching RPCs, RLS policies, indexes, and typed database access were already in place.
 - Why it matters:
   - The product already had a real backend shape suitable for continuing toward an MVP, rather than a frontend-only shell.
+
+### `COMP-2026-04-14-01` — Concierge recovery, activation split, trip-shape expansion, and release-prep hardening
+- **When:** `2026-04-14`
+- **By:** `Codex`
+- **Files changed:** `supabase/migrations/031_activation_trip_and_concierge_completion.sql`, `src/lib/carrier-activation.ts`, `src/lib/data/concierge-offers.ts`, `src/app/api/concierge-offers/route.ts`, `src/app/api/concierge-offers/[id]/route.ts`, `src/lib/data/booking-requests.ts`, `src/app/api/bookings/route.ts`, `src/lib/data/trips.ts`, `src/lib/validation/trip.ts`, `src/components/carrier/carrier-trip-wizard.tsx`, `src/app/(admin)/admin/alerts/page.tsx`, `src/components/admin/concierge-offer-form.tsx`, `src/components/admin/concierge-offer-actions.tsx`, `src/app/(customer)/alerts/page.tsx`, `src/components/search/alerts-manager.tsx`, `src/app/(carrier)/carrier/dashboard/page.tsx`, `src/app/(carrier)/carrier/account/page.tsx`, `src/app/(carrier)/carrier/onboarding/page.tsx`, `src/components/carrier/carrier-onboarding-form.tsx`, `src/components/carrier/carrier-trust-panel.tsx`, `src/lib/data/carriers.ts`, `src/lib/data/mappers.ts`, `src/types/admin.ts`, `src/types/alert.ts`, `src/types/booking.ts`, `src/types/carrier.ts`, `src/types/database.ts`, `src/types/trip.ts`, `src/lib/demo-data.ts`, `src/lib/__tests__/carrier-today.test.ts`, `src/lib/__tests__/helpers/supabase-rest-harness.ts`, `.agent-skills/API-ROUTES.md`, `.agent-skills/OVERVIEW.md`, `.claude/CODEBASE-MAP.md`, `.claude/capability-index.md`, `src/app/(customer)/trip/[id]/opengraph-image.tsx`, `package.json`, `todolist.md`
+- **Why it mattered:** The request-first MVP was close, but founder concierge recovery still stopped short of the normal booking-request flow, carrier activation was still conceptually tied to legacy verification flags, trips could not yet express the richer route shape the blueprint calls for, and release-prep still had some admin-control and language-drift seams.
+- **What was done:**
+  - Added the activation/trip/concierge migration wave, including carrier activation fields, trip waypoint/polyline/recurrence/detour-tolerance fields, request-flow lineage on bookings, and concierge-offer linkage needed to keep manual founder fulfilment on-platform.
+  - Added a shared carrier activation helper, rewired carrier onboarding/account/home/trust surfaces around activation status, and made trip publication plus booking-request acceptance respect activation gates instead of relying on a single legacy verification flag.
+  - Extended the trip model, validation, mappers, and carrier posting flow so trips can now persist waypoints, route polyline data, recurrence metadata, and detour-tolerance signals.
+  - Completed the concierge-offer flow so admin can create/send/cancel offers, customers can accept/decline them from Alerts, accepted concierge offers convert through the normal booking-request path, and the resulting booking now keeps request-flow lineage on the booking record.
+  - Removed the live direct-booking POST path by turning `/api/bookings` into a deprecation guard, ensuring the canonical customer flow now goes through move requests, offers, and booking requests.
+  - Added a release-prep product-drift scan, cleaned the last real browse-first leak from the customer trip OpenGraph image, updated repo docs/maps for the new API and surface truth, and collapsed `todolist.md` to the small set of genuinely remaining items.
+- **Backlog items moved from active to completed:**
+  - `D06`
+  - `D08`
+  - `D11`
+  - `A01`
+  - `A02`
+  - `A03`
+  - `A08`
+  - `A17`
+  - `A26`
+- **Verification:** `npm run check`; `npm run scan:product-drift`; unauthenticated guard probe for `PATCH /api/concierge-offers/[id]`

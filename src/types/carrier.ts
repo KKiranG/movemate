@@ -4,6 +4,14 @@ export type VerificationStatus =
   | "verified"
   | "rejected";
 
+export type CarrierActivationStatus =
+  | "not_started"
+  | "activation_started"
+  | "pending_review"
+  | "active"
+  | "rejected"
+  | "suspended";
+
 export type VehicleType =
   | "van"
   | "ute"
@@ -25,6 +33,9 @@ export interface CarrierProfile {
   vehiclePhotoUrl?: string | null;
   isVerified: boolean;
   verificationStatus: VerificationStatus;
+  activationStatus: CarrierActivationStatus;
+  abnVerified: boolean;
+  insuranceVerified: boolean;
   verificationSubmittedAt?: string | null;
   verifiedAt?: string | null;
   verificationNotes?: string | null;

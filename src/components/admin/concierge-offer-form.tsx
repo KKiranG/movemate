@@ -13,6 +13,7 @@ export function ConciergeOfferForm({
 }: {
   unmatchedRequestId: string;
   carrierOptions: Array<{
+    listingId: string;
     carrierId: string;
     businessName: string;
     tripDate: string;
@@ -42,9 +43,12 @@ export function ConciergeOfferForm({
         },
         body: JSON.stringify({
           unmatchedRequestId,
+          listingId:
+            carrierOptions.find((option) => option.carrierId === carrierId)?.listingId ?? undefined,
           carrierId,
           quotedTotalPriceCents: Math.round(Number(quotedTotalPrice) * 100),
           note,
+          sendNow: true,
         }),
       });
       const payload = await response.json();
@@ -75,7 +79,7 @@ export function ConciergeOfferForm({
       <div>
         <p className="text-sm font-medium text-text">Create concierge offer</p>
         <p className="mt-1 text-sm text-text-secondary">
-          Send a founder-sourced offer tied to this unmatched demand instead of handling it off-platform.
+          Send a founder-sourced match tied to this route request so the customer can continue through moverrr instead of leaving the platform.
         </p>
       </div>
 
@@ -117,7 +121,7 @@ export function ConciergeOfferForm({
       </label>
 
       <Button type="submit" disabled={isSubmitting || !carrierId || !quotedTotalPrice.trim()}>
-        {isSubmitting ? "Creating concierge offer..." : "Create concierge offer"}
+        {isSubmitting ? "Sending concierge offer..." : "Send concierge offer"}
       </Button>
       {error ? <p className="text-sm text-error">{error}</p> : null}
     </form>
