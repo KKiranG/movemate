@@ -30,7 +30,7 @@ if [[ "$doc_changed" == "true" ]]; then
   echo "Session ended with agent-runtime doc changes. Verify before closing:"
   echo "  - CLAUDE.md and operating-system.md reflect current truth"
   echo "  - capability-index.md matches current agents and skills"
-  echo "  - todolist.md updated if behavior or commands changed"
+  echo "  - docs/operations/todolist.md updated if behavior or commands changed"
   echo "  - No stale paths or duplicate truth introduced"
 fi
 

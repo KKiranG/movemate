@@ -1,7 +1,7 @@
 ---
 name: write-task
 description: Draft or sharpen moverrr backlog items in the house format, with duplicate and verifiability checks before any append.
-when_to_use: Use when the user wants to add, rewrite, split, or tighten a backlog item in `todolist.md`.
+when_to_use: Use when the user wants to add, rewrite, split, or tighten a backlog item in `docs/operations/docs/operations/todolist.md`.
 argument-hint: [task description or existing task ID]
 allowed-tools: [Read, Glob, Grep, Edit]
 effort: high
@@ -15,7 +15,7 @@ Use this workflow to keep backlog quality high.
 
 1. `TASK-RULES.md`
 2. `.claude/task-template.md`
-3. The relevant section of `todolist.md`
+3. The relevant section of `docs/operations/docs/operations/todolist.md`
 
 ## Drafting Rules
 
@@ -34,4 +34,4 @@ Use this workflow to keep backlog quality high.
 - draft task in house format
 - short note explaining why the draft is sharp enough to verify
 
-Ask the user to confirm the draft before editing `todolist.md`.
+Ask the user to confirm the draft before editing `docs/operations/docs/operations/todolist.md`.

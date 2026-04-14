@@ -9,7 +9,7 @@ Deploying: carrier Stripe Connect onboarding flow (`POST /api/carrier/stripe/con
 ### Docs and Memory
 - [x] `CLAUDE.md` invariants unchanged by this change
 - [x] `.agent-skills/PAYMENTS.md` updated with Connect flow details
-- [x] `todolist.md` items completed and moved to `completed.md`
+- [x] `docs/operations/docs/operations/todolist.md` items completed and moved to `docs/operations/docs/operations/completed.md`
 - [x] `command-catalog.md` updated with new Connect routes
 
 ### Verification
