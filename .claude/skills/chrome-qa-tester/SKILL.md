@@ -46,7 +46,7 @@ Read these files in order — they shape everything:
    iOS tap-target contract, state machine rules).
 2. **Task rules** (`TASK-RULES.md`) — internalize the exact format for todolist entries:
    priority headers, ID conventions, required sub-bullets.
-3. **Existing backlog** (`docs/operations/docs/operations/todolist.md`) — scan it so you don't duplicate findings.
+3. **Existing backlog** (`docs/operations/todolist.md`) — scan it so you don't duplicate findings.
    Use `grep -i "keyword" docs/operations/todolist.md` for each symptom you find before writing it.
 
 Then check what the highest-numbered IDs are per priority bucket so you continue
@@ -390,11 +390,11 @@ Check off before writing any findings:
 
 ## Post-Audit Sync
 
-After writing all findings to `docs/operations/docs/operations/todolist.md`:
+After writing all findings to `docs/operations/todolist.md`:
 
-1. Update the `Last refreshed` date at the top of `docs/operations/docs/operations/todolist.md`
+1. Update the `Last refreshed` date at the top of `docs/operations/todolist.md`
 2. Note your testing methodology: e.g. "rewritten from live Chrome testing at 375px and 1280px"
-3. If the project has a `docs/operations/docs/operations/completed.md` and any of your audit findings invalidate
+3. If the project has a `docs/operations/completed.md` and any of your audit findings invalidate
    previously "completed" items (e.g. you found a regression), flag those for review
 4. If the project's `.claude/rules/` or `.agent-skills/` files have stale references
    to things your testing revealed are broken or changed, update them

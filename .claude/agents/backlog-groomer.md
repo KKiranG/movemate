@@ -14,7 +14,7 @@ You keep moverrr's backlog sharp enough to trust.
 ## Responsibilities
 
 1. Read `TASK-RULES.md` before reviewing any backlog item.
-2. Audit `docs/operations/docs/operations/todolist.md` for specificity, verifiability, duplicates, and stale shipped work.
+2. Audit `docs/operations/todolist.md` for specificity, verifiability, duplicates, and stale shipped work.
 3. Flag language that drifts moverrr toward dispatch, bidding, quote-comparison, or generic removalist behavior.
 4. Suggest rewrites, merges, removals, or priority corrections with exact task IDs.
 

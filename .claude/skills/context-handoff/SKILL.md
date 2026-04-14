@@ -34,7 +34,7 @@ Write a brief note (can be in a reply, not a file) covering:
 
 ### 3. Update Backlog If Task Changed State
 
-- If a task moved from in-progress to complete, mark it in `docs/operations/docs/operations/todolist.md` and add to `docs/operations/docs/operations/completed.md`.
+- If a task moved from in-progress to complete, mark it in `docs/operations/todolist.md` and add to `docs/operations/completed.md`.
 - If a task changed shape (scoped down, pivoted), update the backlog entry.
 - Do not create new backlog items here unless specifically asked.
 
@@ -57,7 +57,7 @@ Read in this sequence — stop when you have enough context to act:
 3. **`.claude/MVP-BOUNDARY.md`** — confirm the work is in scope
 4. **`.claude/CODEBASE-MAP.md`** — file locations for the affected area
 5. **Matching `.agent-skills/*.md`** — domain context for the area being changed
-6. **`docs/operations/docs/operations/todolist.md`** — current backlog item being worked on
+6. **`docs/operations/todolist.md`** — current backlog item being worked on
 7. **Recent git log on the branch** — what has already been committed
 
 ```bash

@@ -13,7 +13,7 @@ Use this template before writing or rewriting a backlog item.
 ## Pre-submit Checklist
 
 - [ ] `Done when` is verifiable by someone who did not write the task
-- [ ] no duplicate already exists in `docs/operations/docs/operations/todolist.md`
+- [ ] no duplicate already exists in `docs/operations/todolist.md`
 - [ ] file paths are exact, not broad globs
 - [ ] this task describes one outcome, not a bundle of unrelated work
 - [ ] the title uses a concrete action verb instead of `investigate`, `improve`, `enhance`, or `consider`
