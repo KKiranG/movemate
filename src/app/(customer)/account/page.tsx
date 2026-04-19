@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight, Truck } from "lucide-react";
 
 import { TopAppBar } from "@/components/spec/chrome";
 
@@ -14,27 +15,37 @@ export default function AccountPage() {
   return (
     <main className="pb-8">
       <TopAppBar title="Account" />
-      <section className="screen space-y-3">
-        <div className="surface-1">
+      <section className="screen space-y-5">
+        <div className="space-y-2">
+          <p className="eyebrow">Customer account</p>
+          <h1 className="heading">Trust, payments, and preferences</h1>
+        </div>
+
+        <div className="surface-1 space-y-1">
           <p className="title">Ava Parker</p>
           <p className="caption">ava@example.com</p>
+          <p className="caption">Verified payment method ready</p>
         </div>
-        {rows.map((row) => (
-          <Link
-            key={`${row.href}-${row.label}`}
-            href={row.href}
-            className="flex min-h-[52px] min-w-[44px] items-center justify-between rounded-[var(--radius-md)] bg-[var(--bg-elevated-1)] px-4 text-[15px] text-[var(--text-primary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
-          >
-            {row.label}
-            <span className="text-[var(--text-secondary)]">→</span>
-          </Link>
-        ))}
+
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <Link
+              key={`${row.href}-${row.label}`}
+              href={row.href}
+              className="flex min-h-[54px] min-w-[44px] items-center justify-between rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated-1)] px-4 text-[15px] font-medium text-[var(--text-primary)] shadow-[var(--shadow-card)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
+            >
+              {row.label}
+              <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)]" />
+            </Link>
+          ))}
+        </div>
 
         <Link
-          href="https://carrier.moverrr.com/auth/signup"
-          className="mt-4 inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-sm)] px-2 text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:text-[var(--text-primary)]"
+          href="/carrier"
+          className="flex min-h-[54px] items-center justify-center gap-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] px-4 text-[14px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-elevated-1)] active:bg-[var(--bg-elevated-2)]"
         >
-          Drive with Moverrr
+          <Truck className="h-4 w-4" />
+          Have spare space in your van? Drive with moverrr
         </Link>
       </section>
     </main>

@@ -83,7 +83,7 @@ export default async function CarrierTripsPage({
               </p>
             </div>
             <Button asChild variant="secondary">
-              <Link href="/carrier/dashboard">Go to carrier home</Link>
+              <Link href="/carrier">Go to carrier home</Link>
             </Button>
           </div>
         </Card>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Card } from "@/components/ui/card";
+import { Wordmark } from "@/components/ui/wordmark";
 import { cn } from "@/lib/utils";
 
 type Action = {
@@ -25,11 +26,17 @@ export function CarrierScaffoldPage({
   children?: ReactNode;
 }) {
   return (
-    <main id="main-content" className="screen safe-bottom-pad app-scroll space-y-4 pb-[calc(88px+env(safe-area-inset-bottom))]">
-      <header className="space-y-2">
+    <main id="main-content" className="screen safe-bottom-pad app-scroll space-y-5 pb-[calc(88px+env(safe-area-inset-bottom))]">
+      <header className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Wordmark color="#f7f6f2" />
+          <p className="rounded-[var(--radius-pill)] border border-[var(--border-subtle)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+            Carrier
+          </p>
+        </div>
         <p className="eyebrow">{eyebrow}</p>
-        <h1 className="heading">{title}</h1>
-        <p className="caption">{description}</p>
+        <h1 className="heading max-w-[13ch]">{title}</h1>
+        <p className="max-w-[34ch] text-[15px] leading-7 text-[var(--text-secondary)]">{description}</p>
       </header>
 
       {actions && actions.length > 0 ? (
@@ -68,10 +75,10 @@ function ScaffoldAction({ action }: { action: Action }) {
     <Link
       href={action.href}
       className={cn(
-        "inline-flex min-w-[44px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 text-[15px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]",
+        "inline-flex min-w-[44px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 text-center text-[15px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]",
         action.operational ? "touch-52" : "min-h-[44px]",
         action.tone === "primary"
-          ? "border-transparent bg-[var(--accent)] text-[var(--text-on-accent)] hover:bg-[var(--accent-hover)] active:bg-[var(--accent-pressed)]"
+          ? "border-transparent bg-[var(--bg-elevated-1)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
           : "",
       )}
     >

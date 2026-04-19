@@ -35,9 +35,10 @@ export function CustomerShellLayout({ children }: { children: React.ReactNode })
       {showTabs ? (
         <BottomTabBar
           pathname={pathname}
+          tone="light"
           tabs={[
             { href: "/", label: "Home", icon: "home" },
-            { href: "/activity", label: "Activity", icon: "activity" },
+            { href: "/activity", label: "Moves", icon: "activity" },
             { href: "/inbox", label: "Inbox", icon: "inbox" },
             { href: "/account", label: "Account", icon: "account" },
           ]}
@@ -51,12 +52,13 @@ export function CarrierShellLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
 
   return (
-    <div className="app-shell app-scroll pb-28">
+    <div className="app-shell carrier-shell app-scroll pb-28">
       <main id="main-content" className="flex-1">
         {children}
       </main>
       <BottomTabBar
         pathname={pathname}
+        tone="dark"
         tabs={[
           { href: "/carrier", label: "Home", icon: "home" },
           { href: "/carrier/requests", label: "Requests", icon: "requests" },

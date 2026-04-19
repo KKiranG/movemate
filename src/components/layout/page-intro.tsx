@@ -15,11 +15,11 @@ export function PageIntro({
 }: PageIntroProps) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="section-label">{eyebrow}</p>
+      <p className="eyebrow">{eyebrow}</p>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl leading-tight text-text sm:text-4xl">{title}</h1>
-          <p className="max-w-2xl text-base leading-7 text-text-secondary">
+          <h1 className="heading max-w-[14ch]">{title}</h1>
+          <p className="max-w-2xl text-[15px] leading-7 text-[var(--text-secondary)]">
             {description}
           </p>
         </div>

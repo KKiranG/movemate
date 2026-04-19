@@ -10,7 +10,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-xl border border-border px-2.5 py-1 text-xs font-medium text-text-secondary",
+        "inline-flex items-center rounded-[var(--radius-pill)] border px-2.5 py-1 text-xs font-medium",
         className,
       )}
       {...props}
@@ -19,14 +19,14 @@ export function Badge({
 }
 
 const statusBadgeMap: Record<BookingStatus, string> = {
-  pending: "border-warning/30 bg-warning/10 text-warning",
-  confirmed: "border-success/30 bg-success/10 text-success",
-  picked_up: "border-accent/20 bg-accent/10 text-accent",
-  in_transit: "border-accent/20 bg-accent/10 text-accent",
-  delivered: "border-border bg-black/[0.03] text-text dark:bg-white/[0.06]",
-  completed: "border-border bg-black/[0.03] text-text dark:bg-white/[0.06]",
-  cancelled: "border-border bg-black/[0.03] text-text-secondary dark:bg-white/[0.04]",
-  disputed: "border-error/30 bg-error/10 text-error",
+  pending: "border-[color:var(--warning)]/30 bg-[var(--warning-subtle)] text-[var(--warning)]",
+  confirmed: "border-[color:var(--success)]/30 bg-[var(--success-subtle)] text-[var(--success)]",
+  picked_up: "border-[color:var(--accent)]/30 bg-[var(--accent-subtle)] text-[var(--accent)]",
+  in_transit: "border-[color:var(--accent)]/30 bg-[var(--accent-subtle)] text-[var(--accent)]",
+  delivered: "border-[var(--border-subtle)] bg-[var(--bg-elevated-2)] text-[var(--text-primary)]",
+  completed: "border-[var(--border-subtle)] bg-[var(--bg-elevated-2)] text-[var(--text-primary)]",
+  cancelled: "border-[var(--border-subtle)] bg-[var(--bg-elevated-2)] text-[var(--text-secondary)]",
+  disputed: "border-[color:var(--danger)]/30 bg-[color:rgba(166,50,28,0.12)] text-[var(--danger)]",
 };
 
 export function StatusBadge({

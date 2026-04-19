@@ -23,8 +23,16 @@ export default function InboxPage() {
   return (
     <main className="pb-8">
       <TopAppBar title="Inbox" />
-      <section className="screen space-y-4">
-        <div className="rounded-[var(--radius-pill)] bg-[var(--bg-elevated-1)] p-1">
+      <section className="screen space-y-5">
+        <div className="space-y-2">
+          <p className="eyebrow">Updates</p>
+          <h1 className="heading">Booking updates, not noisy chat</h1>
+          <p className="body text-[var(--text-secondary)]">
+            moverrr keeps coordination structured so you can follow the move without message chaos.
+          </p>
+        </div>
+
+        <div className="rounded-[var(--radius-pill)] border border-[var(--border-subtle)] bg-[var(--bg-elevated-1)] p-1 shadow-[var(--shadow-card)]">
           <div className="grid grid-cols-2 gap-1 text-center text-[13px]">
             {([
               ["all", "All"],
@@ -34,9 +42,9 @@ export default function InboxPage() {
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className={`min-h-[44px] min-w-[44px] rounded-[var(--radius-pill)] ${
+                className={`min-h-[46px] min-w-[44px] rounded-[var(--radius-pill)] ${
                   tab === key
-                    ? "bg-[var(--bg-elevated-3)] text-[var(--text-primary)]"
+                    ? "bg-[var(--text-primary)] text-[var(--bg-base)]"
                     : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
                 }`}
               >
@@ -47,24 +55,26 @@ export default function InboxPage() {
         </div>
 
         {threads.length === 0 ? (
-          <EmptyStateCard title="No messages yet" description="We'll show booking and system updates here." />
+          <EmptyStateCard title="No messages yet" description="We’ll show booking and system updates here." />
         ) : (
-          threads.map((thread) => (
-            <Link
-              key={thread.id}
-              href={thread.href}
-              className="block rounded-[var(--radius-md)] bg-[var(--bg-elevated-1)] p-4 hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="title">{thread.title}</p>
-                <p className="caption">{thread.timestamp}</p>
-              </div>
-              <div className="mt-1 flex items-center justify-between gap-3">
-                <p className="caption">{thread.preview}</p>
-                {thread.unread ? <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> : null}
-              </div>
-            </Link>
-          ))
+          <div className="space-y-3">
+            {threads.map((thread) => (
+              <Link
+                key={thread.id}
+                href={thread.href}
+                className="block rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated-1)] p-4 shadow-[var(--shadow-card)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="title">{thread.title}</p>
+                  <p className="caption">{thread.timestamp}</p>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="caption">{thread.preview}</p>
+                  {thread.unread ? <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" /> : null}
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
       </section>
     </main>

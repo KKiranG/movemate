@@ -1,8 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Instrument_Serif, Inter } from "next/font/google";
 
 import { AppClientEffects } from "@/components/layout/app-client-effects";
 
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-serif",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://moverrr.com.au"),
@@ -18,16 +30,16 @@ export const metadata: Metadata = {
       "Need-first spare-capacity matching for awkward-middle moves in Sydney.",
     type: "website",
   },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f6f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#14120f" },
+  ],
 };
 
 export default function RootLayout({
@@ -37,8 +49,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-AU">
-      <body className="antialiased">
-        <div className="min-h-screen bg-background">
+      <body className={`${inter.variable} ${instrumentSerif.variable} antialiased`}>
+        <div className="min-h-screen bg-[var(--app-chrome)]">
           <AppClientEffects />
           <a
             href="#main-content"
@@ -46,7 +58,7 @@ export default function RootLayout({
           >
             Skip to main content
           </a>
-          <div className="mx-auto min-h-screen max-w-[430px]">{children}</div>
+          <div className="mx-auto min-h-screen max-w-[460px]">{children}</div>
         </div>
       </body>
     </html>
