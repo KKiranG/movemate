@@ -37,7 +37,9 @@ export function VerifyCarrierActions({
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to update carrier verification.");
+        throw new Error(
+          payload.error ?? "Unable to update carrier verification.",
+        );
       }
 
       router.refresh();
@@ -55,7 +57,11 @@ export function VerifyCarrierActions({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={isSubmitting} onClick={() => submit(true, notes)}>
+        <Button
+          type="button"
+          disabled={isSubmitting}
+          onClick={() => submit(true, notes)}
+        >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Approve
         </Button>

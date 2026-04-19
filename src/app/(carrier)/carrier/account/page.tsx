@@ -17,7 +17,7 @@ export default async function CarrierAccountPage() {
   const carrier = await getCarrierByUserId(user.id);
 
   return (
-    <main id="main-content" className="page-shell">
+    <main id="main-content" className="screen">
       <PageIntro
         eyebrow="Account"
         title="Carrier account"
@@ -26,9 +26,9 @@ export default async function CarrierAccountPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <Card className="p-4">
-          <p className="section-label">Carrier profile</p>
-          <h2 className="mt-1 text-lg text-text">{carrier?.businessName ?? user.email ?? "Carrier account"}</h2>
-          <div className="mt-3 grid gap-2 text-sm text-text-secondary">
+          <p className="eyebrow">Carrier profile</p>
+          <h2 className="mt-1 text-lg text-[var(--text-primary)]">{carrier?.businessName ?? user.email ?? "Carrier account"}</h2>
+          <div className="mt-3 grid gap-2 text-sm text-[var(--text-secondary)]">
             <p>Email: {user.email ?? "Not available"}</p>
             <p>Activation: {carrier ? getCarrierActivationLabel(carrier.activationStatus) : "Not started"}</p>
             <p>Payout setup: {carrier?.stripeOnboardingComplete ? "Ready" : "Still required"}</p>
@@ -37,25 +37,37 @@ export default async function CarrierAccountPage() {
         </Card>
 
         <Card className="p-4">
-          <p className="section-label">Quick links</p>
+          <p className="eyebrow">Account sections</p>
           <div className="mt-3 grid gap-2">
             <Link
-              href="/carrier/requests"
-              className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-4 py-3 text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+              href="/carrier/account/profile"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
             >
-              Open requests
+              Profile
             </Link>
             <Link
-              href="/carrier/trips"
-              className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-4 py-3 text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+              href="/carrier/account/vehicle"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
             >
-              Open trips
+              Vehicle
             </Link>
             <Link
-              href="/carrier/payouts"
-              className="inline-flex min-h-[44px] items-center rounded-xl border border-border px-4 py-3 text-sm text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]"
+              href="/carrier/account/documents"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
             >
-              Open payouts
+              Documents
+            </Link>
+            <Link
+              href="/carrier/account/verification"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
+            >
+              Verification
+            </Link>
+            <Link
+              href="/carrier/account/settings"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
+            >
+              Settings
             </Link>
           </div>
         </Card>

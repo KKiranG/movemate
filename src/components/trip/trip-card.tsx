@@ -155,7 +155,7 @@ export function TripCard({ trip, href, preferredDate }: TripCardProps) {
               </p>
             </div>
             <details className="sm:hidden">
-              <summary className="inline-flex min-h-[44px] cursor-pointer items-center text-sm font-medium text-accent active:opacity-80">
+              <summary className="inline-flex min-h-[44px] cursor-pointer items-center rounded-lg text-sm font-medium text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:opacity-80">
                 More info
               </summary>
               <div className="space-y-2 pb-1">
@@ -198,7 +198,7 @@ export function TripCard({ trip, href, preferredDate }: TripCardProps) {
         </div>
       </div>
       <div className="mt-4 flex items-center justify-end">
-        <span className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-accent px-4 text-sm font-medium text-white active:bg-[#0047b3]">
+        <span className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-accent px-4 text-sm font-medium text-white transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent/25 active:bg-[#0047b3]">
           {isFullyBooked ? "Fully booked - see similar trips" : "Request this trip"}
           <ArrowRight className="h-4 w-4" />
         </span>
@@ -211,7 +211,10 @@ export function TripCard({ trip, href, preferredDate }: TripCardProps) {
   }
 
   return (
-    <Link href={cardHref} className="group block active:opacity-95">
+    <Link
+      href={cardHref}
+      className="group block rounded-[var(--radius-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:opacity-95"
+    >
       {content}
     </Link>
   );

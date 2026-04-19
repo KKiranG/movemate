@@ -44,34 +44,34 @@ async function BookingsListSection({ userId }: { userId: string }) {
       {clarificationRequests.length > 0 ? (
         <div className="grid gap-4">
           <div>
-            <p className="section-label">Reply needed</p>
-            <h2 className="mt-1 text-lg text-text">Clarifications waiting on you</h2>
+            <p className="eyebrow">Reply needed</p>
+            <h2 className="mt-1 text-lg text-[var(--text-primary)]">Clarifications waiting on you</h2>
           </div>
           {clarificationRequests.map((request) => (
             <Link key={request.id} href={`/bookings/${request.id}`}>
               <Card className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg text-text">{request.itemDescription}</h2>
-                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-text-secondary">
+                    <h2 className="text-lg text-[var(--text-primary)]">{request.itemDescription}</h2>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--text-secondary)]">
                       {request.typeLabel}
                     </p>
-                    <p className="mt-2 subtle-text">
+                    <p className="mt-2 caption">
                       {request.pickupSuburb} to {request.dropoffSuburb}
                     </p>
-                    <p className="mt-2 text-sm text-text-secondary">
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
                       Clarification reply due by{" "}
                       {formatDateTime(
                         request.clarificationExpiresAt ?? request.responseDeadlineAt,
                       )}
                     </p>
-                    <p className="mt-2 text-sm font-medium text-accent">Reply to clarification</p>
+                    <p className="mt-2 text-sm font-medium text-[var(--accent)]">Reply to clarification</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm capitalize text-accent">
+                    <p className="text-sm capitalize text-[var(--accent)]">
                       {request.status.replaceAll("_", " ")}
                     </p>
-                    <p className="mt-1 font-medium text-text">
+                    <p className="mt-1 font-medium text-[var(--text-primary)]">
                       {formatCurrency(request.requestedTotalPriceCents)}
                     </p>
                   </div>
@@ -85,33 +85,33 @@ async function BookingsListSection({ userId }: { userId: string }) {
       {liveFastMatchRequests.length > 0 ? (
         <div className="grid gap-4">
           <div>
-            <p className="section-label">Fast Match live</p>
-            <h2 className="mt-1 text-lg text-text">Shared requests still looking for the first accept</h2>
+            <p className="eyebrow">Fast Match live</p>
+            <h2 className="mt-1 text-lg text-[var(--text-primary)]">Shared requests still looking for the first accept</h2>
           </div>
           {liveFastMatchRequests.map((request) => (
             <Link key={request.id} href={`/bookings/${request.id}`}>
               <Card className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg text-text">{request.itemDescription}</h2>
-                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-text-secondary">
+                    <h2 className="text-lg text-[var(--text-primary)]">{request.itemDescription}</h2>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--text-secondary)]">
                       Fast Match
                     </p>
-                    <p className="mt-2 subtle-text">
+                    <p className="mt-2 caption">
                       {request.pickupSuburb} to {request.dropoffSuburb}
                     </p>
-                    <p className="mt-2 text-sm text-text-secondary">
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
                       Up to three fitting carriers are inside the same response window until one accepts first.
                     </p>
-                    <p className="mt-2 text-sm font-medium text-accent">
+                    <p className="mt-2 text-sm font-medium text-[var(--accent)]">
                       {request.urgencyLabel ?? "Track Fast Match"}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm capitalize text-accent">
+                    <p className="text-sm capitalize text-[var(--accent)]">
                       {request.status.replaceAll("_", " ")}
                     </p>
-                    <p className="mt-1 font-medium text-text">
+                    <p className="mt-1 font-medium text-[var(--text-primary)]">
                       {formatCurrency(request.requestedTotalPriceCents)}
                     </p>
                   </div>
@@ -125,33 +125,33 @@ async function BookingsListSection({ userId }: { userId: string }) {
       {liveSingleRequests.length > 0 ? (
         <div className="grid gap-4">
           <div>
-            <p className="section-label">Request to Book</p>
-            <h2 className="mt-1 text-lg text-text">Single-carrier requests awaiting decision</h2>
+            <p className="eyebrow">Request to Book</p>
+            <h2 className="mt-1 text-lg text-[var(--text-primary)]">Single-carrier requests awaiting decision</h2>
           </div>
           {liveSingleRequests.map((request) => (
             <Link key={request.id} href={`/bookings/${request.id}`}>
               <Card className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg text-text">{request.itemDescription}</h2>
-                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-text-secondary">
+                    <h2 className="text-lg text-[var(--text-primary)]">{request.itemDescription}</h2>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--text-secondary)]">
                       Request to Book
                     </p>
-                    <p className="mt-2 subtle-text">
+                    <p className="mt-2 caption">
                       {request.pickupSuburb} to {request.dropoffSuburb}
                     </p>
-                    <p className="mt-2 text-sm text-text-secondary">
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
                       Carrier decision due by {formatDateTime(request.responseDeadlineAt)}
                     </p>
-                    <p className="mt-2 text-sm font-medium text-accent">
+                    <p className="mt-2 text-sm font-medium text-[var(--accent)]">
                       {request.urgencyLabel ?? "Track request"}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm capitalize text-accent">
+                    <p className="text-sm capitalize text-[var(--accent)]">
                       {request.status.replaceAll("_", " ")}
                     </p>
-                    <p className="mt-1 font-medium text-text">
+                    <p className="mt-1 font-medium text-[var(--text-primary)]">
                       {formatCurrency(request.requestedTotalPriceCents)}
                     </p>
                   </div>
@@ -171,25 +171,25 @@ async function BookingsListSection({ userId }: { userId: string }) {
               return (
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-lg text-text">{booking.itemDescription}</h2>
-                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-text-secondary">
+                    <h2 className="text-lg text-[var(--text-primary)]">{booking.itemDescription}</h2>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--text-secondary)]">
                       {booking.bookingReference}
                     </p>
-                    <p className="mt-2 subtle-text">
+                    <p className="mt-2 caption">
                       {booking.pickupAddress} to {booking.dropoffAddress}
                     </p>
-                    <p className="mt-2 text-sm text-text-secondary">{paymentSummary.badge}</p>
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">{paymentSummary.badge}</p>
                     {booking.status === "completed" ? (
-                      <p className="mt-2 text-sm font-medium text-accent">
+                      <p className="mt-2 text-sm font-medium text-[var(--accent)]">
                         Rebook from this completed trip
                       </p>
                     ) : null}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm capitalize text-accent">
+                    <p className="text-sm capitalize text-[var(--accent)]">
                       {booking.status.replace("_", " ")}
                     </p>
-                    <p className="mt-1 font-medium text-text">
+                    <p className="mt-1 font-medium text-[var(--text-primary)]">
                       {formatCurrency(booking.pricing.totalPriceCents)}
                     </p>
                   </div>
@@ -203,31 +203,31 @@ async function BookingsListSection({ userId }: { userId: string }) {
         <Card className="p-4">
           <div className="space-y-4">
             <div>
-              <p className="section-label">Recent request outcomes</p>
-              <h2 className="mt-1 text-lg text-text">Requests that did not become bookings</h2>
+              <p className="eyebrow">Recent request outcomes</p>
+              <h2 className="mt-1 text-lg text-[var(--text-primary)]">Requests that did not become bookings</h2>
             </div>
             <div className="grid gap-3">
               {resolvedRequests.slice(0, 3).map((request) => (
                 <Link key={request.id} href={`/bookings/${request.id}`}>
-                  <div className="rounded-xl border border-border px-3 py-3">
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-medium text-text">{request.itemDescription}</p>
-                        <p className="mt-1 text-sm text-text-secondary">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">{request.itemDescription}</p>
+                        <p className="mt-1 text-sm text-[var(--text-secondary)]">
                           {request.pickupSuburb} to {request.dropoffSuburb}
                         </p>
                         {request.preferredDate ? (
-                          <p className="mt-1 text-xs text-text-secondary">
+                          <p className="mt-1 text-xs text-[var(--text-secondary)]">
                             Requested for {formatDate(request.preferredDate)}
                           </p>
                         ) : null}
                       </div>
                       <div className="text-right">
-                        <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+                        <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)]">
                           {request.status.replaceAll("_", " ")}
                         </p>
                         {request.status === "expired" && request.typeLabel === "Fast Match" ? (
-                          <p className="mt-1 text-xs text-text-secondary">
+                          <p className="mt-1 text-xs text-[var(--text-secondary)]">
                             Fast Match timed out
                           </p>
                         ) : null}
@@ -245,10 +245,10 @@ async function BookingsListSection({ userId }: { userId: string }) {
         <Card className="p-4">
           <div className="space-y-3">
             <div>
-              <p className="section-label">No requests or bookings yet</p>
-              <h2 className="mt-1 text-lg text-text">Start with a move need</h2>
+              <p className="eyebrow">No requests or bookings yet</p>
+              <h2 className="mt-1 text-lg text-[var(--text-primary)]">Start with a move need</h2>
             </div>
-            <p className="subtle-text">
+            <p className="caption">
               moverrr ranks spare-capacity matches after you declare the route, timing, and move type.
             </p>
             <Button asChild className="min-h-[44px] active:opacity-80">
@@ -265,7 +265,7 @@ export default async function BookingsPage() {
   const user = await requirePageSessionUser();
 
   return (
-    <main id="main-content" className="page-shell">
+    <main id="main-content" className="screen">
       <PageIntro
         eyebrow="Bookings"
         title="Track requests and bookings"

@@ -44,9 +44,13 @@ function loadPlacesScript(apiKey: string) {
 
     if (existing) {
       existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Failed to load Google Places.")), {
-        once: true,
-      });
+      existing.addEventListener(
+        "error",
+        () => reject(new Error("Failed to load Google Places.")),
+        {
+          once: true,
+        },
+      );
       return;
     }
 
@@ -56,9 +60,13 @@ function loadPlacesScript(apiKey: string) {
     script.defer = true;
     script.dataset.googlePlaces = "true";
     script.addEventListener("load", () => resolve(), { once: true });
-    script.addEventListener("error", () => reject(new Error("Failed to load Google Places.")), {
-      once: true,
-    });
+    script.addEventListener(
+      "error",
+      () => reject(new Error("Failed to load Google Places.")),
+      {
+        once: true,
+      },
+    );
     document.head.appendChild(script);
   });
 
@@ -69,7 +77,10 @@ function findAddressComponent(
   components: google.maps.GeocoderAddressComponent[] | undefined,
   type: string,
 ) {
-  return components?.find((component) => component.types.includes(type))?.long_name ?? "";
+  return (
+    components?.find((component) => component.types.includes(type))
+      ?.long_name ?? ""
+  );
 }
 
 export function GoogleAutocompleteInput({
@@ -83,11 +94,18 @@ export function GoogleAutocompleteInput({
   const listboxId = `${inputId}-listbox`;
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const autocompleteServiceRef =
+    useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(
+    null,
+  );
   const requestVersionRef = useRef(0);
-  const [query, setQuery] = useState(defaultValue ?? initialResolvedValue?.label ?? "");
-  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [query, setQuery] = useState(
+    defaultValue ?? initialResolvedValue?.label ?? "",
+  );
+  const [predictions, setPredictions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -189,22 +207,26 @@ export function GoogleAutocompleteInput({
     };
   }, [query]);
 
-  async function resolvePrediction(prediction: google.maps.places.AutocompletePrediction) {
+  async function resolvePrediction(
+    prediction: google.maps.places.AutocompletePrediction,
+  ) {
     const service = placesServiceRef.current;
 
     if (!service) {
       return;
     }
 
-    const details = await new Promise<google.maps.places.PlaceResult | null>((resolve) => {
-      service.getDetails(
-        {
-          placeId: prediction.place_id,
-          fields: ["address_components", "formatted_address", "geometry"],
-        },
-        (result) => resolve(result ?? null),
-      );
-    });
+    const details = await new Promise<google.maps.places.PlaceResult | null>(
+      (resolve) => {
+        service.getDetails(
+          {
+            placeId: prediction.place_id,
+            fields: ["address_components", "formatted_address", "geometry"],
+          },
+          (result) => resolve(result ?? null),
+        );
+      },
+    );
 
     if (!details?.formatted_address || !details.geometry?.location) {
       return;
@@ -215,7 +237,10 @@ export function GoogleAutocompleteInput({
       suburb:
         findAddressComponent(details.address_components, "locality") ||
         findAddressComponent(details.address_components, "sublocality") ||
-        findAddressComponent(details.address_components, "administrative_area_level_2"),
+        findAddressComponent(
+          details.address_components,
+          "administrative_area_level_2",
+        ),
       postcode: findAddressComponent(details.address_components, "postal_code"),
       latitude: details.geometry.location.lat(),
       longitude: details.geometry.location.lng(),
@@ -243,7 +268,9 @@ export function GoogleAutocompleteInput({
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setIsOpen(true);
-      setActiveIndex((current) => (current <= 0 ? predictions.length - 1 : current - 1));
+      setActiveIndex((current) =>
+        current <= 0 ? predictions.length - 1 : current - 1,
+      );
       return;
     }
 
@@ -312,7 +339,9 @@ export function GoogleAutocompleteInput({
                 role="option"
                 aria-selected={isActive}
                 className={`cursor-pointer px-3 py-3 text-sm text-text ${
-                  isActive ? "bg-accent/10 text-accent" : "active:bg-black/[0.04]"
+                  isActive
+                    ? "bg-accent/10 text-accent"
+                    : "active:bg-black/[0.04]"
                 }`}
                 onMouseDown={(event) => {
                   event.preventDefault();

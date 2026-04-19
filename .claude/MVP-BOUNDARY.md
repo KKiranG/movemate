@@ -2,7 +2,7 @@
 
 This file defines what is definitively in scope for the current moverrr MVP and what is explicitly deferred. Read this before implementing any new feature to avoid building outside the current product boundary.
 
-**This is not a backlog file.** It is a scope gate. Do not add tasks here. Use `todolist.md` for backlog items.
+**This is not a backlog file.** It is a scope gate. Do not add tasks here. Use `docs/operations/todolist.md` for backlog items.
 
 ---
 

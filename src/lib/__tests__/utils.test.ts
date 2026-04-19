@@ -10,6 +10,11 @@ import {
   formatDateTime,
   formatDateTimeInputValue,
   formatFileSize,
+  getDateDistanceInDays,
+  getDateOffsetIso,
+  getNextWeekdayDate,
+  getSafeRedirectUrl,
+  getTodayIsoDate,
 } from "@/lib/utils";
 
 describe("Formatting Utilities", () => {
@@ -21,7 +26,6 @@ describe("Formatting Utilities", () => {
   });
 
   test("formatDate formats ISO string to short date", () => {
-    // We pass dates assuming local timezone to avoid cross-timezone test failures
     const localDate1 = new Date(2023, 0, 1).toISOString();
     assert.equal(formatDate(localDate1), "Sun, 1 Jan");
 
@@ -30,7 +34,6 @@ describe("Formatting Utilities", () => {
   });
 
   test("formatLongDate formats ISO string to long date", () => {
-    // We pass dates assuming local timezone to avoid cross-timezone test failures
     const localDate1 = new Date(2023, 0, 1).toISOString();
     assert.equal(formatLongDate(localDate1), "1 January 2023");
 
@@ -52,7 +55,6 @@ describe("Formatting Utilities", () => {
   });
 
   test("formatDateTime formats ISO string to date and time", () => {
-    // Pass local dates to avoid timezone differences causing failures
     const localDate1 = new Date(2023, 0, 1, 15, 30);
     const result1 = formatDateTime(localDate1);
     assert.ok(result1.includes("1 Jan 2023"));
@@ -69,7 +71,6 @@ describe("Formatting Utilities", () => {
     assert.equal(formatDateTimeInputValue(""), "");
     assert.equal(formatDateTimeInputValue("invalid-date"), "");
 
-    // Given a UTC time, it outputs the local time version for the datetime-local input
     const dateStr = "2023-01-01T15:30:00Z";
     const result = formatDateTimeInputValue(dateStr);
     assert.ok(result.length === 16);
@@ -85,5 +86,76 @@ describe("Formatting Utilities", () => {
     assert.equal(formatFileSize(1024 * 500), "500 KB");
     assert.equal(formatFileSize(1024 * 1024), "1.0 MB");
     assert.equal(formatFileSize(1024 * 1024 * 2.5), "2.5 MB");
+  });
+});
+
+describe("Date Utilities", () => {
+  test("getDateOffsetIso adds and subtracts days correctly", () => {
+    assert.equal(getDateOffsetIso("2023-01-01", 5), "2023-01-06");
+    assert.equal(getDateOffsetIso("2023-01-06", -5), "2023-01-01");
+  });
+
+  test("getDateOffsetIso handles boundaries and leap years", () => {
+    assert.equal(getDateOffsetIso("2023-01-31", 1), "2023-02-01");
+    assert.equal(getDateOffsetIso("2023-12-31", 1), "2024-01-01");
+    assert.equal(getDateOffsetIso("2024-02-28", 1), "2024-02-29");
+    assert.equal(getDateOffsetIso("2024-02-29", 1), "2024-03-01");
+    assert.equal(getDateOffsetIso("2023-02-28", 1), "2023-03-01");
+  });
+
+  test("getDateOffsetIso returns original date on invalid input", () => {
+    assert.equal(getDateOffsetIso("invalid", 5), "invalid");
+  });
+
+  test("getDateDistanceInDays calculates distance correctly", () => {
+    assert.equal(getDateDistanceInDays("2023-01-01", "2023-01-01"), 0);
+    assert.equal(getDateDistanceInDays("2023-01-01", "2023-01-02"), 1);
+    assert.equal(getDateDistanceInDays("2023-01-02", "2023-01-01"), -1);
+    assert.equal(getDateDistanceInDays("2024-02-28", "2024-03-01"), 2);
+  });
+
+  test("getDateDistanceInDays returns 0 on invalid input", () => {
+    assert.equal(getDateDistanceInDays("invalid", "2023-01-01"), 0);
+    assert.equal(getDateDistanceInDays("2023-01-01", "invalid"), 0);
+  });
+
+  test("getNextWeekdayDate calculates the next weekday correctly", () => {
+    const sunday = new Date("2023-01-01T12:00:00Z");
+    assert.equal(getNextWeekdayDate(1, sunday), "2023-01-02");
+    assert.equal(getNextWeekdayDate(6, sunday), "2023-01-07");
+
+    const monday = new Date("2023-01-02T12:00:00Z");
+    assert.equal(getNextWeekdayDate(1, monday), "2023-01-09");
+  });
+
+  test("getTodayIsoDate returns a valid local YYYY-MM-DD string", () => {
+    const today = getTodayIsoDate();
+    assert.match(today, /^\d{4}-\d{2}-\d{2}$/);
+
+    const now = new Date();
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    const expected = localDate.toISOString().split("T")[0];
+    assert.equal(today, expected);
+  });
+});
+
+describe("Redirect Safety", () => {
+  test("getSafeRedirectUrl returns safe in-app paths", () => {
+    assert.equal(getSafeRedirectUrl("/dashboard"), "/dashboard");
+    assert.equal(getSafeRedirectUrl("/user/123"), "/user/123");
+  });
+
+  test("getSafeRedirectUrl falls back for dangerous URLs", () => {
+    assert.equal(getSafeRedirectUrl("https://evil.com"), "/search");
+    assert.equal(getSafeRedirectUrl("//evil.com"), "/search");
+    assert.equal(getSafeRedirectUrl("/\\evil.com"), "/search");
+    assert.equal(getSafeRedirectUrl("javascript:alert(1)"), "/search");
+  });
+
+  test("getSafeRedirectUrl falls back for missing or invalid input", () => {
+    assert.equal(getSafeRedirectUrl(null), "/search");
+    assert.equal(getSafeRedirectUrl(undefined), "/search");
+    assert.equal(getSafeRedirectUrl(""), "/search");
+    assert.equal(getSafeRedirectUrl(null, "/custom"), "/custom");
   });
 });

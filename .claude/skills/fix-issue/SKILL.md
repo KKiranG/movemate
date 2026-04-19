@@ -50,4 +50,4 @@ If verification did not happen, say so plainly.
 - PR title: references the issue number
 - PR body: root cause, change summary, verification evidence
 
-Move the matching backlog item from `todolist.md` to `completed.md` if one exists.
+Move the matching backlog item from `docs/operations/todolist.md` to `docs/operations/completed.md` if one exists.

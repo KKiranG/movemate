@@ -42,6 +42,6 @@ export async function saveCarrierOnboarding(formData: FormData) {
   });
 
   revalidatePath("/carrier/onboarding");
-  revalidatePath("/carrier/dashboard");
-  redirect("/carrier/post");
+  revalidatePath("/carrier");
+  redirect("/carrier/trips/new");
 }

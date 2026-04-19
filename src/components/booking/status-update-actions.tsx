@@ -295,7 +295,7 @@ export function StatusUpdateActions({
             <p className="mt-1">{proofChecklist.helper}</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white active:opacity-80">
+            <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white focus-within:ring-2 focus-within:ring-accent/25 active:opacity-80">
               <Camera className="h-4 w-4" />
               Take Photo
               <input
@@ -306,12 +306,13 @@ export function StatusUpdateActions({
                 onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
               />
             </label>
-            <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
+            <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text focus-within:ring-2 focus-within:ring-accent/25 active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
               <Upload className="h-4 w-4" />
               Upload File
               <input
                 type="file"
                 accept="image/*,image/heic,image/heif"
+                capture="environment"
                 className="sr-only"
                 onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
               />
@@ -335,7 +336,7 @@ export function StatusUpdateActions({
                   step="1"
                   value={pickupItemCount}
                   onChange={(event) => setPickupItemCount(event.target.value)}
-                  className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                  className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 />
               </label>
               <label className="grid gap-2">
@@ -345,14 +346,14 @@ export function StatusUpdateActions({
                   onChange={(event) =>
                     setPickupCondition(event.target.value as BookingProofCondition)
                   }
-                  className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                  className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 >
                   <option value="no_visible_damage">No visible damage</option>
                   <option value="wear_noted">Existing wear noted</option>
                   <option value="damage_noted">Damage noted at pickup</option>
                 </select>
               </label>
-              <label className="flex min-h-[44px] items-start gap-3 rounded-xl border border-border p-3 text-sm text-text">
+              <label className="flex min-h-[44px] items-start gap-3 rounded-xl border border-border p-3 text-sm text-text focus-within:ring-2 focus-within:ring-accent/25">
                 <input
                   type="checkbox"
                   checked={pickupHandoffConfirmed}
@@ -367,7 +368,7 @@ export function StatusUpdateActions({
           ) : null}
           {transitions.includes("delivered") ? (
             <div className="grid gap-3 rounded-xl border border-border p-3">
-              <label className="flex min-h-[44px] items-start gap-3 rounded-xl border border-border p-3 text-sm text-text">
+              <label className="flex min-h-[44px] items-start gap-3 rounded-xl border border-border p-3 text-sm text-text focus-within:ring-2 focus-within:ring-accent/25">
                 <input
                   type="checkbox"
                   checked={deliveryRecipientConfirmed}
@@ -385,7 +386,7 @@ export function StatusUpdateActions({
                   onChange={(event) =>
                     setDeliveryExceptionCode(event.target.value as BookingExceptionCode)
                   }
-                  className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                  className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 >
                   <option value="none">No issue to note</option>
                   <option value="damage">Damage</option>
@@ -424,7 +425,7 @@ export function StatusUpdateActions({
               onChange={(event) =>
                 setExceptionCode(event.target.value as Exclude<BookingExceptionCode, "none">)
               }
-              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
             >
               <option value="damage">Damage</option>
               <option value="no_show">No-show or blocked handoff</option>
@@ -443,7 +444,7 @@ export function StatusUpdateActions({
             />
           </label>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text active:bg-black/[0.04] dark:active:bg-white/[0.08]">
+            <label className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text focus-within:ring-2 focus-within:ring-accent/25 active:bg-black/[0.04] dark:active:bg-white/[0.08]">
               <Camera className="h-4 w-4" />
               Add exception photos
               <input
@@ -477,7 +478,7 @@ export function StatusUpdateActions({
           <select
             value={cancellationReasonCode}
             onChange={(event) => setCancellationReasonCode(event.target.value)}
-            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+            className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
           >
             {BOOKING_CANCELLATION_REASONS.map((reason) => (
               <option key={reason.value} value={reason.value}>

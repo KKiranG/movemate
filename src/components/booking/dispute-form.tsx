@@ -29,7 +29,8 @@ const attachmentLabels = {
 
 export function DisputeForm({ bookingId }: { bookingId: string }) {
   const router = useRouter();
-  const [category, setCategory] = useState<(typeof categories)[number]["value"]>("damage");
+  const [category, setCategory] =
+    useState<(typeof categories)[number]["value"]>("damage");
   const [description, setDescription] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -99,7 +100,9 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
       setPhotoFile(null);
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to raise dispute.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to raise dispute.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +112,11 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
     <form className="grid gap-3" onSubmit={handleSubmit}>
       <select
         value={category}
-        onChange={(event) => setCategory(event.target.value as (typeof categories)[number]["value"])}
+        onChange={(event) =>
+          setCategory(
+            event.target.value as (typeof categories)[number]["value"],
+          )
+        }
         className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
       >
         {categories.map((option) => (
@@ -122,8 +129,8 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
         <p className="text-sm font-medium text-text">{guidance.heading}</p>
         <p className="mt-1 text-sm text-text-secondary">{guidance.evidence}</p>
         <p className="mt-2 text-xs text-text-secondary">
-          If someone asked to pay outside moverrr, choose Suspicious / other and describe exactly
-          what was requested.
+          If someone asked to pay outside moverrr, choose Suspicious / other and
+          describe exactly what was requested.
         </p>
       </div>
       <Textarea
@@ -141,7 +148,9 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
               accept="image/*,image/heic,image/heif"
               capture="environment"
               className="sr-only"
-              onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                setPhotoFile(event.target.files?.[0] ?? null)
+              }
             />
           </label>
           <label className="hidden min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text active:bg-black/[0.04] sm:flex dark:active:bg-white/[0.08]">
@@ -150,8 +159,11 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
             <input
               type="file"
               accept="image/*,image/heic,image/heif"
+              capture="environment"
               className="sr-only"
-              onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                setPhotoFile(event.target.files?.[0] ?? null)
+              }
             />
           </label>
         </div>

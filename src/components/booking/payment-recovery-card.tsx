@@ -37,7 +37,9 @@ export function PaymentRecoveryCard({
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to restart payment.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to restart payment.",
+      );
     } finally {
       setIsSubmitting(false);
     }

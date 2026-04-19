@@ -31,7 +31,9 @@ export function AdminBookingActions({ booking }: { booking: Booking }) {
           nextStatus,
           reason: reason.trim(),
           cancellationReason:
-            nextStatus === "cancelled" ? `Admin override: ${reason.trim()}` : undefined,
+            nextStatus === "cancelled"
+              ? `Admin override: ${reason.trim()}`
+              : undefined,
         }),
       });
       const payload = await response.json();
@@ -42,7 +44,9 @@ export function AdminBookingActions({ booking }: { booking: Booking }) {
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to update booking.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to update booking.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -58,13 +62,16 @@ export function AdminBookingActions({ booking }: { booking: Booking }) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/admin/bookings/${booking.id}/capture`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reason: reason.trim(),
-        }),
-      });
+      const response = await fetch(
+        `/api/admin/bookings/${booking.id}/capture`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reason: reason.trim(),
+          }),
+        },
+      );
       const payload = await response.json();
 
       if (!response.ok) {
@@ -73,13 +80,16 @@ export function AdminBookingActions({ booking }: { booking: Booking }) {
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to capture payment.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to capture payment.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  const canCapture = booking.status === "completed" && booking.paymentStatus === "authorized";
+  const canCapture =
+    booking.status === "completed" && booking.paymentStatus === "authorized";
   const canForceComplete =
     booking.status !== "completed" &&
     booking.status !== "cancelled" &&
@@ -91,7 +101,9 @@ export function AdminBookingActions({ booking }: { booking: Booking }) {
       <div className="space-y-3">
         <div>
           <p className="section-label">Admin actions</p>
-          <h2 className="mt-1 text-lg text-text">Manual recovery and audit-safe overrides</h2>
+          <h2 className="mt-1 text-lg text-text">
+            Manual recovery and audit-safe overrides
+          </h2>
           <p className="mt-2 text-sm text-text-secondary">
             Every admin action writes a reason into the booking audit trail.
           </p>
@@ -107,7 +119,11 @@ export function AdminBookingActions({ booking }: { booking: Booking }) {
         </label>
         <div className="flex flex-wrap gap-2">
           {canCapture ? (
-            <Button type="button" onClick={() => void runManualCapture()} disabled={isSubmitting}>
+            <Button
+              type="button"
+              onClick={() => void runManualCapture()}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Capturing..." : "Capture payment"}
             </Button>
           ) : null}

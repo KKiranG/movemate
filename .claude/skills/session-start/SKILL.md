@@ -19,7 +19,7 @@ git status
 ```
 
 Then read:
-1. `todolist.md` — top uncompleted item by priority
+1. `docs/operations/todolist.md` — top uncompleted item by priority
 2. `CLAUDE.md` — refresh product invariants
 3. The relevant `.claude/rules/` file for today's area
 
@@ -43,7 +43,7 @@ Read the relevant `.claude/rules/` and `.agent-skills/` file for the area before
 ## End of Session Checklist
 
 Before stopping:
-- [ ] Completed items moved from `todolist.md` to `completed.md`
+- [ ] Completed items moved from `docs/operations/todolist.md` to `docs/operations/completed.md`
 - [ ] `npm run check` passes if code was touched
 - [ ] Docs synced if behavior, routes, or commands changed
-- [ ] New follow-up tasks added to `todolist.md` with proper IDs
+- [ ] New follow-up tasks added to `docs/operations/todolist.md` with proper IDs

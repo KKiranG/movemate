@@ -39,7 +39,11 @@ export function BootstrapDatasetForm() {
       );
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to bootstrap dataset.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to bootstrap dataset.",
+      );
     } finally {
       setIsSubmitting(false);
     }

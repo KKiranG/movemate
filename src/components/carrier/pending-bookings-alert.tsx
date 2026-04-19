@@ -156,7 +156,7 @@ export function PendingBookingsAlert({
                           href={photoUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="block min-h-[44px] active:opacity-80"
+                          className="block min-h-[44px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:opacity-80"
                         >
                           {/* External proof and item-photo URLs are not guaranteed to be whitelisted for next/image. */}
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -210,7 +210,7 @@ export function PendingBookingsAlert({
                       Decline reason
                     </span>
                     <select
-                      className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text"
+                      className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                       value={declineReasons[request.id] ?? declineOptions[0].value}
                       onChange={(event) =>
                         setDeclineReasons((current) => ({

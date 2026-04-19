@@ -1,15 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Sans } from "next/font/google";
+import { Instrument_Serif, Inter } from "next/font/google";
 
 import { AppClientEffects } from "@/components/layout/app-client-effects";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { SiteHeader } from "@/components/layout/site-header";
 
 import "./globals.css";
 
-const instrumentSans = Instrument_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-heading",
+  variable: "--font-sans",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
@@ -26,16 +30,16 @@ export const metadata: Metadata = {
       "Need-first spare-capacity matching for awkward-middle moves in Sydney.",
     type: "website",
   },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f6f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#14120f" },
+  ],
 };
 
 export default function RootLayout({
@@ -45,20 +49,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-AU">
-      <body className={`${instrumentSans.variable} antialiased`}>
-        <div className="min-h-screen bg-background">
+      <body className={`${inter.variable} ${instrumentSerif.variable} antialiased`}>
+        <div className="min-h-screen bg-[var(--app-chrome)]">
           <AppClientEffects />
           <a
             href="#main-content"
-            className="sr-only rounded border border-border bg-white px-4 py-2 text-sm font-medium text-text focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+            className="sr-only rounded bg-[var(--bg-elevated-1)] px-4 py-2 text-sm font-medium text-text focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
           >
             Skip to main content
           </a>
-          <SiteHeader />
-          <div className="flex min-h-[calc(100vh-env(safe-area-inset-top))] flex-col">
-            <div className="flex-1">{children}</div>
-            <SiteFooter />
-          </div>
+          <div className="mx-auto min-h-screen max-w-[460px]">{children}</div>
         </div>
       </body>
     </html>

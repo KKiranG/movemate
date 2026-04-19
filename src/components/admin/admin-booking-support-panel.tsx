@@ -33,7 +33,9 @@ export function AdminBookingSupportPanel({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="section-label">Support quick view</p>
-            <h2 className="mt-1 text-lg text-text">Fast booking lookup and copy actions</h2>
+            <h2 className="mt-1 text-lg text-text">
+              Fast booking lookup and copy actions
+            </h2>
             <p className="mt-1 text-sm text-text-secondary">
               {query
                 ? `Showing the current result set for ${query}.`
@@ -62,7 +64,10 @@ export function AdminBookingSupportPanel({
                           {booking.itemDescription}
                         </p>
                       </div>
-                      <StatusBadge status={booking.status} className="shrink-0" />
+                      <StatusBadge
+                        status={booking.status}
+                        className="shrink-0"
+                      />
                     </div>
 
                     <div className="space-y-1 text-sm text-text-secondary">
@@ -72,7 +77,10 @@ export function AdminBookingSupportPanel({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <CopyTextButton text={buildCopyText(booking)} label="Copy summary" />
+                      <CopyTextButton
+                        text={buildCopyText(booking)}
+                        label="Copy summary"
+                      />
                       <CopyTextButton
                         text={booking.bookingReference}
                         label="Copy reference"
@@ -85,7 +93,8 @@ export function AdminBookingSupportPanel({
           </div>
         ) : (
           <p className="subtle-text">
-            No bookings match the current filters. Use the search field to narrow by reference.
+            No bookings match the current filters. Use the search field to
+            narrow by reference.
           </p>
         )}
       </div>

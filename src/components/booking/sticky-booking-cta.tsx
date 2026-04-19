@@ -31,9 +31,13 @@ export function StickyBookingCta({
               </span>
             ) : null}
           </p>
-          <p className="text-xs text-text-secondary">Starting total incl. moverrr charges</p>
+          <p className="text-xs text-text-secondary">
+            Starting total incl. moverrr charges
+          </p>
           {savingsNote ? (
-            <p className="truncate text-xs text-text-secondary">{savingsNote}</p>
+            <p className="truncate text-xs text-text-secondary">
+              {savingsNote}
+            </p>
           ) : null}
         </div>
         <Button asChild size="sm" className="min-h-[44px]">

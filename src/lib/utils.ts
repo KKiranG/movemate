@@ -91,19 +91,19 @@ export function isPreviewableImagePath(value: string | null | undefined) {
 }
 
 export function getDateOffsetIso(date: string, days: number) {
-  const parsed = new Date(`${date}T00:00:00`);
+  const parsed = new Date(`${date}T00:00:00Z`);
 
   if (Number.isNaN(parsed.getTime())) {
     return date;
   }
 
-  parsed.setDate(parsed.getDate() + days);
+  parsed.setUTCDate(parsed.getUTCDate() + days);
   return parsed.toISOString().split("T")[0] ?? date;
 }
 
 export function getDateDistanceInDays(a: string, b: string) {
-  const first = new Date(`${a}T00:00:00`).getTime();
-  const second = new Date(`${b}T00:00:00`).getTime();
+  const first = new Date(`${a}T00:00:00Z`).getTime();
+  const second = new Date(`${b}T00:00:00Z`).getTime();
 
   if (Number.isNaN(first) || Number.isNaN(second)) {
     return 0;
@@ -113,9 +113,10 @@ export function getDateDistanceInDays(a: string, b: string) {
 }
 
 export function getNextWeekdayDate(weekday: number, from = new Date()) {
-  const date = new Date(from);
-  const delta = (weekday - date.getDay() + 7) % 7 || 7;
-  date.setDate(date.getDate() + delta);
+  const localDate = new Date(from.getTime() - from.getTimezoneOffset() * 60_000);
+  const date = new Date(`${localDate.toISOString().split("T")[0]}T00:00:00Z`);
+  const delta = (weekday - date.getUTCDay() + 7) % 7 || 7;
+  date.setUTCDate(date.getUTCDate() + delta);
   return date.toISOString().split("T")[0] ?? "";
 }
 
@@ -159,9 +160,7 @@ export function getSafeRedirectUrl(url: string | null | undefined, fallback = "/
     return fallback;
   }
 
-  // Ensure it starts with a single slash (relative path)
-  // and not two slashes (protocol-relative URL like //evil.com)
-  if (url.startsWith("/") && !url.startsWith("//")) {
+  if (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\")) {
     return url;
   }
 

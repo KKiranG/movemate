@@ -122,7 +122,10 @@ export function TripDetailSummary({ trip, preferredDate }: TripDetailSummaryProp
           <div className="rounded-xl border border-border p-3">
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-text">
               <BadgeCheck className="h-4 w-4 text-accent" />
-              <Link href={`/carrier/${trip.carrier.id}`} className="text-accent active:opacity-80">
+              <Link
+                href={`/carrier/${trip.carrier.id}`}
+                className="rounded-lg text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:opacity-80"
+              >
                 {trip.carrier.businessName}
               </Link>
             </div>

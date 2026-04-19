@@ -5,17 +5,20 @@ import { Card } from "@/components/ui/card";
 
 export default function BookingNotFound() {
   return (
-    <main id="main-content" className="page-shell">
+    <main id="main-content" className="screen">
       <PageIntro
         eyebrow="Booking missing"
         title="This booking could not be found"
         description="It may belong to a different account or no longer be accessible."
       />
       <Card className="p-4">
-        <p className="subtle-text">
+        <p className="caption">
           Return to your bookings list to keep working from an authorized booking.
         </p>
-        <Link href="/bookings" className="mt-3 inline-flex text-sm font-medium text-accent">
+        <Link
+          href="/bookings"
+          className="mt-3 inline-flex min-h-[44px] min-w-[44px] items-center text-sm font-medium text-[var(--accent)]"
+        >
           Back to bookings
         </Link>
       </Card>

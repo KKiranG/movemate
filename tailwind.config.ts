@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "media",
+  darkMode: ["class"],
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,43 +10,49 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--color-bg)",
-        surface: "var(--color-surface)",
-        text: "var(--color-text)",
-        "text-secondary": "var(--color-text-secondary)",
-        border: "var(--color-border)",
-        accent: "var(--color-accent)",
-        success: "var(--color-success)",
-        warning: "var(--color-warning)",
-        error: "var(--color-error)",
-        savings: "var(--color-savings)",
+        background: "var(--bg-base)",
+        surface: "var(--bg-elevated-1)",
+        text: "var(--text-primary)",
+        "text-secondary": "var(--text-secondary)",
+        border: "var(--border-subtle)",
+        accent: "var(--accent)",
+        success: "var(--success)",
+        warning: "var(--warning)",
+        error: "var(--danger)",
       },
       fontFamily: {
         sans: [
           "-apple-system",
           "BlinkMacSystemFont",
-          "\"Segoe UI\"",
+          '"SF Pro Text"',
+          '"Segoe UI"',
+          "Roboto",
           "sans-serif",
         ],
-        heading: ["var(--font-heading)", "-apple-system", "sans-serif"],
-        mono: ["SFMono-Regular", "ui-monospace", "monospace"],
-      },
-      fontSize: {
-        heading: ["1.25rem", { lineHeight: "1.3", fontWeight: "600" }],
-        body: ["0.9375rem", { lineHeight: "1.6" }],
-        caption: ["0.75rem", { lineHeight: "1.4", fontWeight: "500" }],
+        heading: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"SF Pro Display"',
+          '"Segoe UI"',
+          "Roboto",
+          "sans-serif",
+        ],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       maxWidth: {
-        content: "640px",
+        content: "430px",
       },
       borderRadius: {
-        xl: "12px",
-      },
-      boxShadow: {
-        card: "0 1px 3px rgba(0, 0, 0, 0.08)",
+        xs: "var(--radius-xs)",
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        pill: "var(--radius-pill)",
       },
     },
   },
   plugins: [],
 };
+
 export default config;

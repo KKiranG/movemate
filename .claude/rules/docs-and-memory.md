@@ -48,7 +48,7 @@ Update docs in the same task when you change:
 
 ## Task Tracking Files
 
-`todolist.md` and `completed.md` are special-purpose files.
+`docs/operations/todolist.md` and `docs/operations/completed.md` are special-purpose files.
 Do not touch them unless the task actually changes backlog state or the user asked for backlog grooming.
 
 ## Context Budget

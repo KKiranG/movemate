@@ -70,7 +70,10 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex w-full max-w-content flex-col gap-3 px-4 py-4 sm:px-6">
         <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="flex min-h-[44px] min-w-0 flex-col justify-center">
+          <Link
+            href="/"
+            className="flex min-h-[44px] min-w-[44px] flex-col justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+          >
             <span className="font-heading text-xl tracking-[-0.04em] text-text">
               moverrr
             </span>
@@ -84,7 +87,7 @@ export async function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="inline-flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-text active:bg-black/[0.04] active:text-text dark:hover:text-text dark:active:bg-white/[0.08]"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:bg-black/[0.04] active:text-text dark:hover:text-text dark:active:bg-white/[0.08]"
               >
                 {item.label}
                 {item.badgeCount ? (

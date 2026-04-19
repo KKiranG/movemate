@@ -32,7 +32,7 @@ Use `.claude/capability-index.md` as the quick inventory of what rules, roles, s
 | `feature-implementer` | bounded build work across code, schema, and UI | relevant rules, domain skill, relevant workflow skill |
 | `verifier` | independent validation after meaningful changes | `CLAUDE.md`, `.agent-skills/VERIFICATION.md`, matching workflow skill |
 | `docs-keeper` | documentation cleanup, memory alignment, stale-instruction fixes | `.claude/rules/docs-and-memory.md`, relevant `.agent-skills/*.md` |
-| `backlog-groomer` | backlog audits, task-quality cleanup, duplicate or stale task review | `TASK-RULES.md`, `.claude/task-template.md`, `todolist.md` |
+| `backlog-groomer` | backlog audits, task-quality cleanup, duplicate or stale task review | `TASK-RULES.md`, `.claude/task-template.md`, `docs/operations/todolist.md` |
 
 ## Delegation Rules
 

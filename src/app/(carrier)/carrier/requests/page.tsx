@@ -23,7 +23,7 @@ export default async function CarrierRequestsPage() {
   ]);
 
   return (
-    <main id="main-content" className="page-shell">
+    <main id="main-content" className="screen">
       <PageIntro
         eyebrow="Requests"
         title="Review the work that still needs a decision"
@@ -34,9 +34,9 @@ export default async function CarrierRequestsPage() {
         <PendingBookingsAlert requests={requests} compact />
       ) : (
         <Card className="p-4">
-          <p className="section-label">Requests</p>
-          <h2 className="mt-1 text-lg text-text">No open requests right now</h2>
-          <p className="mt-2 text-sm text-text-secondary">
+          <p className="eyebrow">Requests</p>
+          <h2 className="mt-1 text-lg text-[var(--text-primary)]">No open requests right now</h2>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
             When customers ask for space on your active trips, those decisions will appear here with payout, fit, and clarification context first.
           </p>
         </Card>
@@ -46,28 +46,28 @@ export default async function CarrierRequestsPage() {
         <Card className="p-4">
           <div className="space-y-4">
             <div>
-              <p className="section-label">Recent outcomes</p>
-              <h2 className="mt-1 text-lg text-text">Requests that already resolved</h2>
-              <p className="mt-2 text-sm text-text-secondary">
+              <p className="eyebrow">Recent outcomes</p>
+              <h2 className="mt-1 text-lg text-[var(--text-primary)]">Requests that already resolved</h2>
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
                 Fast Match revokes, declines, and accepts stay visible here so the request queue keeps a clean operational trail.
               </p>
             </div>
             <div className="grid gap-3">
               {recentOutcomes.map((request) => (
-                <div key={request.id} className="rounded-xl border border-border p-3">
+                <div key={request.id} className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-text">{request.itemDescription}</p>
-                      <p className="mt-1 text-sm text-text-secondary">{request.routeLabel}</p>
-                      <p className="mt-1 text-xs text-text-secondary">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{request.itemDescription}</p>
+                      <p className="mt-1 text-sm text-[var(--text-secondary)]">{request.routeLabel}</p>
+                      <p className="mt-1 text-xs text-[var(--text-secondary)]">
                         {request.typeLabel} · {formatCurrency(request.requestedTotalPriceCents)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs uppercase tracking-[0.16em] text-text-secondary">
+                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)]">
                         {request.status.replaceAll("_", " ")}
                       </p>
-                      <p className="mt-1 text-xs text-text-secondary">
+                      <p className="mt-1 text-xs text-[var(--text-secondary)]">
                         {formatDateTime(request.respondedAt)}
                       </p>
                     </div>

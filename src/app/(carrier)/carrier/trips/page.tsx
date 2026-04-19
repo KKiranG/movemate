@@ -27,18 +27,18 @@ function TripSection({
   return (
     <section className="grid gap-4">
       <div>
-        <p className="section-label">{title}</p>
-        <p className="mt-1 text-sm text-text-secondary">{description}</p>
+        <p className="eyebrow">{title}</p>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">{description}</p>
       </div>
       <div className="grid gap-4">
         {trips.map((trip) => (
           <Link key={trip.id} href={`/carrier/trips/${trip.id}`}>
             <Card className="p-4">
-              <h2 className="text-lg text-text">{trip.route.label}</h2>
-              <p className="mt-2 subtle-text">
+              <h2 className="text-lg text-[var(--text-primary)]">{trip.route.label}</h2>
+              <p className="mt-2 caption">
                 {trip.tripDate} · {trip.timeWindow} · Remaining {trip.remainingCapacityPct}%
               </p>
-              <p className="mt-2 text-sm text-text-secondary">
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
                 Status {trip.status?.replace("_", " ") ?? "active"} · Vehicle{" "}
                 {trip.vehicle.type.replaceAll("_", " ")}
               </p>
@@ -66,7 +66,7 @@ export default async function CarrierTripsPage({
   );
 
   return (
-    <main id="main-content" className="page-shell">
+    <main id="main-content" className="screen">
       <PageIntro
         eyebrow="Carrier trips"
         title="Manage your live and drafted trips"
@@ -78,12 +78,12 @@ export default async function CarrierTripsPage({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium text-success">Trip posted successfully</p>
-              <p className="mt-1 text-sm text-text-secondary">
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
                 Your route is live. Head back to carrier home to watch incoming activity.
               </p>
             </div>
             <Button asChild variant="secondary">
-              <Link href="/carrier/dashboard">Go to carrier home</Link>
+              <Link href="/carrier">Go to carrier home</Link>
             </Button>
           </div>
         </Card>
@@ -112,7 +112,7 @@ export default async function CarrierTripsPage({
         />
         {trips.length === 0 ? (
           <Card className="p-4">
-            <p className="subtle-text">No trips yet. Post your first route to start receiving bookings.</p>
+            <p className="caption">No trips yet. Post your first route to start receiving bookings.</p>
           </Card>
         ) : null}
       </div>

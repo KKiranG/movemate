@@ -35,7 +35,9 @@ export function ReviewForm({ bookingId }: { bookingId: string }) {
 
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to submit review.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to submit review.",
+      );
     } finally {
       setIsSubmitting(false);
     }

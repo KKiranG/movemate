@@ -34,9 +34,12 @@ export function ResetPasswordForm() {
       const supabase = createClient();
 
       if (mode === "request") {
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+          email,
+          {
+            redirectTo: `${window.location.origin}/reset-password`,
+          },
+        );
 
         if (resetError) {
           throw resetError;
@@ -44,7 +47,9 @@ export function ResetPasswordForm() {
 
         setMessage("Check your email for a reset link.");
       } else {
-        const { error: updateError } = await supabase.auth.updateUser({ password });
+        const { error: updateError } = await supabase.auth.updateUser({
+          password,
+        });
 
         if (updateError) {
           throw updateError;
@@ -53,7 +58,9 @@ export function ResetPasswordForm() {
         setMessage("Your password has been updated. You can log in now.");
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to continue.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to continue.",
+      );
     } finally {
       setIsSubmitting(false);
     }

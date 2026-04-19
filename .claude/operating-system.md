@@ -58,7 +58,7 @@ Use a specialist when:
 - `docs-keeper`
   Workflow truth, rules, skills, or repo memory changed.
 - `backlog-groomer`
-  `todolist.md` quality, duplication, stale operating-system tasks, or thesis drift need review.
+  `docs/operations/todolist.md` quality, duplication, stale operating-system tasks, or thesis drift need review.
 
 ## Plan Template
 

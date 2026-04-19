@@ -6,7 +6,7 @@ import { toErrorResponse } from "@/lib/errors";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: { tripId: string } },
 ) {
   try {
     const user = await requireSessionUser();
@@ -14,22 +14,22 @@ export async function GET(
     const window = url.searchParams.get("window");
 
     if (window !== "24h" && window !== "2h") {
-      return NextResponse.redirect(new URL(`/carrier/trips/${params.id}?freshness=invalid`, url));
+      return NextResponse.redirect(new URL(`/carrier/trips/${params.tripId}?freshness=invalid`, url));
     }
 
     await confirmTripFreshnessCheckinForCarrier({
       userId: user.id,
-      tripId: params.id,
+      tripId: params.tripId,
       window,
     });
 
     return NextResponse.redirect(
-      new URL(`/carrier/trips/${params.id}?freshness=${window}-confirmed`, url),
+      new URL(`/carrier/trips/${params.tripId}?freshness=${window}-confirmed`, url),
     );
   } catch (error) {
     const response = toErrorResponse(error);
     return NextResponse.redirect(
-      new URL(`/carrier/trips/${params.id}?freshness=failed&reason=${encodeURIComponent(response.message)}`, request.url),
+      new URL(`/carrier/trips/${params.tripId}?freshness=failed&reason=${encodeURIComponent(response.message)}`, request.url),
     );
   }
 }
