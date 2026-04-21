@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 import { getTripById } from "@/lib/data/trips";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const alt = "moverrr trip preview";
 export const size = {
   width: 1200,

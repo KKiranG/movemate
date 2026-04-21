@@ -1,4 +1,4 @@
-# moverrr Experiment Ledger
+# MoveMate Experiment Ledger
 
 Use this file to record product, ops, or workflow experiments that should not disappear into chat history.
 

@@ -1,6 +1,6 @@
 ---
 name: docs-memory-sync
-description: Keep moverrr's docs, project memory, agent instructions, and skills aligned with the current product instead of letting stale guidance accumulate.
+description: Keep MoveMate's docs, project memory, agent instructions, and skills aligned with the current product instead of letting stale guidance accumulate.
 when_to_use: Use when a task changes product rules, route structure, commands, workflows, agent setup, or when the user asks to improve markdown files, prompts, or project instructions. Examples: "update CLAUDE.md", "clean up the docs", "improve skills", "fix stale instructions", or "reorganize our agent setup".
 paths:
   - "*.md"

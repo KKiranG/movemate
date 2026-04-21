@@ -17,13 +17,13 @@ Ask the user to confirm:
 
 1. What user problem does this solve?
 2. Who is affected: carrier, customer, or admin?
-3. Does this fit moverrr's need-first, match-ranked spare-capacity thesis? If not, stop here and flag to the founder.
+3. Does this fit MoveMate's need-first, match-ranked spare-capacity thesis? If not, stop here and flag to the founder.
 4. What is the smallest version worth shipping?
 5. What would make this undeniably done?
 
 ## Thesis Check
 
-If the feature pushes moverrr toward dispatch, bidding, quote comparison, or removalist packaging — stop and flag it before continuing. Document the concern explicitly.
+If the feature pushes MoveMate toward dispatch, bidding, quote comparison, or removalist packaging — stop and flag it before continuing. Document the concern explicitly.
 
 ## Output
 

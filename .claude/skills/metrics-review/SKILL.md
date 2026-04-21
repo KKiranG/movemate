@@ -1,6 +1,6 @@
 ---
 name: metrics-review
-description: Review moverrr metrics with a decision-first marketplace lens instead of producing passive summaries.
+description: Review MoveMate metrics with a decision-first marketplace lens instead of producing passive summaries.
 when_to_use: Use when admin metrics, funnel data, experiment results, or supply-demand numbers need interpretation.
 argument-hint: [period: YYYY-MM-DD|metric: funnel|supply|demand|dispute]
 ---

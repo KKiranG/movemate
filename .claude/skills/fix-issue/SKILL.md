@@ -12,7 +12,7 @@ Use `$ARGUMENTS` to specify the issue number (e.g. `#42`).
 
 ## Step 1 — Thesis Check
 
-Before touching code, confirm the issue fits moverrr's thesis:
+Before touching code, confirm the issue fits MoveMate's thesis:
 
 1. Does fixing this help carriers post real spare capacity, or improve customer trust/clarity?
 2. Does it keep the need-first, match-ranked model intact?
@@ -38,11 +38,14 @@ Do not start implementation until you can state the root cause clearly.
 
 ## Step 4 — Verify
 
-1. `npm run check`
-2. Exercise the changed path directly.
-3. Try one adversarial input.
+Run the `/verify-moverrr-change` skill scoped to the changed area.
 
-If verification did not happen, say so plainly.
+Minimum before the PR is ready:
+1. `npm run check` passes
+2. The changed path was directly exercised (not just "reads fine")
+3. At least one adversarial input was tried and named in the report
+
+Verification is not optional. If it could not be run, state exactly why in the PR body under "Residual risk." Do not skip this step and mark the work done anyway.
 
 ## Step 5 — PR
 
@@ -50,4 +53,4 @@ If verification did not happen, say so plainly.
 - PR title: references the issue number
 - PR body: root cause, change summary, verification evidence
 
-Move the matching backlog item from `docs/operations/todolist.md` to `docs/operations/completed.md` if one exists.
+Add `Closes #N` to the PR body so GitHub auto-closes the issue on merge. If related issues exist, link them with `Related to #N`.

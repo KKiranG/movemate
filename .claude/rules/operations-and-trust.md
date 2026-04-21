@@ -12,7 +12,7 @@ paths:
 
 # Operations + Trust Rules
 
-Trust is a core feature in moverrr.
+Trust is a core feature in MoveMate.
 Admin, disputes, proof, payments, and notifications should optimize for clarity and recoverability, not automation theater.
 
 ## Operating Stance

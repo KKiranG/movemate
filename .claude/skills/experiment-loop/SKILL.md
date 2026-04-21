@@ -25,7 +25,7 @@ For each proposed experiment, define:
 6. **Keep / discard rule**
    What result means keep, and what result means revert or defer?
 
-## Good moverrr Experiment Targets
+## Good MoveMate Experiment Targets
 
 - carrier time-to-post
 - saved-search capture rate

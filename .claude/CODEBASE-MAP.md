@@ -1,4 +1,4 @@
-# moverrr Codebase Map
+# MoveMate Codebase Map
 
 Use this file to navigate the codebase quickly. Every agent should read the relevant sections before touching files in that area. Do not re-explore what is already mapped here.
 

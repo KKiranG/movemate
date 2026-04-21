@@ -1,4 +1,4 @@
-# moverrr Command Catalog
+# MoveMate Command Catalog
 
 Use this file as the discoverable index of repeatable repo workflows.
 

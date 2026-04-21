@@ -9,7 +9,7 @@ paths:
 
 # Matching + Results Rules
 
-The results surface is a product-shaping surface in moverrr. It is a ranked answer set, not a filterable browse archive.
+The results surface is a product-shaping surface in MoveMate. It is a ranked answer set, not a filterable browse archive.
 
 ## Core Principles
 

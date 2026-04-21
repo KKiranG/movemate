@@ -1,6 +1,6 @@
 ---
 name: monthly-memory-refactor
-description: Audit moverrr's rules, skills, agents, and root docs for stale paths, duplicate truth, and bloated always-loaded memory before any cleanup edit.
+description: Audit MoveMate's rules, skills, agents, and root docs for stale paths, duplicate truth, and bloated always-loaded memory before any cleanup edit.
 when_to_use: Use when the repo instruction system needs a periodic cleanup pass, a markdown drift audit, or a docs architecture review.
 argument-hint: [focus: rules|agents|skills|all]
 allowed-tools: [Read, Glob, Grep]

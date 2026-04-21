@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: Write a crisp moverrr postmortem after broken bookings, trust incidents, payment failures, or operational regressions.
+description: Write a crisp MoveMate postmortem after broken bookings, trust incidents, payment failures, or operational regressions.
 when_to_use: Use after incidents, failed launches, production regressions, or support-heavy failures that deserve durable learning.
 invocation: manual
 ---

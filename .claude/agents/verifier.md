@@ -5,6 +5,10 @@ model: inherit
 effort: high
 background: true
 memory: project
+disallowedTools:
+  - Edit
+  - Write
+  - Agent
 ---
 
 # Verifier

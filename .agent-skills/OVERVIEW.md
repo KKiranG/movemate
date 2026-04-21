@@ -1,15 +1,15 @@
-# moverrr Overview
+# MoveMate Overview
 
-## What moverrr is
+## What MoveMate is
 
-moverrr is a need-first, match-ranked spare-capacity marketplace for awkward-middle item moves.
+MoveMate is a need-first, match-ranked spare-capacity marketplace for awkward-middle item moves.
 
 Carriers post trips they are already taking and set structured pricing.
 Customers declare a specific move need via a short wizard. The system matches against posted trips and returns a confidence-ranked shortlist with deterministic pricing, fit-confidence labels, and "Why this matches" explanations. The customer requests one carrier (Request-to-Book) or broadcasts to up to 3 (Fast Match). The carrier accepts or declines via a decision card. Payment is escrowed, proof-of-delivery releases payout.
 
 The product is mobile-first. The web app exists to develop and validate the product.
 
-## What moverrr is not
+## What MoveMate is not
 
 - not a browse-first inventory catalogue where the customer scrolls through raw listings
 - not a removalist company
@@ -75,4 +75,4 @@ The carrier home adapts to lifecycle stage:
 
 ## Core product question
 
-Can moverrr convert a messy object-move problem into a confident yes/no decision fast enough that customers do not abandon — even when supply is sparse?
+Can MoveMate convert a messy object-move problem into a confident yes/no decision fast enough that customers do not abandon — even when supply is sparse?

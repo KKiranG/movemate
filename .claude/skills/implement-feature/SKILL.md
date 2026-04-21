@@ -1,6 +1,6 @@
 ---
 name: implement-feature
-description: End-to-end implementation playbook for a bounded moverrr feature — schema through UI with invariant checks at each step.
+description: End-to-end implementation playbook for a bounded MoveMate feature — schema through UI with invariant checks at each step.
 when_to_use: Use when implementing a new feature after the scope is confirmed and a spec or clear task description exists. Do not use for exploratory or ambiguous tasks — run repo-explorer or spec first.
 argument-hint: [feature: short description]
 effort: high
@@ -106,20 +106,21 @@ Work top-down. Do not skip a layer and come back.
 
 ### Step 6 — Verification
 
-Run all of the following before calling the feature done:
+Run the `/verify-moverrr-change` skill scoped to the area changed. Do not write the verification section yourself — the skill produces the evidence report.
+
+Minimum before calling the feature done:
 
 ```bash
 npm run check
 ```
 
-Then directly exercise the changed path:
-
+Then:
 - **API changes:** Call the endpoint with a valid payload, then with a missing field, then with a forbidden role.
 - **Data layer:** Confirm the DB state after the operation (capacity, booking status, payout hold).
 - **UI changes:** View at 375px, check tap targets, test the zero/empty state.
 - **Pricing/booking changes:** Run the pricing identity test; confirm `remaining_capacity_pct` is correct before and after.
 
-Try one adversarial input (duplicate action, stale state, wrong role, missing config).
+Name one adversarial input in the report. If verification was blocked by environment, state the exact blocker in the PR body under "Residual risk" — do not omit it.
 
 ---
 

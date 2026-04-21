@@ -1,6 +1,6 @@
 ---
 name: founder-scope-check
-description: Pressure-test feature ideas, prioritization decisions, and strategy requests so moverrr stays a need-first, match-ranked spare-capacity marketplace instead of drifting into dispatch, quote comparison, or removalist workflows.
+description: Pressure-test feature ideas, prioritization decisions, and strategy requests so MoveMate stays a need-first, match-ranked spare-capacity marketplace instead of drifting into dispatch, quote comparison, or removalist workflows.
 when_to_use: Use when the user asks for a new feature, prioritization help, roadmap advice, automation idea, pricing mechanic, or marketplace workflow that could change the product shape. Examples: "should we add live tracking?", "build smarter matching", "what should we do next?", "let carriers bid", or "how should we prioritize this feature?".
 ---
 
@@ -10,7 +10,7 @@ Use this skill to think like a sharp early-stage founder, not a generic feature 
 
 ## The Question
 
-For every proposal, answer these in moverrr's context:
+For every proposal, answer these in MoveMate's context:
 
 1. Does this help carriers post genuine spare capacity faster?
 2. Does this improve trust or clarity for customers?

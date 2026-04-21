@@ -1,4 +1,4 @@
-# moverrr Capability Index
+# MoveMate Capability Index
 
 Use `.claude/operating-system.md` for the canonical runtime map, precedence, planning, delegation, permissions, worktrees, verification rules, and review rituals.
 

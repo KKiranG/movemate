@@ -3,7 +3,7 @@ name: chrome-qa-tester
 description: |
   Systematic live QA testing of a running web app using Chrome MCP + JavaScript bulk
   audits. Finds UX bugs, iOS/mobile compliance violations, copy issues, SEO gaps, and
-  empty-state problems — then writes every finding to docs/operations/todolist.md in the project's
+  empty-state problems — then files each finding as a GitHub issue in the project's
   task-rules format with clear evidence (observed vs. expected), file paths, and
   verifiable done-criteria.
 
@@ -11,7 +11,7 @@ description: |
   - "test the app", "find bugs", "do QA", "audit the frontend", "check the app"
   - "test in Chrome", "what's broken", "what issues does the app have"
   - "test at mobile/375px", "check tap targets", "iOS compliance audit"
-  - "populate the todolist with what you find", "find things to fix"
+  - "file issues for what you find", "find things to fix"
   - after implementing a batch of fixes and wanting to verify them
   - before a launch, demo, or investor review
 
@@ -390,14 +390,19 @@ Check off before writing any findings:
 
 ## Post-Audit Sync
 
-After writing all findings to `docs/operations/todolist.md`:
+After filing all findings as GitHub issues:
 
-1. Update the `Last refreshed` date at the top of `docs/operations/todolist.md`
-2. Note your testing methodology: e.g. "rewritten from live Chrome testing at 375px and 1280px"
-3. If the project has a `docs/operations/completed.md` and any of your audit findings invalidate
-   previously "completed" items (e.g. you found a regression), flag those for review
-4. If the project's `.claude/rules/` or `.agent-skills/` files have stale references
-   to things your testing revealed are broken or changed, update them
+1. File each finding with:
+   ```bash
+   gh issue create --repo KKiranG/moverrr \
+     --title "QA: [short title]" \
+     --label "type:bug,lane:ux-builder,state:inbox,priority:p2,risk:low,surface:customer-web" \
+     --body "[observed] / [expected] / [done when]"
+   ```
+2. Note your testing methodology in a summary comment on the run issue (if one exists).
+3. If any findings indicate regressions in issues marked `state:done`, re-open those issues.
+4. If `.claude/rules/` or `.agent-skills/` files have stale references to things your testing
+   revealed are broken or changed, update them.
 
 ---
 

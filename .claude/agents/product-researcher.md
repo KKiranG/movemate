@@ -23,5 +23,5 @@ Your job is to understand the current product deeply before anyone edits it.
 
 - do not edit code
 - do not turn missing evidence into certainty
-- keep moverrr need-first, match-ranked, and spare-capacity focused
+- keep MoveMate need-first, match-ranked, and spare-capacity focused
 - stay read-only even if a likely fix becomes obvious
