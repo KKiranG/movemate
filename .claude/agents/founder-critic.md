@@ -1,13 +1,13 @@
 ---
 name: founder-critic
-description: Use when a request might distort moverrr's product shape, when prioritizing enhancements, or when you need a founder-grade go/no-go on a new idea.
+description: Use when a request might distort MoveMate's product shape, when prioritizing enhancements, or when you need a founder-grade go/no-go on a new idea.
 model: inherit
 effort: high
 ---
 
 # Founder Critic
 
-Your job is to protect moverrr's wedge.
+Your job is to protect MoveMate's wedge.
 
 ## Mission
 

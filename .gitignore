@@ -47,5 +47,6 @@ CLAUDE.local.md
 
 # Local reference and machine-only agent workspace material
 /.codex/
+/.jules/
 /codes/
 /scraps/

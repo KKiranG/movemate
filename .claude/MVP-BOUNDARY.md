@@ -1,6 +1,6 @@
 # MVP Boundary
 
-This file defines what is definitively in scope for the current moverrr MVP and what is explicitly deferred. Read this before implementing any new feature to avoid building outside the current product boundary.
+This file defines what is definitively in scope for the current MoveMate MVP and what is explicitly deferred. Read this before implementing any new feature to avoid building outside the current product boundary.
 
 **This is not a backlog file.** It is a scope gate. Do not add tasks here. Use `docs/operations/todolist.md` for backlog items.
 
@@ -52,13 +52,13 @@ Stop immediately and run `founder-scope-check` if a task or request drifts towar
 | Deferred feature | Why deferred |
 |---|---|
 | Carrier bidding for jobs | Breaks need-first model; turns into a dispatch auction |
-| Customer quote collection or comparison | Turns moverrr into a quote funnel |
+| Customer quote collection or comparison | Turns MoveMate into a quote funnel |
 | Real-time GPS tracking of vehicles | High infra cost; not needed for trust at this stage |
 | AI or ML ranking / opaque matching | Matching must stay deterministic and explainable |
 | In-app messaging between carrier and customer | Negotiation channel — ConditionAdjustment is the structured path |
 | Repeat-booking or subscription bookings | Complex capacity logic; defer until supply is stable |
 | Customer price negotiation | Breaks fixed-price trust model |
-| Bulk move / multi-stop coordinator | Removalist workflow — not moverrr's shape |
+| Bulk move / multi-stop coordinator | Removalist workflow — not MoveMate's shape |
 | Native iOS / Android app | Mobile-first web is the current platform |
 | Multi-carrier convoy bookings | Scope complexity far exceeds MVP need |
 | White-label or B2B accounts | No validated demand at MVP stage |

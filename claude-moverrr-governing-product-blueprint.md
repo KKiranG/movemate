@@ -1,7 +1,11 @@
+> **SUPERSEDED.** This is the v1 product blueprint. The canonical governing document is now `movemate-product-blueprint.md`. This file is retained as legacy context only. Do not use it as a source of truth for new implementation work.
+
+---
+
 # Moverrr Governing Product System Blueprint
 
 **Version:** Final  
-**Status:** Binding  
+**Status:** Legacy — superseded by `movemate-product-blueprint.md` (v2.0)  
 **Purpose:** This document is the single governing source of truth for all product construction, engineering decisions, marketplace behaviour, UX/UI architecture, and startup execution discipline for Moverrr. Decisions marked **FIXED** must not be reopened during implementation. If a downstream implementation agent encounters ambiguity not covered here, the default is: choose the simpler option that reduces customer uncertainty and carrier operational burden.
 
 ---

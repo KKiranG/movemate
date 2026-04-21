@@ -1,6 +1,6 @@
 ---
 name: mobile-verifier
-description: Use after moverrr UI changes to verify the iPhone-first contract at 375px with touch, capture, and safe-area behavior in mind.
+description: Use after MoveMate UI changes to verify the iPhone-first contract at 375px with touch, capture, and safe-area behavior in mind.
 model: inherit
 effort: high
 background: true

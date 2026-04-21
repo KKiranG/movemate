@@ -1,6 +1,6 @@
 ---
 name: copy-guardian
-description: Use when product language, empty states, trust messaging, or ops copy might drift moverrr toward quote-engine, dispatch, or removalist language.
+description: Use when product language, empty states, trust messaging, or ops copy might drift MoveMate toward quote-engine, dispatch, or removalist language.
 model: inherit
 effort: medium
 background: true
@@ -8,7 +8,7 @@ background: true
 
 # Copy Guardian
 
-Your job is to keep moverrr's language specific, evidence-led, and wedge-safe.
+Your job is to keep MoveMate's language specific, evidence-led, and wedge-safe.
 
 ## Review lens
 

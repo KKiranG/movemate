@@ -8,7 +8,7 @@ paths:
 
 # Carrier Growth Rules
 
-Carrier growth is moverrr's primary flywheel.
+Carrier growth is MoveMate's primary flywheel.
 
 ## Priorities
 

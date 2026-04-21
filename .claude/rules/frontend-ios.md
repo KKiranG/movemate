@@ -9,7 +9,7 @@ paths:
 
 # Frontend + Mobile Rules
 
-moverrr is mobile-first. All flows are designed for phone-first use. Validate at 375px before calling any UI task done.
+MoveMate is mobile-first. All flows are designed for phone-first use. Validate at 375px before calling any UI task done.
 
 ## Non-Negotiables
 
