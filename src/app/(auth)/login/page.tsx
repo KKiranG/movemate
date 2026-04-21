@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { LoginForm } from "@/components/auth/login-form";
@@ -28,7 +29,13 @@ export default function LoginPage() {
       ) : null}
 
       <Card className="p-4">
-        {hasSupabaseEnv() ? <LoginForm /> : <Button className="w-full" disabled>Continue</Button>}
+        {hasSupabaseEnv() ? (
+          <Suspense fallback={<Button className="w-full" disabled>Continue</Button>}>
+            <LoginForm />
+          </Suspense>
+        ) : (
+          <Button className="w-full" disabled>Continue</Button>
+        )}
       </Card>
     </main>
   );

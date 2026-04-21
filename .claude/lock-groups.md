@@ -4,6 +4,7 @@ Lock groups define safe parallelism. Priority labels do not.
 
 Rule:
 
+- Only one build agent should own one lock group at a time.
 - At most one active build agent owns one lock group at a time.
 - If work touches shared logic across groups, treat it as not parallel-safe unless explicitly reviewed and split.
 

@@ -112,3 +112,4 @@ gstack is an approved workflow dependency for this repo across Claude and Codex.
 - Use gstack for browsing, QA, review, and ship loops.
 - The canonical gstack rules live in [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md).
 - gstack does not overrule MoveMate product truth or repo authority docs. It is the workflow layer, not the product source of truth.
+- Keep gstack as a global install or external local reference, not as a repo-root source tree inside MoveMate.

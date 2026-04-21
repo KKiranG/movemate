@@ -15,7 +15,8 @@ GitHub issues, pull requests, and merge history are authoritative for active wor
 - Connect the repo as a Next.js project in Vercel.
 - Load preview and production env from `.env.example`.
 - The required production build contract is enforced by `config/required-production-env.json`.
-- Keep the cron schedule in `vercel.json`, and pair it with `CRON_SECRET` or `VERCEL_CRON_SECRET`.
+- The default cron schedule in `vercel.json` is hobby-safe daily execution. Pair it with `CRON_SECRET` or `VERCEL_CRON_SECRET`.
+- If you need hourly cron execution in Vercel, move the project to Pro before changing `vercel.json` back to a multi-run-per-day schedule.
 
 ## Provider wiring
 

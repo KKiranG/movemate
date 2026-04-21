@@ -34,8 +34,10 @@ Use this only outside production:
 ## Cron and webhook edge checks
 
 1. Verify `vercel.json` still schedules `/api/cron/trip-freshness-checks` and `/api/cron/payout-auto-release`.
-2. If `CRON_SECRET` or `VERCEL_CRON_SECRET` is set, call each cron route once with `Authorization: Bearer <secret>` and confirm a `200` response.
-3. Confirm Stripe webhook secret rotation is reflected before replaying webhook traffic or validating payout flows.
+2. Confirm the default schedules remain hobby-safe daily crons unless the project has explicitly moved to a Vercel Pro plan.
+3. If production needs hourly cron execution, record that dependency in GitHub before changing the schedule.
+4. If `CRON_SECRET` or `VERCEL_CRON_SECRET` is set, call each cron route once with `Authorization: Bearer <secret>` and confirm a `200` response.
+5. Confirm Stripe webhook secret rotation is reflected before replaying webhook traffic or validating payout flows.
 
 ## Ship gate
 

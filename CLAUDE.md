@@ -81,6 +81,7 @@ gstack is the approved workflow layer for this repo in Claude and is also instal
 - Global paths:
   - Claude: `~/.claude/skills/gstack`
   - Codex: `~/.codex/skills/gstack*`
+- Keep gstack as a global install or external local reference. Do not vendor its skill trees into the MoveMate repo root.
 
 ## Escalation
 

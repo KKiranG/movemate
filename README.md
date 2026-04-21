@@ -85,6 +85,7 @@ gstack is part of the approved workflow layer for this repo.
 - Codex global install path: `~/.codex/skills/gstack*`
 - Claude repo hook: `.claude/hooks/check-gstack.sh`
 - Use `/browse` from gstack for web browsing in Claude.
+- Keep gstack as a global or external dependency. Do not vendor its skill trees into the MoveMate repo root.
 
 gstack helps with planning, review, QA, and ship loops. MoveMate product truth and repo-operating truth still come from the canonical docs in this repo.
 
@@ -94,6 +95,6 @@ The product name is `MoveMate`.
 
 Some legacy technical identifiers still use `moverrr` because changing them in-place would create unnecessary breakage or migration churn. Those aliases are tracked in [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md) and the operating docs until an isolated rename pass is ready.
 
-## Reference-Only Imports
+## Reference Policy
 
-This repo contains imported gstack, OpenClaw, and other frontier-agent reference material at the root. Those folders are useful as patterns and tooling references, but they are not authoritative for MoveMate product truth or live task state unless a canonical doc explicitly points at them.
+Keep imported workflow libraries and local research material outside this repo root unless a small curated file is intentionally archived as non-authoritative reference. MoveMate stays app-first; GitHub and the canonical docs above remain the authority.

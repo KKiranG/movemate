@@ -60,9 +60,11 @@ Keep `moverrr` where renaming is risky until isolated migration work is shaped:
 
 These paths may contain useful patterns, but they do not overrule MoveMate runtime truth on their own:
 
-- imported gstack and OpenClaw materials at the repo root
 - `codes/**`
+- `docs/reference/**`
 - `docs/designs/**`
 - `claude-moverrr-governing-product-blueprint.md`
 
 `claude-moverrr-governing-product-blueprint.md` is retained as legacy context only. The governing product source of truth is `movemate-product-blueprint.md`.
+
+Imported workflow libraries such as gstack and OpenClaw should live as global installs or external local references, not as repo-root source trees inside MoveMate.

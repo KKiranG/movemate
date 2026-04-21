@@ -47,6 +47,12 @@ These vars unlock integrations without being required for local UI work:
 - `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for transactional email delivery
 - `STRIPE_CONNECT_RETURN_URL` and `STRIPE_CONNECT_REFRESH_URL` when Connect redirects must differ from the app defaults
 
+## Cron policy by environment
+
+- The default `vercel.json` schedule is daily so hobby Vercel projects can deploy successfully.
+- If MoveMate later needs hourly cron execution in Vercel, treat that as a deploy-policy change that requires a Pro plan or a different scheduler.
+- Keep cron auth wired through `CRON_SECRET` or `VERCEL_CRON_SECRET` regardless of schedule frequency.
+
 ## Local-only toggles
 
 - `RUN_SUPABASE_INTEGRATION` enables the integration tests that talk to a real Supabase stack when set to `1`
