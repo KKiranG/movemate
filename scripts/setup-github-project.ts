@@ -103,6 +103,17 @@ const singleSelectFields: Record<string, string[]> = {
   "Touches Shared Logic": ["yes", "no"],
   "Founder Decision Needed": ["yes", "no"],
   "Verification Status": ["pending", "partial", "complete", "blocked"],
+  "Current State": [
+    "inbox",
+    "shaping",
+    "ready",
+    "in-progress",
+    "pr-open",
+    "needs-review",
+    "needs-founder-decision",
+    "blocked",
+    "done",
+  ],
 };
 
 const textFields = ["Blocked By"];
@@ -111,11 +122,9 @@ console.log("==> Creating custom fields...");
 
 for (const [name, options] of Object.entries(singleSelectFields)) {
   try {
-    const optionArgs = options
-      .map((o) => `--single-select-option "${o}"`)
-      .join(" ");
+    const optionsList = options.join(",");
     gh(
-      `project field-create ${projectNumber} --owner ${ORG} --name "${name}" --data-type SINGLE_SELECT ${optionArgs}`
+      `project field-create ${projectNumber} --owner ${ORG} --name "${name}" --data-type SINGLE_SELECT --single-select-options "${optionsList}"`
     );
     console.log(`    + ${name} (single-select, ${options.length} options)`);
   } catch {
