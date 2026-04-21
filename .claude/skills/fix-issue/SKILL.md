@@ -38,11 +38,14 @@ Do not start implementation until you can state the root cause clearly.
 
 ## Step 4 — Verify
 
-1. `npm run check`
-2. Exercise the changed path directly.
-3. Try one adversarial input.
+Run the `/verify-moverrr-change` skill scoped to the changed area.
 
-If verification did not happen, say so plainly.
+Minimum before the PR is ready:
+1. `npm run check` passes
+2. The changed path was directly exercised (not just "reads fine")
+3. At least one adversarial input was tried and named in the report
+
+Verification is not optional. If it could not be run, state exactly why in the PR body under "Residual risk." Do not skip this step and mark the work done anyway.
 
 ## Step 5 — PR
 

@@ -32,11 +32,12 @@ Write a brief note (can be in a reply, not a file) covering:
 - If it does not compile, add a `// WIP:` comment at the exact line where work stopped, then commit.
 - Never leave uncommitted work in a worktree — worktrees are cleaned up automatically.
 
-### 3. Update Backlog If Task Changed State
+### 3. Update GitHub Issue State
 
-- If a task moved from in-progress to complete, mark it in `docs/operations/todolist.md` and add to `docs/operations/completed.md`.
-- If a task changed shape (scoped down, pivoted), update the backlog entry.
-- Do not create new backlog items here unless specifically asked.
+- If a task shipped: close or comment on the GitHub issue, and confirm the PR body has `Closes #N`.
+- If a task changed shape: update the GitHub issue body or add a comment explaining the pivot.
+- If new follow-up work surfaced: file it as a GitHub issue with lane + lock group labels before closing.
+- Do not write completion state to `docs/operations/todolist.md` or `completed.md` — those are derived digests.
 
 ### 4. Decisions Made This Session
 
@@ -57,7 +58,10 @@ Read in this sequence — stop when you have enough context to act:
 3. **`.claude/MVP-BOUNDARY.md`** — confirm the work is in scope
 4. **`.claude/CODEBASE-MAP.md`** — file locations for the affected area
 5. **Matching `.agent-skills/*.md`** — domain context for the area being changed
-6. **`docs/operations/todolist.md`** — current backlog item being worked on
+6. **Active GitHub issue** — the exact task being resumed:
+   ```bash
+   gh issue list --repo KKiranG/moverrr --label "state:in-progress" --json number,title,body
+   ```
 7. **Recent git log on the branch** — what has already been committed
 
 ```bash
@@ -95,12 +99,12 @@ Use this when handing a bounded task to a `feature-implementer`, `verifier`, `sc
 
 ## Quick Reference: What Survives Compaction
 
-Per CLAUDE.md § Compaction Preservation, these must survive context compaction:
+These must survive context compaction:
 
-- Active task ID and title
+- Active GitHub issue number and title
 - User decisions made this session (go/no-go)
 - Failed approaches (do not retry them)
 - Invariants confirmed (pricing identity, booking-state transitions, capacity math)
 - Scope boundaries (what was explicitly out of scope)
 
-If any of these would be lost, write them to a scratchpad or restate them at the top of the next message.
+If any of these would be lost, restate them at the top of the next message or add a comment to the GitHub issue before the session ends.

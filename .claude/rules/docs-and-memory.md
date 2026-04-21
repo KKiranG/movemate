@@ -51,6 +51,17 @@ Update docs in the same task when you change:
 `docs/operations/todolist.md` and `docs/operations/completed.md` are special-purpose files.
 Do not touch them unless the task actually changes backlog state or the user asked for backlog grooming.
 
+## Compounding Memory Rule
+
+If you have to correct the same mistake twice, encode it as a standing instruction.
+
+- First occurrence: fix it inline, no standing rule needed.
+- Second occurrence of the same mistake: add a rule in `docs-and-memory.md` or the relevant scoped rule file. Keep it one sentence.
+- If the correction applies everywhere, add it to `CLAUDE.md`. If it applies only in one subsystem, add it to the relevant `.claude/rules/*.md`.
+- Do not add a standing rule for one-off errors, exploratory missteps, or typos.
+
+Corrections about the review process belong in the review-packet template or review-pr skill, not in CLAUDE.md.
+
 ## Context Budget
 
 Treat always-loaded docs as a scarce budget.

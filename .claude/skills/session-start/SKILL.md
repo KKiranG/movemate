@@ -18,21 +18,34 @@ git log --oneline -10
 git status
 ```
 
+Then run all three — they take seconds and tell you what actually needs attention:
+
+```bash
+# 1. What needs a founder decision right now
+gh issue list --repo KKiranG/moverrr --label "state:needs-founder-decision" \
+  --json number,title --jq '.[] | "#\(.number) \(.title)"'
+
+# 2. What is blocked
+gh issue list --repo KKiranG/moverrr --label "state:blocked" \
+  --json number,title --jq '.[] | "#\(.number) \(.title)"'
+
+# 3. Top ready work sorted by priority
+gh issue list --repo KKiranG/moverrr --label "state:ready" --json number,title,labels \
+  --jq '.[] | "#\(.number) \(.title) [\(.labels | map(.name) | join(","))]"'
+```
+
 Then read:
-1. Top ready GitHub issue — run:
-   ```bash
-   gh issue list --repo KKiranG/moverrr --label "state:ready" --json number,title,labels \
-     --jq '.[] | "#\(.number) \(.title) [\(.labels | map(.name) | join(","))]"'
-   ```
-2. `CLAUDE.md` — refresh product invariants
-3. The relevant `.claude/rules/` file for today's area
+4. `CLAUDE.md` — refresh product invariants
+5. The relevant `.claude/rules/` file for today's area
 
 ## Scope Confirmation
 
 Present to the user:
 
 ```
-Top backlog item: [ID and title]
+Needs founder decision: [list or "none"]
+Blocked: [list or "none"]
+Top ready item: [ID and title]
 Recent commits: [last 5, one-line each]
 Uncommitted work: [clean / dirty — what files]
 Proposed scope: [what you will work on this session]

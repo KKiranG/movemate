@@ -14,10 +14,10 @@
 - one of: customer-acquisition, customer-booking-lifecycle, carrier-activation-posting, carrier-operations, matching-pricing-state, admin-operator, system-hygiene
 
 ## Priority
-- P0 / P1 / P2
+- p0 / p1 / p2 / p3 / p4
 
 ## Size
-- S / M / L / XL
+- xs / s / m / l / xl
 
 ## Risk level
 - low / medium / high
