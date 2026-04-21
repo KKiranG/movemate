@@ -1,12 +1,12 @@
 ---
 name: verify-moverrr-change
-description: Run a real moverrr verification pass after non-trivial changes, with explicit evidence instead of ceremonial "looks good" validation.
+description: Run a real MoveMate verification pass after non-trivial changes, with explicit evidence instead of ceremonial "looks good" validation.
 when_to_use: Use when the user asks to verify, audit, sanity-check, or review a change, or when you are about to finish a meaningful implementation. Examples: "verify this works", "do a final pass", "review the booking flow", "sanity check this PR", or "make sure the mobile UI is correct".
 argument-hint: [area: frontend|backend|booking|database|docs]
 effort: high
 ---
 
-# Verify moverrr Change
+# Verify MoveMate Change
 
 Use `$ARGUMENTS` to scope the verification pass (e.g. `booking`, `frontend`, `database`).
 
@@ -35,7 +35,7 @@ Match the verification to the change type:
 - **Backend / API**
   Hit the path directly or exercise the logic with representative inputs. Validate error handling too, not just the happy path.
 - **Bookings / pricing / payments**
-  Re-check commission math, booking fee, status transitions, dispute guard behavior, and capacity updates.
+  Re-check commission math, zero booking-fee behavior, status transitions, dispute guard behavior, and capacity updates.
 - **Database / migrations**
   Inspect RLS, indexes, reversibility where relevant, and the effect on current flows.
 - **Docs / memory**

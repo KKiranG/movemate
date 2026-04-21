@@ -5,10 +5,10 @@ export function SiteFooter() {
     <footer className="border-t border-border bg-background">
       <div className="mx-auto flex w-full max-w-content flex-col gap-4 px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6">
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium text-text">moverrr</p>
+          <p className="text-sm font-medium text-text">MoveMate</p>
           <p className="max-w-xl text-sm text-text-secondary">
-            Tell moverrr what needs moving and get ranked spare-capacity matches
-            with transparent pricing and trust signals.
+            MoveMate starts with the move need, then shows ranked spare-capacity
+            matches with clear pricing, fit notes, and trust signals.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-text-secondary">

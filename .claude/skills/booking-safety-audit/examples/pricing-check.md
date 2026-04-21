@@ -17,8 +17,8 @@ PASS src/lib/__tests__/breakdown.test.ts
   ✓ commission applies only to basePriceCents (2ms)
   ✓ stairs fee is not commissionable (1ms)
   ✓ helper fee is not commissionable (1ms)
-  ✓ booking fee is flat $5 (1ms)
-  ✓ total = payout + commission + booking_fee (1ms)
+  ✓ booking fee remains zero (1ms)
+  ✓ total = payout + commission + gst (1ms)
 ```
 
 ## Adversarial Case
@@ -35,9 +35,9 @@ FAIL src/lib/__tests__/breakdown.test.ts
 ## Identity That Must Always Hold
 
 ```text
-Customer pays:   base + stairs_fee + helper_fee + $5 booking_fee
-Carrier earns:   base + stairs_fee + helper_fee - (base * 15%)
-Platform earns:  (base * 15%) + $5 booking_fee
+Customer pays:   base + stairs_fee + helper_fee + commission + gst
+Carrier earns:   base + stairs_fee + helper_fee
+Platform earns:  (base * 15%)
 ```
 
 Commission never touches stairs or helper fees. If it does, the tests will catch it.

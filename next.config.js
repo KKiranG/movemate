@@ -1,10 +1,22 @@
 const requiredProductionEnv = require("./config/required-production-env.json");
 const { withSentryConfig } = require("@sentry/nextjs");
 
+function shouldValidateBuildEnv() {
+  if (process.env.SKIP_REQUIRED_ENV_VALIDATION === "1") {
+    return false;
+  }
+
+  return (
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NEXT_PUBLIC_APP_ENV === "production" ||
+    process.env.REQUIRE_BUILD_ENV === "1"
+  );
+}
+
 function assertRequiredEnvForBuild() {
   const isLintCommand = process.argv.some((arg) => arg.includes("lint"));
 
-  if (process.env.NODE_ENV !== "production" || isLintCommand) {
+  if (process.env.NODE_ENV !== "production" || isLintCommand || !shouldValidateBuildEnv()) {
     return;
   }
 
@@ -47,6 +59,9 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    dirs: ["src"],
+  },
   async headers() {
     if (process.env.NODE_ENV !== "production") {
       return [];

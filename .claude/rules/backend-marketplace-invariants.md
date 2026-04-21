@@ -16,9 +16,9 @@ IMPORTANT: backend changes can quietly distort the marketplace if they ignore bu
 
 - Pricing formula lives in `src/lib/pricing/breakdown.ts`
 - Commission is `15%` of `basePriceCents` only — never applied to stairs, helper, or detour add-ons
-- Booking fee is `$5`
 - GST is `10%` of `(subtotal + platform_fee)` — always collected on top, never absorbed
-- The pricing identity must hold: `total = carrier_payout + platform_fee + gst + booking_fee`
+- `bookingFeeCents` is currently `0` and should stay that way unless the founder explicitly changes the economics
+- The pricing identity must hold: `total = carrier_payout + platform_fee + gst`
 
 ## Fast Match Atomicity
 

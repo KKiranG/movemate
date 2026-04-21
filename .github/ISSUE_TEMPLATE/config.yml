@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: MoveMate operating system note
+    url: https://github.com/KKiranG/moverrr/blob/main/.claude/project-ops.md
+    about: GitHub issues and pull requests are authoritative. Markdown backlog files are derived digests only.

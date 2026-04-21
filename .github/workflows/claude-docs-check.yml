@@ -1,114 +1,288 @@
-name: Claude Docs Check
+name: Operations Docs Check
 
 on:
   pull_request:
     branches:
       - main
     paths:
-      - 'CLAUDE.md'
-      - 'TASK-RULES.md'
-      - '.claude/**'
-      - '.agent-skills/**'
+      - "AUTHORITY.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "TASK-RULES.md"
+      - ".claude/project-ops.md"
+      - ".claude/lock-groups.md"
+      - ".env.example"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/claude-docs-check.yml"
+      - "config/required-production-env.json"
+      - "docs/operations/**"
+      - "next.config.js"
+      - "package.json"
+      - "src/app/api/admin/route.ts"
+      - "src/app/api/cron/**"
+      - "src/app/api/health/route.ts"
+      - "src/lib/data/bootstrap.ts"
+      - "src/lib/env.ts"
+      - "vercel.json"
+  push:
+    branches:
+      - main
+    paths:
+      - "AUTHORITY.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "TASK-RULES.md"
+      - ".claude/project-ops.md"
+      - ".claude/lock-groups.md"
+      - ".env.example"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/claude-docs-check.yml"
+      - "config/required-production-env.json"
+      - "docs/operations/**"
+      - "next.config.js"
+      - "package.json"
+      - "src/app/api/admin/route.ts"
+      - "src/app/api/cron/**"
+      - "src/app/api/health/route.ts"
+      - "src/lib/data/bootstrap.ts"
+      - "src/lib/env.ts"
+      - "vercel.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  docs-consistency:
+  operations-docs:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check required doc files exist
-        run: |
-          required_files=(
-            "CLAUDE.md"
-            "TASK-RULES.md"
-            "todolist.md"
-            ".claude/settings.json"
-            ".claude/operating-system.md"
-            ".claude/command-catalog.md"
-          )
-          failed=0
-          for f in "${required_files[@]}"; do
-            if [[ ! -f "$f" ]]; then
-              echo "MISSING: $f"
-              failed=1
-            fi
-          done
-          if [[ "$failed" == "1" ]]; then
-            echo "Required doc files are missing. Restore them before merging."
-            exit 1
-          fi
-          echo "All required doc files present."
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      - name: Check agent files have required frontmatter
+      - name: Validate operations docs and environment contract
         run: |
-          failed=0
-          for agent in .claude/agents/*.md; do
-            if ! grep -q "^name:" "$agent"; then
-              echo "MISSING name: in $agent"
-              failed=1
-            fi
-            if ! grep -q "^description:" "$agent"; then
-              echo "MISSING description: in $agent"
-              failed=1
-            fi
-          done
-          if [[ "$failed" == "1" ]]; then
-            echo "Agent files are missing required frontmatter fields."
-            exit 1
-          fi
-          echo "All agent files have required frontmatter."
+          node <<'NODE'
+          const fs = require("node:fs");
 
-      - name: Check skill files have required frontmatter
-        run: |
-          failed=0
-          for skill in .claude/skills/*/SKILL.md; do
-            if ! grep -q "^name:" "$skill"; then
-              echo "MISSING name: in $skill"
-              failed=1
-            fi
-            if ! grep -q "^description:" "$skill"; then
-              echo "MISSING description: in $skill"
-              failed=1
-            fi
-            if ! grep -q "^when_to_use:" "$skill"; then
-              echo "MISSING when_to_use: in $skill"
-              failed=1
-            fi
-          done
-          if [[ "$failed" == "1" ]]; then
-            echo "Skill files are missing required frontmatter fields."
-            exit 1
-          fi
-          echo "All skill files have required frontmatter."
+          const requiredFiles = [
+            "AUTHORITY.md",
+            "AGENTS.md",
+            "CLAUDE.md",
+            "TASK-RULES.md",
+            ".claude/project-ops.md",
+            ".claude/lock-groups.md",
+            ".env.example",
+            ".github/workflows/ci.yml",
+            "config/required-production-env.json",
+            "docs/operations/environment-model.md",
+            "docs/operations/smoke-tests.md",
+            "docs/operations/deploy-project-setup.md",
+            "docs/operations/completed.md",
+            "docs/operations/todolist.md",
+          ];
 
-      - name: Check CLAUDE.md has core invariant sections
-        run: |
-          failed=0
-          required_sections=(
-            "## Product Thesis"
-            "## Core Invariants"
-            "### Pricing"
-            "### Booking and dispute flow"
-          )
-          for section in "${required_sections[@]}"; do
-            if ! grep -qF "$section" CLAUDE.md; then
-              echo "MISSING section in CLAUDE.md: $section"
-              failed=1
-            fi
-          done
-          if [[ "$failed" == "1" ]]; then
-            echo "CLAUDE.md is missing required invariant sections."
-            exit 1
-          fi
-          echo "CLAUDE.md core invariants are intact."
+          const missingFiles = requiredFiles.filter((file) => !fs.existsSync(file));
 
-      - name: Check todolist.md format
-        run: |
-          if ! grep -q "## 🔴 P0" todolist.md; then
-            echo "todolist.md is missing priority headers. Check TASK-RULES.md format."
-            exit 1
-          fi
-          echo "todolist.md format looks correct."
+          if (missingFiles.length > 0) {
+            console.error("Missing required operations files:");
+            for (const file of missingFiles) {
+              console.error(`- ${file}`);
+            }
+            process.exit(1);
+          }
+
+          const envExample = fs.readFileSync(".env.example", "utf8");
+          const envKeys = new Set(
+            envExample
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter((line) => line && !line.startsWith("#"))
+              .map((line) => line.split("=")[0].trim()),
+          );
+
+          const requiredProductionEnv = JSON.parse(
+            fs.readFileSync("config/required-production-env.json", "utf8"),
+          );
+          const requiredOpsEnv = [
+            "NEXT_PUBLIC_SITE_URL",
+            "NEXT_PUBLIC_APP_URL",
+            "NEXT_PUBLIC_APP_ENV",
+            "GOOGLE_MAPS_API_KEY",
+            "NEXT_PUBLIC_GOOGLE_MAPS_KEY",
+            "UPSTASH_REDIS_REST_URL",
+            "UPSTASH_REDIS_REST_TOKEN",
+            "STRIPE_CONNECT_RETURN_URL",
+            "STRIPE_CONNECT_REFRESH_URL",
+            "RESEND_API_KEY",
+            "RESEND_FROM_EMAIL",
+            "NEXT_PUBLIC_SENTRY_DSN",
+            "SENTRY_RELEASE",
+            "SENTRY_AUTH_TOKEN",
+            "SENTRY_ORG",
+            "SENTRY_PROJECT",
+            "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+            "VAPID_PRIVATE_KEY",
+            "VAPID_SUBJECT",
+            "ADMIN_EMAILS",
+            "CRON_SECRET",
+            "VERCEL_CRON_SECRET",
+            "SMOKE_BOOTSTRAP_SECRET",
+            "RUN_SUPABASE_INTEGRATION",
+          ];
+
+          const requiredEnv = [...new Set([...requiredProductionEnv, ...requiredOpsEnv])];
+          const missingEnv = requiredEnv.filter((key) => !envKeys.has(key));
+
+          if (missingEnv.length > 0) {
+            console.error("Missing environment variables in .env.example:");
+            for (const key of missingEnv) {
+              console.error(`- ${key}`);
+            }
+            process.exit(1);
+          }
+
+          const fileExpectations = [
+            {
+              file: "AUTHORITY.md",
+              snippets: [
+                "MoveMate Authority Map",
+                "Use `MoveMate` for product-facing and founder-facing language.",
+                "claude-moverrr-governing-product-blueprint.md",
+              ],
+            },
+            {
+              file: "AGENTS.md",
+              snippets: [
+                "MoveMate — Agent Operating Contract",
+                "GitHub Issues + labels + linked PRs are the authoritative live work system.",
+                "Markdown backlog files are derived digests only.",
+              ],
+            },
+            {
+              file: "CLAUDE.md",
+              snippets: [
+                "MoveMate Repo Truth",
+                "GitHub Issues, labels, linked PRs, and comments are the live work system.",
+                "The current pricing code in `src/lib/pricing/breakdown.ts` is canonical for this pass.",
+              ],
+            },
+            {
+              file: "TASK-RULES.md",
+              snippets: [
+                "MoveMate Task Rules",
+                "The live task system is GitHub-first.",
+                "GitHub Project fields when scopes are available",
+                "These files are snapshots and digests only:",
+              ],
+            },
+            {
+              file: ".claude/project-ops.md",
+              snippets: [
+                "MoveMate Project Ops",
+                "GitHub is authoritative for live state.",
+                "project fields for queue metadata when GitHub project scopes are available",
+                "The founder should not be asked to inspect raw diffs by default.",
+              ],
+            },
+            {
+              file: ".claude/lock-groups.md",
+              snippets: [
+                "MoveMate Lock Groups",
+                "Only one build agent should own one lock group at a time.",
+              ],
+            },
+            {
+              file: ".github/workflows/ci.yml",
+              snippets: [
+                "npm ci",
+                "npm run check",
+                "npm run test",
+                "npm run build",
+                "NEXT_PUBLIC_SUPABASE_URL",
+                "STRIPE_WEBHOOK_SECRET",
+              ],
+            },
+            {
+              file: "docs/operations/environment-model.md",
+              snippets: [
+                "GitHub issues and pull requests",
+                "docs/operations/todolist.md",
+                "docs/operations/completed.md",
+                "Required build / deploy variables",
+                "Server-only secrets",
+                "Local-only toggles",
+                "config/required-production-env.json",
+                "`CRON_SECRET`",
+                "`SMOKE_BOOTSTRAP_SECRET`",
+                "`RUN_SUPABASE_INTEGRATION`",
+              ],
+            },
+            {
+              file: "docs/operations/smoke-tests.md",
+              snippets: [
+                "`npm run check`",
+                "`npm run test`",
+                "`npm run build`",
+                "`/api/health`",
+                "`SMOKE_BOOTSTRAP_SECRET`",
+                "`/api/admin`",
+                "`/api/cron/trip-freshness-checks`",
+                "`/api/cron/payout-auto-release`",
+              ],
+            },
+            {
+              file: "docs/operations/deploy-project-setup.md",
+              snippets: [
+                "GitHub issues",
+                "pull requests",
+                "derived artifacts only",
+                "Vercel",
+                "Supabase",
+                "Stripe",
+                "`npm run ops:sync-backlog`",
+                "`CI`",
+                "`Operations Docs Check`",
+              ],
+            },
+            {
+              file: "docs/operations/completed.md",
+              snippets: [
+                "Derived artifact only.",
+                "GitHub",
+              ],
+            },
+            {
+              file: "docs/operations/todolist.md",
+              snippets: [
+                "Derived artifact only.",
+                "GitHub",
+              ],
+            },
+          ];
+
+          let failed = false;
+
+          for (const { file, snippets } of fileExpectations) {
+            const content = fs.readFileSync(file, "utf8");
+
+            for (const snippet of snippets) {
+              if (!content.includes(snippet)) {
+                console.error(`Missing required content in ${file}: ${snippet}`);
+                failed = true;
+              }
+            }
+          }
+
+          if (failed) {
+            process.exit(1);
+          }
+
+          console.log("Operations docs and environment contract are in sync.");
+          NODE

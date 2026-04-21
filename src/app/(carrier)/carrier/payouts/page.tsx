@@ -49,7 +49,7 @@ export default async function CarrierPayoutsPage() {
               <p className="eyebrow">Payout setup missing</p>
               <h2 className="mt-1 text-lg text-[var(--text-primary)]">Funds can be held, but release is blocked</h2>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                Booking money stays protected inside moverrr until proof, customer confirmation, and
+                Booking money stays protected inside MoveMate until proof, customer confirmation, and
                 payout setup all line up. Finish payout setup before your next completed job.
               </p>
               <p className="mt-2 text-sm text-[var(--text-primary)]">

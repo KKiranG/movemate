@@ -4,11 +4,37 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  check-and-test:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_SITE_URL: https://example.movemate.app
+      NEXT_PUBLIC_APP_URL: https://example.movemate.app
+      NEXT_PUBLIC_APP_ENV: ci
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci_anon_key
+      SUPABASE_SERVICE_ROLE_KEY: ci_service_role_key
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci
+      STRIPE_CONNECT_RETURN_URL: https://example.movemate.app/carrier/onboarding
+      STRIPE_CONNECT_REFRESH_URL: https://example.movemate.app/carrier/onboarding
+      SENTRY_RELEASE: ci-${{ github.sha }}
 
     steps:
       - name: Checkout
@@ -19,6 +45,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -28,3 +55,6 @@ jobs:
 
       - name: Run tests
         run: npm run test
+
+      - name: Production build
+        run: npm run build

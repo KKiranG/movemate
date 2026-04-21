@@ -1,0 +1,200 @@
+name: Deploy fix
+description: Track production or release fixes with rollback and verification detail.
+title: "[Deploy Fix]: "
+labels:
+  - "type:deploy-fix"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for incidents, release blockers, or urgent deployment fixes.
+  - type: input
+    id: summary
+    attributes:
+      label: Deploy fix summary
+      placeholder: Fix GitHub digest generation before the next release cut.
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - production
+        - preview
+        - staging
+        - local
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      placeholder: Operators cannot trust the derived backlog digest, so release coordination stalls.
+    validations:
+      required: true
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current behavior
+      placeholder: The deploy or release path is failing, or the shipped system is behaving incorrectly.
+    validations:
+      required: true
+  - type: textarea
+    id: target_behavior
+    attributes:
+      label: Target behavior
+      placeholder: The deploy path is green and the release output matches the intended workflow.
+    validations:
+      required: true
+  - type: textarea
+    id: rollback_or_guardrail
+    attributes:
+      label: Rollback or guardrail
+      description: Temporary mitigation or `none`.
+      placeholder: none
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      options:
+        - lane:ux-builder
+        - lane:ui-builder
+        - lane:backend-builder
+        - lane:trust-safety
+        - lane:performance-reliability
+        - lane:scout
+        - lane:docs-sync
+        - lane:review
+        - lane:deploy
+        - lane:testing
+    validations:
+      required: true
+  - type: dropdown
+    id: state
+    attributes:
+      label: State
+      options:
+        - state:inbox
+        - state:shaping
+        - state:ready
+        - state:claimed
+        - state:in-progress
+        - state:pr-open
+        - state:needs-review
+        - state:needs-founder-decision
+        - state:blocked
+        - state:duplicate
+        - state:deferred
+    validations:
+      required: true
+  - type: input
+    id: lock_group
+    attributes:
+      label: Lock group
+      placeholder: release
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - priority:p0
+        - priority:p1
+        - priority:p2
+        - priority:p3
+        - priority:p4
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options:
+        - size:xs
+        - size:s
+        - size:m
+        - size:l
+        - size:xl
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      options:
+        - risk:low
+        - risk:medium
+        - risk:high
+        - risk:critical
+    validations:
+      required: true
+  - type: checkboxes
+    id: affected_surfaces
+    attributes:
+      label: Affected surfaces
+      options:
+        - label: surface:customer-web
+        - label: surface:carrier-web
+        - label: surface:admin-web
+        - label: surface:mobile-web
+        - label: surface:api
+        - label: surface:data
+        - label: surface:payments
+        - label: surface:ops
+        - label: surface:github
+        - label: surface:docs
+        - label: surface:design-system
+  - type: textarea
+    id: done_when
+    attributes:
+      label: Done when
+      placeholder: |
+        - Production or release behavior is restored.
+        - Guardrails and follow-up tasks are captured.
+    validations:
+      required: true
+  - type: textarea
+    id: blocked_by
+    attributes:
+      label: Blocked by
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: safe_parallelism
+    attributes:
+      label: Safe parallelism
+      placeholder: Other workers should avoid the release lane until this issue closes.
+    validations:
+      required: true
+  - type: dropdown
+    id: founder_decision
+    attributes:
+      label: Founder decision
+      options:
+        - No founder decision needed
+        - Founder decision needed for rollback or release timing
+        - Founder decision already captured
+    validations:
+      required: true
+  - type: textarea
+    id: founder_decision_detail
+    attributes:
+      label: Founder decision detail
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: verification_plan
+    attributes:
+      label: Verification plan
+      placeholder: |
+        - Reproduce the deploy issue.
+        - Validate the fix in preview or local.
+        - Confirm production health and linked issue state.
+    validations:
+      required: true

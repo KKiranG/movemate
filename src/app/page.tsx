@@ -3,7 +3,6 @@ import { ArrowRight, Box, Refrigerator, Sofa, Truck } from "lucide-react";
 
 import { AmbientMap } from "@/components/spec/chrome";
 import { Button } from "@/components/ui/button";
-import { Wordmark } from "@/components/ui/wordmark";
 
 const presets = [
   {
@@ -29,7 +28,15 @@ export default function HomePage() {
       <div className="relative">
         <AmbientMap />
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-[calc(14px+var(--safe-area-top))]">
-          <Wordmark />
+          <Link
+            href="/"
+            className="flex min-h-[44px] min-w-[44px] flex-col justify-center rounded-[var(--radius-pill)] px-1 text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-subtle)]"
+          >
+            <span className="text-[18px] font-semibold tracking-[-0.04em]">MoveMate</span>
+            <span className="text-[11px] text-[var(--text-secondary)]">
+              Need-first spare-capacity moves
+            </span>
+          </Link>
           <Link
             href="/auth/login"
             className="inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-pill)] border border-[var(--border-subtle)] bg-[color:rgba(255,255,255,0.72)] px-4 text-[13px] font-medium text-[var(--text-primary)] backdrop-blur-[12px] hover:bg-white active:bg-[var(--bg-elevated-2)]"
@@ -41,10 +48,11 @@ export default function HomePage() {
 
       <section className="screen screen-wide -mt-9 space-y-5">
         <div className="space-y-3">
-          <p className="eyebrow">Need-first moves</p>
+          <p className="eyebrow">MoveMate | Need-first, trust-first</p>
           <h1 className="display-title max-w-[8ch]">What needs to move?</h1>
           <p className="body max-w-[30ch] text-[var(--text-secondary)]">
-            Tell us once. We’ll match you with a driver already going that way.
+            MoveMate starts with the move need, then shows ranked spare-capacity
+            matches with clear pricing, fit notes, and trust signals.
           </p>
         </div>
 
@@ -62,17 +70,18 @@ export default function HomePage() {
 
           <Button asChild className="mt-4 w-full">
             <Link href="/move/new/route">
-              Start your move
+              Tell MoveMate your move
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <p className="mt-3 text-center text-[12px] text-[var(--text-tertiary)]">
-            One action at a time. No browsing raw driver listings first.
+            Start with the need first. See ranked, trust-backed matches instead of
+            browsing raw driver listings.
           </p>
         </div>
 
         <div>
-          <p className="eyebrow">Start from</p>
+          <p className="eyebrow">Popular move needs</p>
           <div className="mt-3 space-y-3">
             {presets.map((preset) => {
               const Icon = preset.icon;
@@ -106,11 +115,16 @@ export default function HomePage() {
             </div>
             <div>
               <p className="title">See ranked matches</p>
-              <p className="caption">Every option explains why it fits and what you’ll actually pay.</p>
+              <p className="caption">
+                Every match explains fit, price clarity, and trust before you book.
+              </p>
             </div>
             <div>
               <p className="title">Book and track cleanly</p>
-              <p className="caption">Structured updates, proof on delivery, payout only after confirmation.</p>
+              <p className="caption">
+                Structured updates, proof on delivery, and payout only after
+                confirmation.
+              </p>
             </div>
           </div>
         </div>
@@ -120,7 +134,7 @@ export default function HomePage() {
           className="flex min-h-[54px] items-center justify-center gap-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] px-4 text-[14px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-elevated-1)] active:bg-[var(--bg-elevated-2)]"
         >
           <Truck className="h-4 w-4" />
-          Have spare space in your van? Drive with moverrr
+          Have spare space on a real route? Drive with MoveMate
         </Link>
       </section>
     </main>

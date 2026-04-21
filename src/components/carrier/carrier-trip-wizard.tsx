@@ -788,7 +788,7 @@ export function CarrierTripWizard({
             <p className="mt-2 text-xs text-text-secondary">
               {priceGuidance?.usedFallback
                 ? "Using the Sydney fallback guide until we have at least 5 route examples."
-                : `Built from ${priceGuidance?.exampleCount ?? 0} moverrr examples on a similar corridor.`}
+                : `Built from ${priceGuidance?.exampleCount ?? 0} MoveMate examples on a similar corridor.`}
             </p>
           </div>
           <div

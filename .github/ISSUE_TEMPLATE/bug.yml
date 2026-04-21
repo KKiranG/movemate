@@ -1,0 +1,195 @@
+name: Bug
+description: Report a production, staging, or local bug with workflow metadata.
+title: "[Bug]: "
+labels:
+  - "type:bug"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for regressions, broken flows, or trust-damaging defects.
+  - type: input
+    id: summary
+    attributes:
+      label: Bug summary
+      description: Short statement of the broken behavior.
+      placeholder: Linked PRs are not appearing in the derived completed digest.
+    validations:
+      required: true
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual behavior
+      placeholder: The sync script omits merged PR references even when the PR closes the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      placeholder: Closed issues should show linked merged PRs in docs/operations/completed.md.
+    validations:
+      required: true
+  - type: textarea
+    id: repro_steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Create an issue from the builder-task form.
+        2. Merge a PR with "Closes #123".
+        3. Run the sync script.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Production, preview, local, or specific URL/version.
+      placeholder: local on main using `bun run scripts/sync-backlog-from-github.ts --dry-run`
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      options:
+        - lane:ux-builder
+        - lane:ui-builder
+        - lane:backend-builder
+        - lane:trust-safety
+        - lane:performance-reliability
+        - lane:scout
+        - lane:docs-sync
+        - lane:review
+        - lane:deploy
+        - lane:testing
+    validations:
+      required: true
+  - type: dropdown
+    id: state
+    attributes:
+      label: State
+      options:
+        - state:inbox
+        - state:shaping
+        - state:ready
+        - state:claimed
+        - state:in-progress
+        - state:pr-open
+        - state:needs-review
+        - state:needs-founder-decision
+        - state:blocked
+        - state:duplicate
+        - state:deferred
+    validations:
+      required: true
+  - type: input
+    id: lock_group
+    attributes:
+      label: Lock group
+      description: Shared area that should not be edited in parallel. Use `none` if not needed.
+      placeholder: github-sync
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - priority:p0
+        - priority:p1
+        - priority:p2
+        - priority:p3
+        - priority:p4
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options:
+        - size:xs
+        - size:s
+        - size:m
+        - size:l
+        - size:xl
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      options:
+        - risk:low
+        - risk:medium
+        - risk:high
+        - risk:critical
+    validations:
+      required: true
+  - type: checkboxes
+    id: affected_surfaces
+    attributes:
+      label: Affected surfaces
+      options:
+        - label: surface:customer-web
+        - label: surface:carrier-web
+        - label: surface:admin-web
+        - label: surface:mobile-web
+        - label: surface:api
+        - label: surface:data
+        - label: surface:payments
+        - label: surface:ops
+        - label: surface:github
+        - label: surface:docs
+        - label: surface:design-system
+  - type: textarea
+    id: done_when
+    attributes:
+      label: Done when
+      placeholder: |
+        - Root cause is fixed.
+        - Regression coverage or a documented guard exists.
+    validations:
+      required: true
+  - type: textarea
+    id: blocked_by
+    attributes:
+      label: Blocked by
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: safe_parallelism
+    attributes:
+      label: Safe parallelism
+      placeholder: App teams can keep shipping on feature code, but avoid the digest generator until this lands.
+    validations:
+      required: true
+  - type: dropdown
+    id: founder_decision
+    attributes:
+      label: Founder decision
+      options:
+        - No founder decision needed
+        - Founder decision needed before fix
+        - Founder decision needed after investigation
+        - Founder decision already captured
+    validations:
+      required: true
+  - type: textarea
+    id: founder_decision_detail
+    attributes:
+      label: Founder decision detail
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: verification_plan
+    attributes:
+      label: Verification plan
+      placeholder: |
+        - Reproduce on current main.
+        - Apply fix.
+        - Re-run sync and verify the closed issue shows its linked PRs.
+    validations:
+      required: true

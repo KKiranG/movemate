@@ -2,7 +2,7 @@
   "name": "moverrr",
   "version": "0.1.0",
   "private": true,
-  "description": "Need-first spare-capacity marketplace for awkward-middle moves in Sydney.",
+  "description": "MoveMate application repo and autonomous engineering control plane.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,6 +13,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck",
     "scan:product-drift": "rg -n \"saved-search|saved search|join the waitlist|launch waitlist|direct booking|Browse-first|browse-first\" src README.md .agent-skills .claude --glob '!src/lib/data/alerts.ts' --glob '!**/saved-search-demand-review/**' --glob '!**/saved-searches/**' --glob '!**/CODEBASE-MAP.md' --glob '!**/command-catalog.md' --glob '!**/experiment-loop/SKILL.md' --glob '!**/capability-index.md'",
+    "ops:labels": "node --import tsx scripts/setup-github-labels.ts",
+    "ops:sync-backlog": "node --import tsx scripts/sync-backlog-from-github.ts",
     "supabase:start": "supabase start",
     "supabase:push": "supabase db push",
     "supabase:reset": "supabase db reset",
@@ -22,6 +24,7 @@
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
+    "@react-email/render": "^1.4.0",
     "@sentry/nextjs": "^10.45.0",
     "@stripe/stripe-js": "^8.11.0",
     "@supabase/ssr": "^0.9.0",

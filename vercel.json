@@ -3,11 +3,11 @@
   "crons": [
     {
       "path": "/api/cron/trip-freshness-checks",
-      "schedule": "0 * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/payout-auto-release",
-      "schedule": "0 * * * *"
+      "schedule": "15 6 * * *"
     }
   ]
 }

@@ -17,14 +17,14 @@ export function MobileNav({
   navItems,
   authCopy,
   isLoggedIn,
-  postTripHref,
-  postTripLabel,
+  primaryCtaHref,
+  primaryCtaLabel,
 }: {
   navItems: NavItem[];
   authCopy: string;
   isLoggedIn: boolean;
-  postTripHref: string;
-  postTripLabel: string;
+  primaryCtaHref: string;
+  primaryCtaLabel: string;
 }) {
   const pathname = usePathname();
   const detailsRef = useRef<HTMLDetailsElement>(null);
@@ -49,6 +49,14 @@ export function MobileNav({
         </span>
       </summary>
       <div className="mt-3 space-y-4 rounded-2xl border border-border bg-background p-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="rounded-xl border border-border bg-surface px-3 py-3">
+          <p className="text-sm font-medium text-text">MoveMate</p>
+          <p className="mt-1 text-xs leading-5 text-text-secondary">
+            Need-first matching with clear pricing, fit notes, and proof-backed
+            trust.
+          </p>
+        </div>
+
         <div className="grid gap-2">
           {navItems.map((item) => (
             <Link
@@ -88,8 +96,8 @@ export function MobileNav({
               </Button>
             )}
             <Button asChild size="sm" className="justify-start">
-              <Link href={postTripHref} onClick={closeMenu}>
-                {postTripLabel}
+              <Link href={primaryCtaHref} onClick={closeMenu}>
+                {primaryCtaLabel}
               </Link>
             </Button>
           </div>

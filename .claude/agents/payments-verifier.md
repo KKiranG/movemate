@@ -16,8 +16,8 @@ Your job is to verify payment truth, not just Stripe wiring.
 
 Start every session with these invariants:
 - commission is `15%` of `basePriceCents` only — never stairs or helper fees
-- booking fee is `$5` flat
-- `total = payout + commission + booking_fee`
+- booking fee is currently `0`
+- `total = payout + commission + gst`
 - booking creation stays atomic via RPC
 - `remaining_capacity_pct` stays correct after every booking mutation
 - `disputed -> completed` only after dispute is `resolved` or `closed`

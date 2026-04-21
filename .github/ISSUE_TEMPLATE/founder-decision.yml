@@ -1,0 +1,199 @@
+name: Founder decision
+description: Capture a founder-level tradeoff or one-way-door decision before implementation drifts.
+title: "[Founder Decision]: "
+labels:
+  - "type:founder-decision"
+  - "status:needs-founder"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when the team needs an explicit founder call before work can proceed cleanly.
+  - type: input
+    id: summary
+    attributes:
+      label: Decision summary
+      placeholder: Decide whether backlog digests should overwrite existing manual history.
+    validations:
+      required: true
+  - type: textarea
+    id: decision_to_make
+    attributes:
+      label: Decision to make
+      placeholder: Choose between full replacement, append-only migration, or hybrid derived docs.
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options considered
+      placeholder: |
+        1. Full replacement of docs.
+        2. Keep manual docs forever.
+        3. Derived digest with generated headers and preserved manual history elsewhere.
+    validations:
+      required: true
+  - type: textarea
+    id: recommended_path
+    attributes:
+      label: Recommended path
+      placeholder: Use generated digests and treat markdown as read-only outputs from GitHub.
+    validations:
+      required: true
+  - type: textarea
+    id: reversal_cost
+    attributes:
+      label: Reversal cost
+      placeholder: Medium. Changing after adoption requires retraining contributors and rewriting docs.
+    validations:
+      required: true
+  - type: input
+    id: decision_deadline
+    attributes:
+      label: Decision deadline
+      description: Date or release gate that makes this urgent.
+      placeholder: Before the next revamp worker wave starts.
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      options:
+        - lane:ux-builder
+        - lane:ui-builder
+        - lane:backend-builder
+        - lane:trust-safety
+        - lane:performance-reliability
+        - lane:scout
+        - lane:docs-sync
+        - lane:review
+        - lane:deploy
+        - lane:testing
+    validations:
+      required: true
+  - type: dropdown
+    id: state
+    attributes:
+      label: State
+      options:
+        - state:inbox
+        - state:shaping
+        - state:ready
+        - state:claimed
+        - state:in-progress
+        - state:pr-open
+        - state:needs-review
+        - state:needs-founder-decision
+        - state:blocked
+        - state:duplicate
+        - state:deferred
+    validations:
+      required: true
+  - type: input
+    id: lock_group
+    attributes:
+      label: Lock group
+      placeholder: none
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - priority:p0
+        - priority:p1
+        - priority:p2
+        - priority:p3
+        - priority:p4
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options:
+        - size:xs
+        - size:s
+        - size:m
+        - size:l
+        - size:xl
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      options:
+        - risk:low
+        - risk:medium
+        - risk:high
+        - risk:critical
+    validations:
+      required: true
+  - type: checkboxes
+    id: affected_surfaces
+    attributes:
+      label: Affected surfaces
+      options:
+        - label: surface:customer-web
+        - label: surface:carrier-web
+        - label: surface:admin-web
+        - label: surface:mobile-web
+        - label: surface:api
+        - label: surface:data
+        - label: surface:payments
+        - label: surface:ops
+        - label: surface:github
+        - label: surface:docs
+        - label: surface:design-system
+  - type: textarea
+    id: done_when
+    attributes:
+      label: Done when
+      placeholder: |
+        - Founder decision is recorded in the issue.
+        - Follow-up implementation or policy tasks are created.
+    validations:
+      required: true
+  - type: textarea
+    id: blocked_by
+    attributes:
+      label: Blocked by
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: safe_parallelism
+    attributes:
+      label: Safe parallelism
+      placeholder: Other work can proceed outside this decision boundary.
+    validations:
+      required: true
+  - type: dropdown
+    id: founder_decision
+    attributes:
+      label: Founder decision
+      options:
+        - Founder decision required now
+        - Founder decision drafted and awaiting confirmation
+        - Founder decision already made
+    validations:
+      required: true
+  - type: textarea
+    id: founder_decision_detail
+    attributes:
+      label: Founder decision detail
+      placeholder: Capture the final answer here once made.
+    validations:
+      required: true
+  - type: textarea
+    id: verification_plan
+    attributes:
+      label: Verification plan
+      placeholder: |
+        - Confirm the decision is recorded.
+        - Ensure downstream issues and PRs reference this decision.
+    validations:
+      required: true

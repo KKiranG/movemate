@@ -12,7 +12,7 @@ const items = [
   "Post route, date, space, and price in under 60 seconds.",
   "Keep detour tolerance honest so matches stay trustworthy.",
   "Respond to booking updates within 24 hours. Pending requests still expire in 2 hours.",
-  "Keep all extras and payment changes on moverrr. Do not switch to cash or bank transfer.",
+  "Keep all extras and payment changes on MoveMate. Do not switch to cash or bank transfer.",
   "Use pickup and delivery photos as proof before payout release.",
 ];
 

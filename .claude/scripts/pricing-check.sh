@@ -1,6 +1,6 @@
 #!/bin/bash
 # Stop hook: run the pricing breakdown tests when pricing files were touched this session.
-# Guards commission identity: 15% of basePriceCents only, $5 booking fee flat.
+# Guards commission identity: 15% of basePriceCents only, zero booking fee.
 
 cd "${CLAUDE_PROJECT_DIR}"
 

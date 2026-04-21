@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Moverrr-specific PR review centered on invariants, trust copy, iOS contract, and verification evidence.
+description: MoveMate-specific PR review centered on invariants, trust copy, iOS contract, and verification evidence.
 when_to_use: Use when reviewing a pull request in this repo.
 argument-hint: [pr: #123 or branch-name]
 effort: high
@@ -10,7 +10,7 @@ effort: high
 
 Use `$ARGUMENTS` to specify the PR number or branch (e.g. `#42`, `feature/carrier-signup`).
 
-This skill produces structured findings against moverrr's invariants, not generic code feedback.
+This skill produces structured findings against MoveMate's invariants, not generic code feedback.
 
 ## Read First
 
@@ -33,7 +33,7 @@ This skill produces structured findings against moverrr's invariants, not generi
 
 ### Pricing Invariants (if pricing was touched)
 - [ ] Commission is `15%` of `basePriceCents` only
-- [ ] Booking fee is `$5` flat
+- [ ] Booking fee remains `0` unless a founder decision explicitly changes it
 - [ ] No commission on stairs or helper fees
 
 ### Booking and Payment (if booking/payment was touched)

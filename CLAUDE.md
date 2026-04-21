@@ -1,165 +1,107 @@
-# CLAUDE.md
+# MoveMate Repo Truth
 
-This file provides guidance to Claude Code when working in this repository.
+This file holds the always-on product and execution invariants for the MoveMate repo.
 
 ## Product Thesis
 
-moverrr is a need-first, match-ranked spare-capacity marketplace.
-Carriers post trips that are already happening and set structured pricing.
-Customers declare a specific move need via a short wizard. The system matches against posted trips and returns a confidence-ranked shortlist with deterministic pricing, fit-confidence labels, and trust signals. The customer requests a carrier (or uses Fast Match to broadcast to up to 3). The carrier accepts or declines. Payment is escrowed. Proof-of-delivery releases payout.
+MoveMate is a need-first, match-ranked spare-capacity marketplace for awkward-middle moves. The customer declares a move need once. The system returns a short ranked set of route-compatible options with deterministic all-in pricing, trust signals, and clear next steps. Drivers monetize trips they are already taking through structured posting, request review, proof-backed delivery, and payout release.
 
-This product is explicitly not:
-- a browse-first inventory catalogue of drivers or trips
-- a removalist booking business
-- a courier dispatch system
-- a quote-comparison funnel
-- a bidding marketplace
-- an AI-matching product
+## Authority Order
 
-If a request pushes moverrr toward one of those shapes, stop and ask before building.
-
-## Product Priorities
-
-Use this order when making tradeoffs:
-
-**Trust -> Simplicity -> Supply speed -> Customer clarity -> Automation -> Polish**
-
-Keep the savings story legible:
-"You save because your item fits into a trip that is already happening, and you accepted some flexibility."
-
-## Session Discipline
-
-- Read first. Understand the current code, docs, and shipped behavior before proposing changes.
-- Keep explore, plan, implement, and verify as separate jobs.
-- Use `/clear` between unrelated tasks.
-- Use `/compact Focus on <area>` when the task continues but the context is noisy.
-- Use `/btw` for quick side questions that should not enter the main working history.
-- If you have been corrected twice on the same issue, reset with `/clear` and restart from the learned constraint.
-- Use specialists for read-heavy or high-risk work instead of letting one agent do everything.
-
-## Working Rhythm
-
-1. Read the relevant code and project memory first.
-2. Keep modes separate and avoid fuzzy half-planning.
-3. Verify before claiming done.
-4. Sync docs, rules, skills, or memory in the same task when truth changes.
-5. Backlog work is governed by `@TASK-RULES.md`; read it before writing or changing backlog items.
-
-Stale documentation is a product bug.
-
-## Instruction Order
-
-1. system / developer / explicit user instruction
-2. `CLAUDE.md`
-3. the narrowest matching `.claude/rules/*.md`
-4. the matching `.agent-skills/*.md`
-5. the invoked `.claude/skills/<skill>/SKILL.md`
-6. nearby task or reference docs
-
-Tie-breakers:
-- narrower scope beats broader scope
-- shipped code and verified behavior beat stale prose
-- if two sources still disagree on a trust-critical area, stop and resolve it before building
+1. System, developer, and direct user instructions
+2. [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md)
+3. This file
+4. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md)
+5. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
+6. Relevant scoped rules, skills, and agent briefs
+7. The linked GitHub issue
+8. Derived markdown digests
+9. Stale or legacy docs
 
 ## Core Invariants
 
-### iOS-first contract
+### Product shape
 
-- all tap targets: `min-h-[44px] min-w-[44px]`
-- every `hover:` needs an `active:` sibling
-- proof/photo capture: `capture="environment"`
-- file types include `image/heic,image/heif`
-- sticky/fixed UI respects `env(safe-area-inset-bottom)`
-- minimum viewport: test at `375px`
+- Need-first beats browse-first.
+- Trust is a product feature, not decoration.
+- Sparse supply recovery matters as much as happy-path matching.
+- Customer and driver UX are asymmetric on purpose.
+- iOS-quality touch ergonomics matter even when Android compatibility must remain intact.
 
 ### Pricing
 
-Do not change commission math without an explicit discussion.
-
-```text
-Customer pays:   base + stairs_fee + helper_fee + $5 booking_fee
-Carrier earns:   base + stairs_fee + helper_fee - (base * 15%)
-Platform earns:  (base * 15%) + $5 booking_fee
-```
-
-Critical rule: commission applies only to `basePriceCents`, never to stairs or helper fees.
-
-Primary files:
-- `src/lib/pricing/breakdown.ts`
-- `src/lib/__tests__/breakdown.test.ts`
+- The current pricing code in `src/lib/pricing/breakdown.ts` is canonical for this pass.
+- Current code keeps platform commission on `basePriceCents` only.
+- No new pricing-economic change should ship until the founder resolves the blueprint-versus-code conflict.
+- Detour-cost pricing stays blocked until an explicit founder decision.
+- Do not resurrect the historical flat booking-fee model.
 
 ### Booking and dispute flow
 
-- pure transition map: `src/lib/status-machine.ts`
-- actor and business guards: `src/lib/data/bookings.ts`
-- `disputed -> completed` requires dispute state `resolved` or `closed`
-- booking creation must use the atomic RPC path
-- `remaining_capacity_pct` must stay correct when bookings change
+- Customer flow is `declare need -> ranked offers -> Request to Book or Fast Match -> driver decision -> proof -> confirmation -> payout release`.
+- Fast Match is first-accept-wins and must revoke siblings atomically.
+- One factual clarification round is allowed. One structured adjustment path is allowed for genuine mismatch.
+- Payment is authorised before acceptance, captured on acceptance, and released only after confirmation or the proof-backed auto-release window.
+- Proof and payout logic are trust-critical and require stronger review.
 
-### Matching
+### Matching and trust
 
-- matching stays deterministic and explainable
-- no AI bidding, opaque ranking, or hidden negotiation logic
+- Match ranking is deterministic and explanation-backed.
+- Result cards must show why the match fits, not just a price.
+- Access, stairs, helper, and parking details are matching inputs, not optional polish.
+- No direct-contact or off-platform drift should appear in customer-facing flows.
 
-### Graceful degradation
+### Mobile and UX
 
-These local-development fallbacks are intentional:
-- `hasSupabaseEnv()` may return empty arrays instead of throwing
-- email sending may return `{ skipped: true }` when config is missing
-- rate limiting may fall back to an in-memory `Map`
+- Customer-facing quality is the highest app-level priority after repo constitution and operating-system stability.
+- Tap targets must stay usable on iPhone-sized viewports.
+- Sticky actions must respect safe areas.
+- One clay focal point per screen; primary CTAs stay ink-led unless a component pattern explicitly says otherwise.
 
-Production startup validation lives in `src/lib/env.ts` and `next.config.js`.
+## Live Work And Queue Rules
 
-### Database and admin access
+- GitHub Issues, labels, linked PRs, and comments are the live work system.
+- Markdown backlog files are derived only.
+- No builder should self-claim vague work outside a shaped `Ready` issue with a lane and lock group.
 
-- every new table must have RLS
-- every geography column must have a GIST index
-- admin-only operations use `createAdminClient()`
-- migrations go in `supabase/migrations/` with sequential names
-- do not bypass RLS for convenience in non-admin code
+## gstack
 
-## Verification Minimum
+gstack is the approved workflow layer for this repo in Claude and is also installed globally for Codex on this Mac.
 
-Before finishing any meaningful task:
+- Use `/browse` from gstack for web browsing in Claude. Do not use `mcp__claude-in-chrome__*`.
+- Approved gstack skills for this repo include:
+  `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`,
+  `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`,
+  `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/open-gstack-browser`,
+  `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`,
+  `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`,
+  `/plan-devex-review`, `/devex-review`, `/pair-agent`, `/careful`, `/freeze`,
+  `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`.
+- gstack governs workflow execution and browser tooling. MoveMate product truth, pricing truth, and repo-operating truth still come from the canonical docs in this repo.
+- Global paths:
+  - Claude: `~/.claude/skills/gstack`
+  - Codex: `~/.codex/skills/gstack*`
+- Keep gstack as a global install or external local reference. Do not vendor its skill trees into the MoveMate repo root.
 
-```bash
-npm run check
-```
+## Escalation
 
-Then verify the changed surface directly:
-- frontend: `375px`, active states, safe area, proof uploads
-- backend/API: direct path execution plus one edge case
-- booking/pricing/payments: pricing identity plus status/capacity invariants
-- database: RLS, indexes, and migration intent
-- docs/agent memory: stale paths, duplicate truth, contradiction scan
+Escalate only when the work truly needs a founder decision:
 
-If verification did not happen, say so plainly.
+- pricing economics
+- product-strategy forks
+- risky migration cutovers
+- legal or trust-policy changes
+- cases where preserving two incompatible truths would silently ship confusion
 
-## Memory Map
+Do not escalate routine engineering judgment, doc cleanup, or obvious stale wording.
 
-Use the smallest layer that fits the job:
-- `CLAUDE.md` for global product truth
-- `.claude/rules/*.md` for scoped instructions
-- `.agent-skills/*.md` for domain facts
-- `.claude/skills/<skill>/SKILL.md` for repeatable workflows
-- `.claude/operating-system.md` for the canonical runtime map
-- `.claude/capability-index.md` for the quick inventory
-- `.claude/agents.md` and `.claude/agents/*.md` for specialist role guidance
+## Verification Bar
 
-Keep the always-loaded layer lean.
+Every meaningful change should leave behind:
 
-## Local Overrides
+- a clear outcome
+- a verification path
+- evidence or test output
+- residual risk if something could not be fully exercised
 
-`CLAUDE.local.md` — gitignored personal overrides for machine-specific paths, local API keys, or developer-specific session preferences. Never commit this file. It extends but never overrides product invariants in this file.
-
-## Compaction Preservation
-
-When context is compacted, these must survive:
-
-- **Active task ID and title** — what is being worked on right now
-- **User decisions made this session** — any founder-grade go/no-go that was reached
-- **Failed approaches** — approaches tried and rejected (do not retry them)
-- **Invariants confirmed** — pricing identity, booking-state transitions, capacity math if verified
-- **Scope boundaries** — what was explicitly out of scope for the current task
-
-If any of these would be lost in compaction, write them to a scratchpad note or restate them at the top of the next message.
+If truth changed, update the relevant docs in the same work unit.

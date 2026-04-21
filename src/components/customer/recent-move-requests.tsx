@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import {
+  getMoveRequestResultsHref,
+} from "@/components/customer/move-request-draft";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
@@ -25,14 +28,6 @@ function getMoveRequestStatusLabel(status: MoveRequest["status"]) {
 }
 
 function getMoveRequestPrimaryAction(request: MoveRequest) {
-  const searchHref = `/search?${new URLSearchParams({
-    from: request.route.pickupSuburb,
-    to: request.route.dropoffSuburb,
-    ...(request.route.preferredDate ? { when: request.route.preferredDate } : {}),
-    what: request.item.category,
-    moveRequestId: request.id,
-  }).toString()}`;
-
   if (request.status === "booking_requested" || request.status === "booked") {
     return {
       href: "/bookings",
@@ -42,13 +37,13 @@ function getMoveRequestPrimaryAction(request: MoveRequest) {
 
   if (request.status === "expired" || request.status === "cancelled") {
     return {
-      href: searchHref,
+      href: "/move/new#route",
       label: "Restart this move",
     };
   }
 
   return {
-    href: searchHref,
+    href: getMoveRequestResultsHref(request.id),
     label: "Open this move",
   };
 }
@@ -66,7 +61,7 @@ export function RecentMoveRequests({ requests }: { requests: MoveRequest[] }) {
           <h2 className="mt-1 text-2xl text-text">Pick up where you left off</h2>
         </div>
         <Button asChild variant="secondary">
-          <Link href="#homepage-search">Start a new move</Link>
+          <Link href="/move/new#route">Start a new move</Link>
         </Button>
       </div>
       <div className="grid gap-3">
@@ -101,15 +96,8 @@ export function RecentMoveRequests({ requests }: { requests: MoveRequest[] }) {
                     <Link href={action.href}>{action.label}</Link>
                   </Button>
                   <Button asChild variant="ghost" className="min-h-[44px]">
-                    <Link
-                      href={`/search?${new URLSearchParams({
-                        from: request.route.pickupSuburb,
-                        to: request.route.dropoffSuburb,
-                        ...(request.route.preferredDate ? { when: request.route.preferredDate } : {}),
-                        what: request.item.category,
-                      }).toString()}`}
-                    >
-                      Search similar routes
+                    <Link href={getMoveRequestResultsHref(request.id)}>
+                      See live matches
                     </Link>
                   </Button>
                 </div>

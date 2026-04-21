@@ -1,107 +1,100 @@
-# moverrr
+# MoveMate
 
-Need-first, match-ranked spare-capacity marketplace for awkward-middle item moves.
+MoveMate is a need-first, match-ranked spare-capacity marketplace for awkward-middle moves. Customers declare a move need once, see a short ranked set of route-compatible matches, request one driver or use Fast Match, and only release payout after proof-backed delivery.
 
-Carriers post trips they are already taking and set structured pricing. Customers declare a specific move need via a short wizard (route + item + timing + access). The system matches against posted trips and returns a confidence-ranked shortlist with deterministic pricing, fit-confidence labels, and match explanations. Customers use Request-to-Book (single carrier) or Fast Match (up to 3, first to accept wins). Carriers accept or decline via a decision card. Payment is escrowed; proof-of-delivery releases payout.
+This repository contains two things:
 
-## Current Status
+1. The MoveMate product application.
+2. The repo operating system that lets shaped issues, smaller agents, reviewers, and release checks work safely in parallel.
 
-- The app now opens with a need-first customer entry and matched-results framing, while deeper request-to-book and data-model realignment work is still in progress.
-- Supabase-backed auth, listings, bookings, admin review tools, dispute handling, review capture, carrier onboarding, and trip posting are wired in code.
-- External services still need real credentials before production behavior is fully live for Maps, Stripe, Resend, Sentry, and deployment hosting.
+## Read Order
 
-## The Most Important Question
+Start here when you are orienting to the repo:
 
-The best validation question right now is:
+1. [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md)
+2. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md)
+3. [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md)
+4. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
+5. [.claude/lock-groups.md](/Users/kiranghimire/Documents/moverrr/.claude/lock-groups.md)
+6. [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md)
 
-Can moverrr convert a messy object-move problem into a confident yes/no decision fast enough that customers do not abandon — even when supply is sparse? And will carriers reliably post repeat corridors if quick-repost takes under 30 seconds?
+## Live Work System
 
-These two questions matter more than pixel polish. If customers abandon during the need-declaration flow or carriers will not post repeat routes, the model breaks.
+GitHub is the live work system:
+
+- Issues hold the shaped work unit.
+- Labels, linked PRs, comments, and assignees hold live state.
+- GitHub Project fields hold queue metadata when project scopes are available.
+
+Markdown backlog files are derived artifacts only:
+
+- [docs/operations/todolist.md](/Users/kiranghimire/Documents/moverrr/docs/operations/todolist.md)
+- [docs/operations/completed.md](/Users/kiranghimire/Documents/moverrr/docs/operations/completed.md)
+
+Do not use those files as a transactional queue.
+
+## Product Truth
+
+MoveMate is:
+
+- need-first
+- match-ranked
+- spare-capacity
+- trust-first
+- structured pricing / booking / proof / payout aware
+
+MoveMate is not:
+
+- browse-first
+- a quote marketplace
+- a bidding marketplace
+- a dispatch layer
+- a generic removalist platform
+
+Priority order:
+
+`Trust -> Simplicity -> Supply speed -> Customer clarity -> Automation -> Polish`
 
 ## Stack
 
-- Frontend: Next.js 14 App Router
-- Styling: Tailwind CSS
-- Backend: Supabase Postgres + Auth + Storage + Edge Functions
-- Spatial: PostGIS
-- Payments: Stripe Connect
-- Email: Resend
-- Maps: Google Maps Platform
-- Monitoring: Sentry
-- Hosting: Vercel
+- Next.js 14
+- React 18
+- TypeScript
+- Supabase
+- Stripe
+- Resend
+- Vercel
 
-## Getting Started
-
-1. Install dependencies:
+## Commands
 
 ```bash
-npm install
-```
-
-2. Copy the environment template and fill in credentials:
-
-```bash
-cp .env.example .env.local
-```
-
-3. Start the app:
-
-```bash
+npm ci
 npm run dev
+npm run check
+npm run test
+npm run build
+npm run ops:labels
+npm run ops:sync-backlog
 ```
 
-4. Optional local database flow with Supabase CLI:
+## gstack
 
-```bash
-npm run supabase:start
-npm run supabase:db:reset
-```
+gstack is part of the approved workflow layer for this repo.
 
-The reset path now seeds auth-backed carrier/customer records plus a live listing and booking record, so a fresh local stack no longer depends on pre-existing `auth.users`.
+- Claude global install path: `~/.claude/skills/gstack`
+- Codex global install path: `~/.codex/skills/gstack*`
+- Claude repo hook: `.claude/hooks/check-gstack.sh`
+- Use `/browse` from gstack for web browsing in Claude.
+- Keep gstack as a global or external dependency. Do not vendor its skill trees into the MoveMate repo root.
 
-## Scripts
+gstack helps with planning, review, QA, and ship loops. MoveMate product truth and repo-operating truth still come from the canonical docs in this repo.
 
-- `npm run dev` starts Next.js locally
-- `npm run build` runs a production build
-- `npm run lint` runs ESLint
-- `npm run typecheck` runs TypeScript checks
-- `npm run check` runs lint and typecheck
-- `npm run supabase:start` boots the local Supabase stack
-- `npm run supabase:db:push` pushes migrations
-- `npm run supabase:db:reset` resets and seeds the local database
+## Naming Policy
 
-## Project Structure
+The product name is `MoveMate`.
 
-```text
-src/app              Next.js routes and API routes
-src/components       UI primitives and feature components
-src/lib              Domain logic, integrations, validation, demo data
-src/hooks            Client hooks for future live wiring
-src/types            Shared TypeScript models
-supabase             Config, migrations, edge function stubs, seed data
-.agent-skills        Project-specific agent guidance for future AI work
-```
+Some legacy technical identifiers still use `moverrr` because changing them in-place would create unnecessary breakage or migration churn. Those aliases are tracked in [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md) and the operating docs until an isolated rename pass is ready.
 
-## What Is Implemented
+## Reference Policy
 
-- Need-first landing page and matched-results search entry
-- Search results backed by Supabase listings and PostGIS matching when Maps geocoding is available
-- Trip detail with request submission, item photo upload, and request-to-book or Fast Match choice
-- Customer booking list/detail with confirmation, review submission, and dispute intake
-- Carrier onboarding with document uploads, trip posting wizard, live listing editing, and proof-backed booking status controls
-- Admin command-centre surfaces for alert queues, carrier verification, dispute resolution, payments, and smoke-dataset bootstrap controls
-- Alert-backed unmatched-demand capture for no-result searches and follow-up recovery flows
-- Supabase schema, RLS, indexes, matching function, private storage buckets, and audit/event tables
-
-## What Still Needs Live Wiring
-
-- Real Google Maps credentials for autocomplete/geocoding in production
-- Real Stripe keys, webhook secret, and Connect account onboarding flow completion
-- Real Resend domain/from-address setup for outbound email delivery
-- Sentry DSN and production instrumentation hookup
-- Actual Vercel deployment and project linking
-
-## Notes
-
-- Carrier and admin pages are routed under `/carrier/*` and `/admin/*` so the app can route correctly in Next.js. The original markdown used route groups for organization, but route groups alone do not create URL prefixes.
-- `.agent-skills/` mirrors the master plan so future coding agents have product context without rereading the full strategy document.
+Keep imported workflow libraries and local research material outside this repo root unless a small curated file is intentionally archived as non-authoritative reference. MoveMate stays app-first; GitHub and the canonical docs above remain the authority.

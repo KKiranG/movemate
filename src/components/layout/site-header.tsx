@@ -30,8 +30,8 @@ export async function SiteHeader() {
       ? listUnmatchedRequestsForCustomer(customer.data.id)
       : Promise.resolve([]),
   ]);
-  const postTripHref = user ? (carrier ? "/carrier/post" : "/carrier/onboarding") : "/carrier/signup";
-  const postTripLabel = carrier ? "Post a trip" : "Share a trip";
+  const primaryCtaHref = carrier ? "/carrier/post" : "/move/new/route";
+  const primaryCtaLabel = carrier ? "Post a trip" : "Start a move";
   const matchedAlertCount = routeRequests.filter((request) => request.status === "matched").length;
 
   const navItems: NavItem[] = carrier
@@ -60,7 +60,10 @@ export async function SiteHeader() {
             ]
           : []),
         ...(user ? [{ href: "/account", label: "Account" }] : [{ href: "/search", label: "Tell us your move" }]),
-        ...(!user ? [{ href: "/become-a-carrier", label: "Become a carrier" }] : []),
+        {
+          href: user ? "/carrier/onboarding" : "/become-a-carrier",
+          label: "Drive with MoveMate",
+        },
         ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin" }] : []),
       ];
 
@@ -75,7 +78,7 @@ export async function SiteHeader() {
             className="flex min-h-[44px] min-w-[44px] flex-col justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
           >
             <span className="font-heading text-xl tracking-[-0.04em] text-text">
-              moverrr
+              MoveMate
             </span>
             <span className="hidden text-xs text-text-secondary sm:block">
               Need-first spare-capacity moves
@@ -115,7 +118,7 @@ export async function SiteHeader() {
             </div>
 
             <Button asChild size="sm">
-              <Link href={postTripHref}>{postTripLabel}</Link>
+              <Link href={primaryCtaHref}>{primaryCtaLabel}</Link>
             </Button>
           </div>
         </div>
@@ -124,8 +127,8 @@ export async function SiteHeader() {
           navItems={navItems}
           authCopy={authCopy}
           isLoggedIn={Boolean(user)}
-          postTripHref={postTripHref}
-          postTripLabel={postTripLabel}
+          primaryCtaHref={primaryCtaHref}
+          primaryCtaLabel={primaryCtaLabel}
         />
       </div>
     </header>

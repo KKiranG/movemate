@@ -1,0 +1,182 @@
+name: Audit
+description: Request an audit, review, or investigation with explicit follow-up criteria.
+title: "[Audit]: "
+labels:
+  - "type:audit"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for design, security, product, or implementation audits where the result is findings and recommended action.
+  - type: input
+    id: summary
+    attributes:
+      label: Audit summary
+      placeholder: Audit the GitHub issue forms and scripts against the new live-task workflow.
+    validations:
+      required: true
+  - type: textarea
+    id: audit_scope
+    attributes:
+      label: Audit scope
+      placeholder: Review .github issue forms, PR template, label bootstrap, and backlog digest generation.
+    validations:
+      required: true
+  - type: textarea
+    id: risk_or_concern
+    attributes:
+      label: Concern or hypothesis
+      placeholder: The forms might collect the right metadata, but the digest generator may fail to surface it cleanly.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Existing evidence
+      description: Links, screenshots, prior notes, or `none`.
+      placeholder: none
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Lane
+      options:
+        - lane:ux-builder
+        - lane:ui-builder
+        - lane:backend-builder
+        - lane:trust-safety
+        - lane:performance-reliability
+        - lane:scout
+        - lane:docs-sync
+        - lane:review
+        - lane:deploy
+        - lane:testing
+    validations:
+      required: true
+  - type: dropdown
+    id: state
+    attributes:
+      label: State
+      options:
+        - state:inbox
+        - state:shaping
+        - state:ready
+        - state:claimed
+        - state:in-progress
+        - state:pr-open
+        - state:needs-review
+        - state:needs-founder-decision
+        - state:blocked
+        - state:duplicate
+        - state:deferred
+    validations:
+      required: true
+  - type: input
+    id: lock_group
+    attributes:
+      label: Lock group
+      placeholder: none
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - priority:p0
+        - priority:p1
+        - priority:p2
+        - priority:p3
+        - priority:p4
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options:
+        - size:xs
+        - size:s
+        - size:m
+        - size:l
+        - size:xl
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      options:
+        - risk:low
+        - risk:medium
+        - risk:high
+        - risk:critical
+    validations:
+      required: true
+  - type: checkboxes
+    id: affected_surfaces
+    attributes:
+      label: Affected surfaces
+      options:
+        - label: surface:customer-web
+        - label: surface:carrier-web
+        - label: surface:admin-web
+        - label: surface:mobile-web
+        - label: surface:api
+        - label: surface:data
+        - label: surface:payments
+        - label: surface:ops
+        - label: surface:github
+        - label: surface:docs
+        - label: surface:design-system
+  - type: textarea
+    id: done_when
+    attributes:
+      label: Done when
+      placeholder: |
+        - Findings are documented with evidence.
+        - Follow-up tasks or decisions are created as needed.
+    validations:
+      required: true
+  - type: textarea
+    id: blocked_by
+    attributes:
+      label: Blocked by
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: safe_parallelism
+    attributes:
+      label: Safe parallelism
+      placeholder: Others can keep shipping feature work while this audit runs.
+    validations:
+      required: true
+  - type: dropdown
+    id: founder_decision
+    attributes:
+      label: Founder decision
+      options:
+        - No founder decision needed
+        - Founder decision needed on audit outcome
+        - Founder decision already captured
+    validations:
+      required: true
+  - type: textarea
+    id: founder_decision_detail
+    attributes:
+      label: Founder decision detail
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: verification_plan
+    attributes:
+      label: Verification plan
+      placeholder: |
+        - Collect evidence.
+        - Reproduce or inspect the target flow.
+        - Attach findings with severity and recommended next actions.
+    validations:
+      required: true

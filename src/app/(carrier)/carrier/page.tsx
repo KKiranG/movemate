@@ -67,7 +67,7 @@ export default async function CarrierHomePage() {
           title: carrier ? "You're one step from unlocking jobs." : "Turn the road you're already on into income.",
           description: carrier
             ? "Activation is strict on purpose. Finish setup once, then post clean fixed-price jobs."
-            : "Post the trip you're already taking. moverrr sends matched jobs along your route with no bidding.",
+            : "Post the trip you're already taking. MoveMate sends matched jobs along your route with no bidding.",
           primaryHref: "/carrier/activate",
           primaryLabel: carrier ? "Resume setup" : "Start driver setup",
         }
@@ -138,7 +138,7 @@ export default async function CarrierHomePage() {
             cta="Complete activation"
           />
           <HomeCard
-            title="Why drivers use moverrr"
+            title="Why drivers use MoveMate"
             description="Fixed price per job. Real jobs, not pings. Payout on delivery confirmation."
           />
         </>

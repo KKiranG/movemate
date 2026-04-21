@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { GoogleAutocompleteInput } from "@/components/shared/google-autocomplete-input";
+import { getMoveRequestResultsHref } from "@/components/customer/move-request-draft";
 import {
   ITEM_SIZE_DESCRIPTIONS,
   MANUAL_HANDLING_POLICY_LINES,
@@ -148,27 +149,29 @@ export function BookingForm({
       `${trip.route.destinationSuburb} NSW ${trip.route.destinationPostcode ?? ""}`.trim(),
     [trip.route.destinationPostcode, trip.route.destinationSuburb],
   );
-  const accountReturnHref = useMemo(() => {
-    const tripParams = new URLSearchParams();
-
-    if (moveRequestIdRef.current) {
-      tripParams.set("moveRequestId", moveRequestIdRef.current);
-    } else if (existingMoveRequest?.id) {
-      tripParams.set("moveRequestId", existingMoveRequest.id);
-    }
+  const moveRequestResultsHref = useMemo(() => {
+    const moveRequestId = moveRequestIdRef.current ?? existingMoveRequest?.id ?? null;
 
     if (initialOfferId) {
-      tripParams.set("offerId", initialOfferId);
+      const params = new URLSearchParams();
+
+      if (moveRequestId) {
+        params.set("moveRequestId", moveRequestId);
+      }
+
+      return `/move/new/results/${initialOfferId}${params.toString() ? `?${params.toString()}` : ""}`;
     }
 
-    const returnTo = `/trip/${trip.id}${tripParams.toString() ? `?${tripParams.toString()}` : ""}`;
+    return getMoveRequestResultsHref(moveRequestId);
+  }, [existingMoveRequest?.id, initialOfferId]);
+  const accountReturnHref = useMemo(() => {
     const next = new URLSearchParams({
       focus: "payments",
-      returnTo,
+      returnTo: moveRequestResultsHref,
     });
 
     return `/account?${next.toString()}`;
-  }, [existingMoveRequest?.id, initialOfferId, trip.id]);
+  }, [moveRequestResultsHref]);
   const trustIssues = useMemo(
     () =>
       getBookingTrustIssues({
@@ -516,11 +519,7 @@ export function BookingForm({
     setError(null);
 
     if (!isAuthenticated) {
-      const next = new URLSearchParams({
-        ...(existingMoveRequest ? { moveRequestId: existingMoveRequest.id } : {}),
-        ...(initialOfferId ? { offerId: initialOfferId } : {}),
-      }).toString();
-      router.push(`/login?next=/trip/${trip.id}${next ? `?${next}` : ""}`);
+      router.push(`/login?next=${encodeURIComponent(moveRequestResultsHref)}`);
       return;
     }
 
@@ -608,10 +607,10 @@ export function BookingForm({
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button asChild>
-            <Link href="/alerts">Go to alerts</Link>
+            <Link href="/bookings">Track requests</Link>
           </Button>
           <Button asChild variant="secondary">
-            <Link href="/search">Find another match</Link>
+            <Link href={getMoveRequestResultsHref(successState.moveRequestId)}>Back to live matches</Link>
           </Button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 ---
 name: booking-safety-audit
-description: Protect moverrr's booking-critical paths when changing pricing, booking creation, payment flow, dispute handling, status transitions, or capacity logic.
+description: Protect MoveMate's booking-critical paths when changing pricing, booking creation, payment flow, dispute handling, status transitions, or capacity logic.
 when_to_use: Use when the task touches bookings, pricing, payouts, payment intents, webhooks, disputes, booking states, capacity, or Supabase booking functions. Examples: "fix booking bug", "change payout logic", "update booking statuses", "touch create_booking_atomic", "edit booking API", or "modify commission math".
 paths:
   - src/lib/data/bookings.ts
@@ -31,8 +31,8 @@ See `examples/pricing-check.md` for a worked example of the commission identity 
 ## Invariants To Preserve
 
 - commission is `15%` of `basePriceCents` only
-- booking fee is `$5`
-- `total = payout + commission + booking_fee`
+- booking fee is currently `0`
+- `total = payout + commission + gst`
 - booking creation stays atomic
 - `remaining_capacity_pct` stays correct after booking creation and cancellation
 - `disputed -> completed` only after the dispute has actually been resolved or closed

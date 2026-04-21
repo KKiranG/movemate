@@ -1,108 +1,115 @@
-# AGENTS.md
+# MoveMate — Agent Operating Contract
 
-This file provides guidance to coding agents working in this repository.
+MoveMate is the product. The agent operating system exists to help the product ship safely.
 
 ## Read Order
 
-1. `CLAUDE.md`
-2. The relevant file-scoped rule in `.claude/rules/`
-3. The matching domain note in `.agent-skills/`
-4. The matching workflow in `.claude/skills/`
-5. `.claude/agents.md` if you are choosing roles or delegation
+Before any non-trivial work:
 
-Do not skip the read phase. In this repo, shallow context creates product drift quickly.
+1. [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md)
+2. [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md)
+3. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
+4. [.claude/lock-groups.md](/Users/kiranghimire/Documents/moverrr/.claude/lock-groups.md)
+5. Relevant `.claude/rules/**`
+6. Relevant `.agent-skills/**`
+7. The linked GitHub issue and PR template for the exact task
 
-## Non-Negotiable Product Context
+## Product Truth
 
-moverrr is a need-first, match-ranked spare-capacity marketplace.
-Carriers post trips they are already taking and set structured pricing. Customers declare a move need via a wizard; the system returns a confidence-ranked shortlist with fit labels and match explanations. Request-to-Book or Fast Match. Carrier accepts or declines via decision card.
+MoveMate is:
 
-Never casually turn it into:
-- a browse-first inventory catalogue
-- a removalist platform
-- a dispatch layer
-- a quote engine
+- need-first
+- match-ranked
+- spare-capacity
+- trust-first
+- structured pricing / booking / proof / payout aware
+
+MoveMate is not:
+
+- browse-first
+- a quote marketplace
 - a bidding marketplace
-- an AI-matching product
+- a dispatch layer
+- a generic removalist platform
+- vague “AI matching”
 
-If a request trends there, pause and ask.
+Priority order:
 
-## How To Work Here
+`Trust -> Simplicity -> Supply speed -> Customer clarity -> Automation -> Polish`
 
-- Read before editing.
-- Keep explore, plan, implement, and verify as separate phases.
-- Never delegate understanding; only delegate bounded research or execution.
-- Prefer specialized roles over one vague "smart agent."
-- Verification is mandatory before claiming done.
-- Documentation drift is a bug; update memory files when truth changes.
+## Live Work System
 
-## Critical Invariants
+GitHub Issues + labels + linked PRs are the authoritative live work system.
 
-### Product priorities
+Rules:
 
-Use this order:
+- No builder may claim work outside a `Ready` issue with a named lane and lock group.
+- Markdown backlog files are derived digests only.
+- `docs/operations/todolist.md` is a strategic snapshot, not the live queue.
+- `docs/operations/completed.md` is a shipping digest, not a transactional completion log.
+- Routine implementation should not append to derived digests by hand.
 
-**Trust -> Simplicity -> Supply speed -> Customer clarity -> Automation -> Polish**
+## Lock Groups
 
-### iOS rules
+Parallelism is based on lock groups, not priority buckets.
 
-- All interactive targets: `min-h-[44px] min-w-[44px]`
-- Every `hover:` needs an `active:` sibling
-- Proof uploads use `capture="environment"`
-- Include `image/heic,image/heif`
-- Sticky UI respects safe-area insets
-- Test at `375px`
+Current lock groups:
 
-### Pricing and bookings
+- `customer-acquisition`
+- `customer-booking-lifecycle`
+- `carrier-activation-posting`
+- `carrier-operations`
+- `matching-pricing-state`
+- `admin-operator`
+- `system-hygiene`
 
-- Commission is `15%` of `basePriceCents` only
-- Booking fee is `$5`
-- Booking creation must stay atomic
-- `remaining_capacity_pct` must remain correct
-- `disputed -> completed` requires a resolved or closed dispute
+Only one build agent may own one lock group at a time unless `.claude/project-ops.md` explicitly marks the work safe for parallelism.
 
-### Database
+## Required Issue Shape
 
-- RLS on every new table
-- GIST index on every geography column
-- `createAdminClient()` for admin-only privileged work
-- sequential migrations in `supabase/migrations/`
+Every build-ready issue must define:
 
-### Graceful degradation
+- outcome
+- why it matters
+- non-goals
+- lane
+- lock group
+- priority
+- size
+- risk
+- acceptance criteria
+- invariants to preserve
+- verification plan
+- rollout or fallback notes
 
-Local empty-state fallbacks for missing Supabase, email, or Redis config are intentional.
-Do not convert them into hard failures without discussion.
+Use [.claude/issue-shaping-template.md](/Users/kiranghimire/Documents/moverrr/.claude/issue-shaping-template.md).
 
-## Verification Bar
+## Review Model
 
-Run:
+Review happens through packets, not raw diffs by default.
 
-```bash
-npm run check
-```
+Required flow:
 
-Then verify the actual change:
-- frontend: mobile viewport and tap-state behavior
-- backend/API: direct route/logic execution plus an edge case
-- pricing/bookings/payments: formula and invariant re-check
-- docs: stale-reference and duplication scan
+1. Mechanical screen
+2. Frontier adjudication for pricing, booking, matching, trust, migrations, and core logic
+3. Founder digest only when a real decision is needed
 
-If you could not verify something, say so plainly.
+Use [.claude/review-packet-template.md](/Users/kiranghimire/Documents/moverrr/.claude/review-packet-template.md).
 
-## Agent System
+## Verification Standard
 
-This repo now has a layered agent setup:
+Do not call work done without:
 
-- `.claude/agents.md`
-  Human-readable overview of how roles should be used
-- `.claude/agents/*.md`
-  Specialized role briefs
-- `.claude/skills/<skill>/SKILL.md`
-  On-demand workflows
+- the relevant checks run
+- evidence recorded
+- residual risk stated
+- docs synced if truth changed
 
-Favor these role shapes:
-- founder/scope critic for product-shape decisions
-- explorer for read-heavy surveys
-- implementer for bounded execution
-- verifier for independent testing
-- docs keeper for memory and instruction hygiene
+## Imported Skill Libraries
+
+gstack is an approved workflow dependency for this repo across Claude and Codex.
+
+- Use gstack for browsing, QA, review, and ship loops.
+- The canonical gstack rules live in [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md).
+- gstack does not overrule MoveMate product truth or repo authority docs. It is the workflow layer, not the product source of truth.
+- Keep gstack as a global install or external local reference, not as a repo-root source tree inside MoveMate.
