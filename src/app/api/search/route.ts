@@ -5,6 +5,7 @@ import { z } from "zod";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { getOptionalSessionUser } from "@/lib/auth";
 import { createUnmatchedRequest } from "@/lib/data/unmatched-requests";
+import { getCustomerProfileForUser } from "@/lib/data/profiles";
 import { hasMapsEnv, hasSupabaseEnv } from "@/lib/env";
 import { AppError, toErrorResponse } from "@/lib/errors";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -73,6 +74,20 @@ async function resolveRoutePoint(suburb: string) {
     400,
     "invalid_search_route",
   );
+}
+
+export async function resolveSearchRecoveryCustomerId(
+  userId: string | null,
+  lookupCustomerId = async (nextUserId: string) => {
+    const customer = await getCustomerProfileForUser(nextUserId);
+    return customer?.id ?? null;
+  },
+) {
+  if (!userId) {
+    return null;
+  }
+
+  return lookupCustomerId(userId);
 }
 
 export async function GET(request: NextRequest) {
@@ -147,6 +162,7 @@ export async function POST(request: NextRequest) {
 
     const body = unmatchedSearchSchema.parse(await request.json());
     const user = await getOptionalSessionUser();
+    const customerId = await resolveSearchRecoveryCustomerId(user?.id ?? null);
 
     if (!user && !body.email) {
       throw new AppError("Email is required to keep you posted on this route.", 400, "email_required");
@@ -158,7 +174,7 @@ export async function POST(request: NextRequest) {
     ]);
 
     const unmatchedRequest = await createUnmatchedRequest({
-      customerId: user?.id,
+      customerId,
       pickupSuburb: sanitizeText(body.from),
       pickupLatitude: pickup.lat,
       pickupLongitude: pickup.lng,
