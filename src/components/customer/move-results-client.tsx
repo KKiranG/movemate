@@ -54,8 +54,6 @@ function splitOfferGroups(offers: LiveMoveOffer[]) {
 
 function getStepHref(step: ReturnType<typeof getMoveRequestDraftFirstIncompleteStep>) {
   switch (step) {
-    case "item":
-      return "/move/new#item";
     case "route":
     default:
       return "/move/new#route";
@@ -94,7 +92,7 @@ function OfferSection({
             trip={trip}
             href={getMoveRequestOfferHref({ offerId: offer.id, moveRequestId })}
             selected={selectedIds.has(trip.id)}
-            onSelect={selectedIds.size > 0 || onSelect ? onSelect : undefined}
+            onSelect={onSelect}
           />
         ))}
       </div>

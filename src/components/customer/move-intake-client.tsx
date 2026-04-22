@@ -56,11 +56,8 @@ const TIME_OPTIONS: Array<{
   { value: "flexible", label: "Flexible", detail: "Any time of day." },
 ];
 
-export function MoveIntakeClient({
-  isAuthenticated: _isAuthenticated,
-}: {
-  isAuthenticated: boolean;
-}) {
+export function MoveIntakeClient({ isAuthenticated }: { isAuthenticated: boolean }) {
+  void isAuthenticated;
   const router = useRouter();
   const { draft, setDraft, isHydrated } = useMoveRequestDraft();
 

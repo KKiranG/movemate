@@ -272,7 +272,6 @@ export function MoveFastMatchClient({
               <div key={offer.id} className="space-y-2">
                 <TripCard
                   trip={trip}
-                  preferredDate={data.moveRequest.route.preferredDate ?? undefined}
                   href={getMoveRequestOfferHref({
                     offerId: offer.id,
                     moveRequestId: data.moveRequest.id,

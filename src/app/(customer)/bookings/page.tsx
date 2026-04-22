@@ -4,9 +4,11 @@ import type { Metadata } from "next";
 
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { requirePageSessionUser } from "@/lib/auth";
+import { getRouteAlertPrimaryAction } from "@/lib/alert-presenters";
 import { getBookingPaymentStateSummary } from "@/lib/booking-presenters";
 import { listUserBookings } from "@/lib/data/bookings";
 import { listCustomerRequestCards } from "@/lib/data/booking-requests";
+import { listUnmatchedRequestsForCustomer } from "@/lib/data/unmatched-requests";
 import { PageIntro } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,9 +19,10 @@ export const metadata: Metadata = {
 };
 
 async function BookingsListSection({ userId }: { userId: string }) {
-  const [bookings, requestCards] = await Promise.all([
+  const [bookings, requestCards, unmatchedRequests] = await Promise.all([
     listUserBookings(userId),
     listCustomerRequestCards(userId),
+    listUnmatchedRequestsForCustomer(userId),
   ]);
   const clarificationRequests = requestCards.filter(
     (request) => request.status === "clarification_requested",
@@ -38,6 +41,9 @@ async function BookingsListSection({ userId }: { userId: string }) {
     ...liveFastMatchRequests,
     ...liveSingleRequests,
   ];
+  const pendingAlerts = unmatchedRequests.filter((request) =>
+    ["active", "notified"].includes(request.status),
+  );
 
   return (
     <div className="grid gap-4">
@@ -162,6 +168,54 @@ async function BookingsListSection({ userId }: { userId: string }) {
         </div>
       ) : null}
 
+      {pendingAlerts.length > 0 ? (
+        <div className="grid gap-4">
+          <div>
+            <p className="eyebrow">Alerts / Pending</p>
+            <h2 className="mt-1 text-lg text-[var(--text-primary)]">Waiting for Match</h2>
+          </div>
+          {pendingAlerts.map((request) => {
+            const primaryAction = getRouteAlertPrimaryAction(request);
+
+            return (
+              <Card key={request.id} className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg text-[var(--text-primary)]">{request.itemDescription}</h2>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+                      Alert the Network
+                    </p>
+                    <p className="mt-2 caption">
+                      {request.pickupSuburb} to {request.dropoffSuburb}
+                    </p>
+                    {request.preferredDate ? (
+                      <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                        Preferred date {formatDate(request.preferredDate)}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                      {request.lastNotifiedAt
+                        ? `Last alert sent ${formatDateTime(request.lastNotifiedAt)}`
+                        : "No match sent yet"}
+                    </p>
+                    <div className="mt-3">
+                      <Button asChild variant="secondary">
+                        <Link href={primaryAction.href}>{primaryAction.label}</Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm capitalize text-[var(--accent)]">
+                      {request.status.replaceAll("_", " ")}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      ) : null}
+
       {bookings.map((booking) => (
         <Link key={booking.id} href={`/bookings/${booking.id}`}>
           <Card className="p-4">
@@ -241,7 +295,7 @@ async function BookingsListSection({ userId }: { userId: string }) {
         </Card>
       ) : null}
 
-      {bookings.length === 0 && activeRequests.length === 0 ? (
+      {bookings.length === 0 && activeRequests.length === 0 && pendingAlerts.length === 0 ? (
         <Card className="p-4">
           <div className="space-y-3">
             <div>

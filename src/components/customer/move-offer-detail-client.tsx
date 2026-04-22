@@ -12,7 +12,6 @@ import {
 } from "@/components/customer/move-live-data";
 import {
   draftFromMoveRequest,
-  getMoveRequestFastMatchHref,
   getMoveRequestResultsHref,
   readMoveRequestDraft,
 } from "@/components/customer/move-request-draft";
@@ -22,7 +21,6 @@ import { TripDetailSummary } from "@/components/trip/trip-detail-summary";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { CustomerPaymentProfile } from "@/lib/data/customer-payments";
-import { formatCurrency } from "@/lib/utils";
 
 type DetailState = "loading" | "ready" | "error" | "auth_required" | "missing";
 
@@ -189,37 +187,15 @@ export function MoveOfferDetailClient({
     return null;
   }
 
-  const fastMatchHref =
-    data.offers.length > 1 ? getMoveRequestFastMatchHref(data.moveRequest.id) : undefined;
-
   return (
     <main className="pb-28">
-      <TopAppBar
-        title={null}
-        backHref={resultsHref}
-        rightHref={fastMatchHref}
-        rightLabel={fastMatchHref ? "Fast Match" : undefined}
-      />
+      <TopAppBar title={null} backHref={resultsHref} />
 
       <section className="screen space-y-4">
-        <Card className="border-accent/15 bg-accent/5 p-4">
-          <p className="section-label">All-in price</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-text">
-            {formatCurrency(selected.offer.pricing.totalPriceCents)}
-          </h1>
-          <p className="mt-2 text-sm text-text-secondary">
-            Total before any accepted exception. Platform fee and GST are already included.
-          </p>
-        </Card>
-
-        <Card className="p-4">
-          <p className="section-label">Why this trip is here</p>
-          <p className="mt-2 text-sm text-text-secondary">{selected.offer.matchExplanation}</p>
-        </Card>
-
         <TripDetailSummary
           trip={selected.trip}
           preferredDate={data.moveRequest.route.preferredDate ?? undefined}
+          matchExplanation={selected.offer.matchExplanation}
         />
 
         <BookingCheckoutPanel
@@ -228,6 +204,7 @@ export function MoveOfferDetailClient({
           existingMoveRequest={data.moveRequest}
           initialOfferId={getCheckoutOfferId(selected.offer)}
           customerPaymentProfile={customerPaymentProfile}
+          requestMode="single"
         />
       </section>
     </main>

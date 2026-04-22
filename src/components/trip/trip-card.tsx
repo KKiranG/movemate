@@ -14,7 +14,6 @@ import type { Trip, TripSearchResult } from "@/types/trip";
 interface TripCardProps {
   trip: Trip | TripSearchResult;
   href?: string;
-  preferredDate?: string;
   /** When true the card is visually selected (Fast Match multi-select mode). */
   selected?: boolean;
   /** Fires when the card is tapped in multi-select mode. */
@@ -29,7 +28,7 @@ const VEHICLE_TYPE_LABELS: Record<Trip["vehicle"]["type"], string> = {
   trailer: "Trailer",
 };
 
-export function TripCard({ trip, href, preferredDate: _preferredDate, selected, onSelect }: TripCardProps) {
+export function TripCard({ trip, href, selected, onSelect }: TripCardProps) {
   const isFullyBooked = trip.remainingCapacityPct <= 0 || trip.status === "booked_full";
 
   // One-line trust signal: verified + rating or trip count.

@@ -43,11 +43,6 @@ interface BookingFormProps {
   existingMoveRequest?: MoveRequest | null;
   initialOfferId?: string | null;
   customerPaymentProfile?: CustomerPaymentProfile | null;
-  onRequestModeChange?: (mode: RequestMode) => void;
-  onOptionsChange?: (options: {
-    needsStairs: boolean;
-    needsHelper: boolean;
-  }) => void;
 }
 
 interface RequestSuccessState {
@@ -56,9 +51,9 @@ interface RequestSuccessState {
   requestCount: number;
 }
 
-type FormStage = "item" | "route" | "review";
+type FormStage = "address" | "photo" | "price" | "payment" | "authorise";
 
-const FORM_STAGES: FormStage[] = ["item", "route", "review"];
+const FORM_STAGES: FormStage[] = ["address", "photo", "price", "payment", "authorise"];
 
 export function BookingForm({
   trip,
@@ -68,8 +63,6 @@ export function BookingForm({
   existingMoveRequest,
   initialOfferId,
   customerPaymentProfile,
-  onRequestModeChange,
-  onOptionsChange,
 }: BookingFormProps) {
   const router = useRouter();
   const [pickup, setPickup] = useState<ResolvedAddress | null>(
@@ -127,7 +120,7 @@ export function BookingForm({
     "idle" | "uploading_photo" | "creating_move_request" | "creating_request"
   >("idle");
   const [successState, setSuccessState] = useState<RequestSuccessState | null>(null);
-  const [activeStage, setActiveStage] = useState<FormStage>("item");
+  const [activeStage, setActiveStage] = useState<FormStage>("address");
   const draftKey = useMemo(() => `moverrr:request-draft:${trip.id}`, [trip.id]);
   const moveRequestIdRef = useRef<string | null>(existingMoveRequest?.id ?? null);
   const stairsUnsupported = needsStairs && !trip.rules.stairsOk;
@@ -206,12 +199,17 @@ export function BookingForm({
   const accessWarning = warningTrustIssues.find(
     (issue) => issue.code === "manual_handling_access_notes_missing",
   );
-  const reviewReady =
-    isAddressResolved &&
+  const hasPhotoEvidence = Boolean(photoFile || (existingMoveRequest?.item.photoUrls.length ?? 0) > 0);
+  const addressStageReady = isAddressResolved && !stairsUnsupported;
+  const photoStageReady =
+    Boolean(itemDescription.trim()) &&
     Boolean(itemSizeClass) &&
     Boolean(itemWeightBand) &&
-    blockingTrustIssues.length === 0 &&
-    !stairsUnsupported;
+    hasPhotoEvidence &&
+    blockingTrustIssues.length === 0;
+  const paymentMethodReady =
+    !customerPaymentProfile?.stripeConfigured || customerPaymentProfile.hasSavedPaymentMethod;
+  const authoriseReady = addressStageReady && photoStageReady && paymentMethodReady;
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -239,7 +237,6 @@ export function BookingForm({
         needsHelper: boolean;
         pickup: ResolvedAddress;
         dropoff: ResolvedAddress;
-        requestMode: RequestMode;
       }>;
 
       if (parsed.itemDescription !== undefined) setItemDescription(parsed.itemDescription);
@@ -255,15 +252,10 @@ export function BookingForm({
       if (parsed.needsHelper !== undefined) setNeedsHelper(parsed.needsHelper);
       if (parsed.pickup !== undefined) setPickup(parsed.pickup);
       if (parsed.dropoff !== undefined) setDropoff(parsed.dropoff);
-      if (parsed.requestMode !== undefined) onRequestModeChange?.(parsed.requestMode);
     } catch {
       window.sessionStorage.removeItem(draftKey);
     }
-  }, [draftKey, onRequestModeChange]);
-
-  useEffect(() => {
-    onOptionsChange?.({ needsStairs, needsHelper });
-  }, [needsStairs, needsHelper, onOptionsChange]);
+  }, [draftKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -284,7 +276,6 @@ export function BookingForm({
       needsHelper,
       pickup,
       dropoff,
-      requestMode,
     };
 
     window.sessionStorage.setItem(draftKey, JSON.stringify(payload));
@@ -302,7 +293,6 @@ export function BookingForm({
     needsStairs,
     pickup,
     pickupAccessNotes,
-    requestMode,
     specialInstructions,
   ]);
 
@@ -464,7 +454,19 @@ export function BookingForm({
   function goToNextStage() {
     setError(null);
 
-    if (activeStage === "item") {
+    if (activeStage === "address") {
+      if (!pickup || !dropoff) {
+        setError("Choose both exact addresses from the suggestions before continuing.");
+        return;
+      }
+
+      if (stairsUnsupported) {
+        setError("This route does not support stairs. Change the stairs selection or choose another trip.");
+        return;
+      }
+    }
+
+    if (activeStage === "photo") {
       if (!itemDescription.trim()) {
         setError("Add a short item description before continuing.");
         return;
@@ -475,27 +477,25 @@ export function BookingForm({
         return;
       }
 
+      if (!hasPhotoEvidence) {
+        setError("Add at least one photo before continuing.");
+        return;
+      }
+
       if (blockingTrustIssues.length > 0) {
         setError(blockingTrustIssues[0]?.message ?? "Resolve the blocked item issues first.");
         return;
       }
     }
 
-    if (activeStage === "route") {
-      if (!reviewReady) {
-        if (!pickup || !dropoff) {
-          setError("Choose both pickup and dropoff addresses from the suggestions.");
-          return;
-        }
+    if (activeStage === "payment" && !paymentMethodReady) {
+      setError("Add a saved card before continuing to authorisation.");
+      return;
+    }
 
-        if (stairsUnsupported) {
-          setError("This route does not support stairs. Change the stairs selection or choose another trip.");
-          return;
-        }
-
-        setError("Complete the access details before moving to review.");
-        return;
-      }
+    if (activeStage === "price" && stairsUnsupported) {
+      setError("This carrier does not support stairs. Remove the stairs add-on or choose another trip.");
+      return;
     }
 
     const nextStage = FORM_STAGES[getStageIndex(activeStage) + 1];
@@ -523,8 +523,8 @@ export function BookingForm({
       return;
     }
 
-    if (!reviewReady) {
-      setError("Finish the review details before sending the request.");
+    if (!authoriseReady) {
+      setError("Finish the checkout steps before authorising this request.");
       return;
     }
 
@@ -580,12 +580,12 @@ export function BookingForm({
           <p className="section-label">Request submitted</p>
           <h2 className="mt-1 text-lg text-text">
             {successState.requestMode === "single"
-              ? "The carrier now has your request"
+              ? "Request to Book sent"
               : "Fast Match is now asking the next-best carriers"}
           </h2>
           <p className="mt-2 text-sm text-text-secondary">
             {successState.requestMode === "single"
-              ? "The carrier reviews the route, fit, and access details in moverrr before anything becomes a live booking."
+              ? "The carrier can now review the route, access, and photo-backed fit details."
               : "moverrr sent this move request to up to three matching carriers and will stop the rest once one accepts."}
           </p>
         </div>
@@ -598,11 +598,8 @@ export function BookingForm({
         <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-text-secondary">
           <p>
             {successState.requestMode === "single"
-              ? "The carrier can now accept, decline, or ask for one factual clarification round inside moverrr."
+              ? "The carrier can now accept, decline, or ask for one factual clarification round."
               : `Fast Match created ${successState.requestCount} live request${successState.requestCount === 1 ? "" : "s"} for this move.`}
-          </p>
-          <p className="mt-2">
-            Exact street details and direct contact stay hidden until a carrier accepts and the booking becomes active.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -626,14 +623,14 @@ export function BookingForm({
       <div className="grid gap-3 rounded-2xl border border-border p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="section-label">Confirmation flow</p>
+            <p className="section-label">Checkout flow</p>
             <p className="mt-1 text-sm text-text">
               Step {stageIndex + 1} of {FORM_STAGES.length}
             </p>
           </div>
           <p className="text-xs text-text-secondary">
             {completedProgressSteps === FORM_STAGES.length - 1
-              ? "Ready to send"
+              ? "Ready to authorise"
               : `${FORM_STAGES.length - (stageIndex + 1)} step${FORM_STAGES.length - (stageIndex + 1) === 1 ? "" : "s"} left`}
           </p>
         </div>
@@ -648,7 +645,15 @@ export function BookingForm({
             const active = stage === activeStage;
             const completed = index < stageIndex;
             const label =
-              stage === "item" ? "Item" : stage === "route" ? "Route & access" : "Review";
+              stage === "address"
+                ? "Address"
+                : stage === "photo"
+                  ? "Photo"
+                  : stage === "price"
+                    ? "Price"
+                    : stage === "payment"
+                      ? "Payment"
+                      : "Authorise";
 
             return (
               <div
@@ -668,23 +673,109 @@ export function BookingForm({
         </div>
         <div>
           <h2 className="mt-1 text-lg text-text">
-            {activeStage === "item"
-              ? "Describe the item clearly"
-              : activeStage === "route"
-                ? "Confirm access and route fit"
-                : "Review the request before sending"}
+            {activeStage === "address"
+              ? "Confirm the exact pickup and dropoff details"
+              : activeStage === "photo"
+                ? "Add the item details and photo"
+                : activeStage === "price"
+                  ? "Check the price before you authorise"
+                  : activeStage === "payment"
+                    ? "Choose the payment method for authorisation"
+                    : "Review and authorise the request"}
           </h2>
           <p className="mt-2 text-sm text-text-secondary">
-            {activeStage === "item"
-              ? "Give the carrier enough detail to judge fit without turning this into a freight-style quote form."
-              : activeStage === "route"
-                ? "Use exact addresses for matching. They stay hidden from the carrier until a booking is accepted."
-                : "Check the route, pricing, and request path one more time before moverrr opens the carrier response window."}
+            {activeStage === "address"
+              ? "Use exact addresses now. They stay private until a carrier accepts."
+              : activeStage === "photo"
+                ? "Every request needs a real item photo before it can be sent."
+                : activeStage === "price"
+                  ? "Stairs and helper add-ons are confirmed here."
+                  : activeStage === "payment"
+                    ? "The saved card below is the one used for the authorisation hold."
+                    : "Review the move, total, and booking mode one last time."}
           </p>
         </div>
       </div>
 
-      {activeStage === "item" ? (
+      {activeStage === "address" ? (
+        <fieldset disabled={isSubmitting} className="grid gap-4">
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-text">Pickup address</span>
+            <GoogleAutocompleteInput
+              name="pickupAddressInput"
+              defaultValue={defaultPickup}
+              placeholder="Pickup address"
+              initialResolvedValue={pickup ?? undefined}
+              onResolved={setPickup}
+            />
+            <span className={`text-xs ${pickup ? "text-success" : "text-text-secondary"}`}>
+              {pickup ? "Pickup address confirmed." : "Select a suggested address to confirm pickup."}
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-text">Pickup access notes</span>
+              <span className="text-xs text-text-secondary">{pickupAccessNotes.length}/240</span>
+            </div>
+            <Textarea
+              name="pickupAccessNotes"
+              value={pickupAccessNotes}
+              maxLength={240}
+              onChange={(event) => setPickupAccessNotes(event.target.value)}
+              placeholder="Stairs, loading dock, gate code"
+            />
+            {accessWarning ? (
+              <span className="text-xs text-warning">{accessWarning.hint}</span>
+            ) : (
+              <span className="text-xs text-text-secondary">
+                Include stairs, lifts, loading docks, gate codes, parking difficulty, or long carries.
+              </span>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-text">Dropoff address</span>
+            <GoogleAutocompleteInput
+              name="dropoffAddressInput"
+              defaultValue={defaultDropoff}
+              placeholder="Dropoff address"
+              initialResolvedValue={dropoff ?? undefined}
+              onResolved={setDropoff}
+            />
+            <span className={`text-xs ${dropoff ? "text-success" : "text-text-secondary"}`}>
+              {dropoff ? "Dropoff address confirmed." : "Select a suggested address to confirm dropoff."}
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-text">Dropoff access notes</span>
+              <span className="text-xs text-text-secondary">{dropoffAccessNotes.length}/240</span>
+            </div>
+            <Textarea
+              name="dropoffAccessNotes"
+              value={dropoffAccessNotes}
+              maxLength={240}
+              onChange={(event) => setDropoffAccessNotes(event.target.value)}
+              placeholder="Apartment access or delivery notes"
+            />
+            {accessWarning ? (
+              <span className="text-xs text-warning">{accessWarning.hint}</span>
+            ) : (
+              <span className="text-xs text-text-secondary">
+                Include stairs, lifts, loading docks, gate codes, parking difficulty, or long carries.
+              </span>
+            )}
+          </label>
+
+          <div className="rounded-xl border border-border bg-black/[0.02] p-3 text-sm text-text-secondary dark:bg-white/[0.04]">
+            Exact addresses stay private until a carrier accepts the request.
+          </div>
+        </fieldset>
+      ) : null}
+
+      {activeStage === "photo" ? (
         <fieldset disabled={isSubmitting} className="grid gap-4">
           <label className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
@@ -848,16 +939,25 @@ export function BookingForm({
                   onRemove={() => setPhotoFile(null)}
                 />
               ) : null}
+              {!photoFile && hasPhotoEvidence ? (
+                <p className="text-xs text-success">A saved item photo is already attached to this move.</p>
+              ) : null}
             </div>
           </label>
 
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-text">Anything else the carrier should know?</span>
+            <Textarea
+              name="specialInstructions"
+              value={specialInstructions}
+              maxLength={280}
+              onChange={(event) => setSpecialInstructions(event.target.value)}
+              placeholder="Fragile edges, preferred loading side, timing constraints"
+            />
+          </label>
+
           <div className="space-y-3 rounded-xl border border-border bg-black/[0.02] p-3 dark:bg-white/[0.04]">
-            <div>
-              <p className="text-sm font-medium text-text">Safety policy before you send</p>
-              <p className="mt-1 text-sm text-text-secondary">
-                moverrr is for ordinary spare-capacity moves, not specialist disposal or unsafe loads.
-              </p>
-            </div>
+            <p className="text-sm font-medium text-text">Not accepted on this request</p>
             <div className="grid gap-2">
               {PROHIBITED_ITEM_POLICY_LINES.map((line) => (
                 <p key={line} className="text-sm text-text-secondary">
@@ -878,13 +978,8 @@ export function BookingForm({
               <p className="text-sm font-medium text-text">
                 {blockingTrustIssues.length > 0
                   ? "Resolve these before you continue"
-                  : "Manual-handling and trust prompts"}
+                  : "Handling prompts"}
               </p>
-              {blockingTrustIssues.length > 0 ? (
-                <p className="mt-1 text-sm text-text-secondary">
-                  Prohibited items stay blocked because they do not belong in moverrr&apos;s spare-capacity marketplace.
-                </p>
-              ) : null}
               <div className="mt-2 grid gap-2">
                 {trustIssues.map((issue) => (
                   <div
@@ -914,78 +1009,8 @@ export function BookingForm({
         </fieldset>
       ) : null}
 
-      {activeStage === "route" ? (
+      {activeStage === "price" ? (
         <fieldset disabled={isSubmitting} className="grid gap-4">
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-text">Pickup address</span>
-            <GoogleAutocompleteInput
-              name="pickupAddressInput"
-              defaultValue={defaultPickup}
-              placeholder="Pickup address"
-              initialResolvedValue={pickup ?? undefined}
-              onResolved={setPickup}
-            />
-            <span className={`text-xs ${pickup ? "text-success" : "text-text-secondary"}`}>
-              {pickup ? "Pickup address confirmed." : "Select a suggested address to confirm pickup."}
-            </span>
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-text">Pickup access notes</span>
-              <span className="text-xs text-text-secondary">{pickupAccessNotes.length}/240</span>
-            </div>
-            <Textarea
-              name="pickupAccessNotes"
-              value={pickupAccessNotes}
-              maxLength={240}
-              onChange={(event) => setPickupAccessNotes(event.target.value)}
-              placeholder="Stairs, loading dock, gate code"
-            />
-            {accessWarning ? (
-              <span className="text-xs text-warning">{accessWarning.hint}</span>
-            ) : (
-              <span className="text-xs text-text-secondary">
-                Include stairs, lifts, loading docks, gate codes, parking difficulty, or long carries.
-              </span>
-            )}
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-text">Dropoff address</span>
-            <GoogleAutocompleteInput
-              name="dropoffAddressInput"
-              defaultValue={defaultDropoff}
-              placeholder="Dropoff address"
-              initialResolvedValue={dropoff ?? undefined}
-              onResolved={setDropoff}
-            />
-            <span className={`text-xs ${dropoff ? "text-success" : "text-text-secondary"}`}>
-              {dropoff ? "Dropoff address confirmed." : "Select a suggested address to confirm dropoff."}
-            </span>
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-text">Dropoff access notes</span>
-              <span className="text-xs text-text-secondary">{dropoffAccessNotes.length}/240</span>
-            </div>
-            <Textarea
-              name="dropoffAccessNotes"
-              value={dropoffAccessNotes}
-              maxLength={240}
-              onChange={(event) => setDropoffAccessNotes(event.target.value)}
-              placeholder="Apartment access or delivery notes"
-            />
-            {accessWarning ? (
-              <span className="text-xs text-warning">{accessWarning.hint}</span>
-            ) : (
-              <span className="text-xs text-text-secondary">
-                Include stairs, lifts, loading docks, gate codes, parking difficulty, or long carries.
-              </span>
-            )}
-          </label>
-
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-2">
               <span className="text-sm font-medium text-text">Stairs?</span>
@@ -1026,80 +1051,8 @@ export function BookingForm({
             </div>
           ) : null}
 
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-text">Anything the carrier should know?</span>
-            <Textarea
-              name="specialInstructions"
-              value={specialInstructions}
-              maxLength={280}
-              onChange={(event) => setSpecialInstructions(event.target.value)}
-              placeholder="Fragile edges, preferred loading side, timing constraints"
-            />
-          </label>
-
-          <div className="rounded-xl border border-border bg-black/[0.02] p-3 text-sm text-text-secondary dark:bg-white/[0.04]">
-            Exact street details help moverrr judge route fit, but the carrier only gets suburb-level matching until a request is accepted.
-          </div>
-
-          <div className="rounded-xl border border-border bg-black/[0.02] p-3 text-sm text-text-secondary dark:bg-white/[0.04]">
-            <p className="font-medium text-text">Bulky or risky item reminder</p>
-            <div className="mt-1 grid gap-2">
-              <p>
-                If the item is heavy, awkward, or likely unsafe for one person, add helper and access details now rather than leaving it for pickup day.
-              </p>
-              {MANUAL_HANDLING_POLICY_LINES.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </div>
-          </div>
-        </fieldset>
-      ) : null}
-
-      {activeStage === "review" ? (
-        <fieldset disabled={isSubmitting} className="grid gap-4">
           <div className="rounded-xl border border-border p-4">
-            <p className="section-label">Request path</p>
-            <h3 className="mt-1 text-lg text-text">
-              {requestMode === "single" ? "Request to Book" : "Fast Match"}
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              {requestMode === "single"
-                ? `This sends the request straight to ${trip.carrier.businessName} for this exact trip.`
-                : "This asks up to three matching carriers at once and closes the others as soon as one accepts."}
-            </p>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-xl border border-border p-4">
-              <p className="section-label">Item summary</p>
-              <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                <p className="text-text">{itemDescription}</p>
-                <p>
-                  {ITEM_SIZE_DESCRIPTIONS[itemSizeClass || "M"].label} · {itemWeightBand.replaceAll("_", " ")}
-                </p>
-                {itemDimensions ? <p>Dimensions: {itemDimensions}</p> : null}
-                {itemWeightKg ? <p>Approx weight: {itemWeightKg}kg</p> : null}
-                {photoFile ? <p>Item photo attached for fit review.</p> : null}
-              </div>
-            </div>
-            <div className="rounded-xl border border-border p-4">
-              <p className="section-label">Route summary</p>
-              <div className="mt-3 space-y-2 text-sm text-text-secondary">
-                <p className="text-text">
-                  {pickup?.suburb} to {dropoff?.suburb}
-                </p>
-                <p>{trip.tripDate} · {trip.timeWindow}</p>
-                <p>
-                  {needsStairs ? "Stairs requested" : "No stairs"} · {needsHelper ? "Helper requested" : "No helper"}
-                </p>
-                {pickupAccessNotes ? <p>Pickup: {pickupAccessNotes}</p> : null}
-                {dropoffAccessNotes ? <p>Dropoff: {dropoffAccessNotes}</p> : null}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border p-4">
-            <p className="section-label">Price before send</p>
+            <p className="section-label">Price summary</p>
             <div className="mt-3 grid gap-2 text-sm text-text-secondary">
               <div className="flex items-center justify-between gap-4">
                 <span>Carrier route price</span>
@@ -1129,56 +1082,108 @@ export function BookingForm({
               </div>
             </div>
             <p className="mt-3 text-xs text-text-secondary">
-              No off-platform payment or side-deal extras. If anything changes after review, it must stay inside moverrr.
+              The platform fee is calculated from the base route price only.
             </p>
           </div>
+        </fieldset>
+      ) : null}
 
-          <div className="rounded-xl border border-border bg-black/[0.02] p-4 text-sm text-text-secondary dark:bg-white/[0.04]">
-            <p className="font-medium text-text">Payment setup and return path</p>
-            <div className="mt-2 grid gap-2">
+      {activeStage === "payment" ? (
+        <fieldset disabled={isSubmitting} className="grid gap-4">
+          <div className="rounded-xl border border-border p-4">
+            <p className="section-label">Payment method</p>
+            <div className="mt-3 grid gap-2 text-sm text-text-secondary">
               {customerPaymentProfile?.stripeConfigured ? (
                 customerPaymentProfile.defaultPaymentMethod ? (
                   <p>
-                    Saved card on file: {customerPaymentProfile.defaultPaymentMethod.brand.toUpperCase()} ending in{" "}
-                    {customerPaymentProfile.defaultPaymentMethod.last4}. Update it here if this request should use a different card later.
+                    Saved card: {customerPaymentProfile.defaultPaymentMethod.brand.toUpperCase()} ending in{" "}
+                    {customerPaymentProfile.defaultPaymentMethod.last4}.
                   </p>
                 ) : (
-                  <p>
-                    No saved card on file yet. Add one now so an accepted booking does not stall when payment setup needs to happen.
-                  </p>
+                  <p>No saved card on file yet.</p>
                 )
               ) : (
-                <p>
-                  Need to check payment details before sending? moverrr keeps this request draft on
-                  this device, so you can jump to account and come back safely.
-                </p>
+                <p>Payment-method setup is not available in this environment.</p>
               )}
-              <div className="pt-1">
-                {customerPaymentProfile?.stripeConfigured ? (
-                  <ManagePaymentMethodButton
-                    returnTo={accountReturnHref}
-                    label={
-                      customerPaymentProfile.hasSavedPaymentMethod
-                        ? "Update saved card securely"
-                        : "Add saved card securely"
-                    }
-                  />
-                ) : (
-                  <Button asChild variant="secondary" className="min-h-[44px]">
-                    <Link href={accountReturnHref}>Review payment help in account</Link>
-                  </Button>
-                )}
+              <p>Authorisation is placed when you submit. Capture happens only if a carrier accepts.</p>
+            </div>
+            <div className="mt-4">
+              {customerPaymentProfile?.stripeConfigured ? (
+                <ManagePaymentMethodButton
+                  returnTo={accountReturnHref}
+                  label={
+                    customerPaymentProfile.hasSavedPaymentMethod
+                      ? "Update saved card securely"
+                      : "Add saved card securely"
+                  }
+                />
+              ) : (
+                <Button asChild variant="secondary" className="min-h-[44px]">
+                  <Link href={accountReturnHref}>Open payment help</Link>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {!paymentMethodReady ? (
+            <div className="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-text">
+              Add a saved card before continuing to authorisation.
+            </div>
+          ) : null}
+        </fieldset>
+      ) : null}
+
+      {activeStage === "authorise" ? (
+        <fieldset disabled={isSubmitting} className="grid gap-4">
+          <div className="rounded-xl border border-border p-4">
+            <p className="section-label">Booking mode</p>
+            <p className="mt-2 text-sm text-text">
+              {requestMode === "single" ? "Request to Book" : "Fast Match"}
+            </p>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-xl border border-border p-4">
+              <p className="section-label">Route</p>
+              <div className="mt-3 space-y-2 text-sm text-text-secondary">
+                <p className="text-text">
+                  {pickup?.label}
+                </p>
+                <p className="text-text">
+                  {dropoff?.label}
+                </p>
+                <p>{trip.tripDate} · {trip.timeWindow}</p>
+                {pickupAccessNotes ? <p>Pickup notes: {pickupAccessNotes}</p> : null}
+                {dropoffAccessNotes ? <p>Dropoff notes: {dropoffAccessNotes}</p> : null}
+              </div>
+            </div>
+            <div className="rounded-xl border border-border p-4">
+              <p className="section-label">Item</p>
+              <div className="mt-3 space-y-2 text-sm text-text-secondary">
+                <p className="text-text">{itemDescription}</p>
+                <p>
+                  {ITEM_SIZE_DESCRIPTIONS[itemSizeClass || "M"].label} ·{" "}
+                  {(itemWeightBand || "20_to_50kg").replaceAll("_", " ")}
+                </p>
+                {itemDimensions ? <p>Dimensions: {itemDimensions}</p> : null}
+                {itemWeightKg ? <p>Approx weight: {itemWeightKg}kg</p> : null}
+                <p>{hasPhotoEvidence ? "Photo attached" : "Photo missing"}</p>
+                {specialInstructions ? <p>Notes: {specialInstructions}</p> : null}
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-black/[0.02] p-4 text-sm text-text-secondary dark:bg-white/[0.04]">
-            <p className="font-medium text-text">What happens after you send</p>
-            <div className="mt-2 grid gap-2">
-              <p>1. moverrr opens the carrier response window with your route, fit, and access details.</p>
-              <p>2. The carrier can accept, decline, or ask for clarification inside moverrr.</p>
-              <p>3. Once accepted, the request becomes a live booking and fuller handoff details can be shared safely.</p>
+          <div className="rounded-xl border border-border p-4">
+            <p className="section-label">Authorisation total</p>
+            <div className="mt-3 flex items-center justify-between gap-4">
+              <span className="text-sm text-text-secondary">Customer total</span>
+              <span className="text-base font-medium text-text">
+                {formatCurrency(pricing.totalPriceCents)}
+              </span>
             </div>
+            <p className="mt-3 text-sm text-text-secondary">
+              Payment and any approved adjustments stay inside MoveMate.
+            </p>
           </div>
         </fieldset>
       ) : null}
@@ -1191,40 +1196,40 @@ export function BookingForm({
               : submissionStage === "creating_move_request"
                 ? "Saving move request..."
                 : requestMode === "single"
-                  ? "Sending request to this carrier..."
-                  : "Starting Fast Match..."}
+                  ? "Authorising request..."
+                  : "Authorising Fast Match..."}
           </p>
         ) : null}
         {error ? <p className="text-sm text-error">{error}</p> : null}
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          {activeStage !== "item" ? (
+          {activeStage !== "address" ? (
             <Button type="button" variant="secondary" onClick={goToPreviousStage}>
               Back
             </Button>
           ) : null}
-          {activeStage !== "review" ? (
+          {activeStage !== "authorise" ? (
             <Button type="button" onClick={goToNextStage}>
-              Continue
+              {activeStage === "address"
+                ? "Continue to photo"
+                : activeStage === "photo"
+                  ? "Continue to price"
+                  : activeStage === "price"
+                    ? "Continue to payment"
+                    : "Continue to authorise"}
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting || !reviewReady}>
+            <Button type="submit" disabled={isSubmitting || !authoriseReady}>
               {isSubmitting
                 ? requestMode === "single"
-                  ? "Sending request..."
-                  : "Starting Fast Match..."
+                  ? "Authorising request..."
+                  : "Authorising Fast Match..."
                 : requestMode === "single"
-                  ? "Send Request to Book"
-                  : "Start Fast Match"}
+                  ? "Authorise Request to Book"
+                  : "Authorise Fast Match"}
             </Button>
           )}
         </div>
-
-        {activeStage === "review" ? (
-          <p className="text-sm text-text-secondary">
-            Need to switch paths? Use the request choice card above or go back to adjust the item and access details.
-          </p>
-        ) : null}
       </div>
     </form>
   );
