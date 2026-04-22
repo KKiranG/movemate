@@ -5,11 +5,11 @@ import { z } from "zod";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { getOptionalSessionUser } from "@/lib/auth";
 import { createUnmatchedRequest } from "@/lib/data/unmatched-requests";
-import { getCustomerProfileForUser } from "@/lib/data/profiles";
 import { hasMapsEnv, hasSupabaseEnv } from "@/lib/env";
 import { AppError, toErrorResponse } from "@/lib/errors";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { searchTrips } from "@/lib/data/trips";
+import { resolveSearchRecoveryCustomerId } from "@/lib/search-recovery";
 import type { ItemCategory } from "@/types/trip";
 import { geocodeAddress } from "@/lib/maps/geocode";
 import { getSydneySuburbCoords } from "@/lib/maps/sydney-suburb-coords";
@@ -74,20 +74,6 @@ async function resolveRoutePoint(suburb: string) {
     400,
     "invalid_search_route",
   );
-}
-
-export async function resolveSearchRecoveryCustomerId(
-  userId: string | null,
-  lookupCustomerId = async (nextUserId: string) => {
-    const customer = await getCustomerProfileForUser(nextUserId);
-    return customer?.id ?? null;
-  },
-) {
-  if (!userId) {
-    return null;
-  }
-
-  return lookupCustomerId(userId);
 }
 
 export async function GET(request: NextRequest) {

@@ -47,11 +47,26 @@ These vars unlock integrations without being required for local UI work:
 - `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for transactional email delivery
 - `STRIPE_CONNECT_RETURN_URL` and `STRIPE_CONNECT_REFRESH_URL` when Connect redirects must differ from the app defaults
 
+## Observability wiring
+
+- Browser-side Sentry init lives in `src/instrumentation-client.ts`.
+- Server-side Sentry init lives in `src/instrumentation.ts` through Next's `register()` hook.
+- Root App Router render failures are captured in `src/app/global-error.tsx`, and segment-level route failures are captured in `src/app/error.tsx`.
+- Request-level `onRequestError` wiring is intentionally deferred until the project upgrades from Next.js `14.2.35` to a version that supports that hook.
+
 ## Cron policy by environment
 
-- The default `vercel.json` schedule is daily so hobby Vercel projects can deploy successfully.
-- If MoveMate later needs hourly cron execution in Vercel, treat that as a deploy-policy change that requires a Pro plan or a different scheduler.
-- Keep cron auth wired through `CRON_SECRET` or `VERCEL_CRON_SECRET` regardless of schedule frequency.
+- Preview:
+  - Treat preview deploys as validation environments, not as trusted cron runners.
+  - Keep the shared `vercel.json` schedule hobby-safe so preview builds do not fail on plan limits.
+  - Verify cron behavior manually with bearer auth instead of assuming preview cron execution.
+- Staging:
+  - Use staging only if the project has a separate environment with its own secrets and a real need to rehearse cron or webhook behavior before production.
+  - If staging exists, keep the cron policy aligned with the production intention and document any differences in GitHub before changing schedules.
+- Production:
+  - The default `vercel.json` schedule is daily so hobby Vercel projects can deploy successfully today.
+  - If MoveMate later needs hourly cron execution in Vercel, treat that as a deploy-policy change that requires a Pro plan or a different scheduler.
+  - Keep cron auth wired through `CRON_SECRET` or `VERCEL_CRON_SECRET` regardless of schedule frequency.
 
 ## Local-only toggles
 

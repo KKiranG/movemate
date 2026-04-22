@@ -11,6 +11,7 @@ Run the baseline locally or in a clean branch environment before asking for merg
 2. `npm run check`
 3. `npm run test`
 4. `npm run build`
+5. Confirm the build finishes without Sentry setup warnings. Full event delivery verification still requires real Sentry DSNs and credentials.
 
 ## Preview deployment smoke
 
@@ -21,6 +22,16 @@ After the preview deploy finishes:
 3. Call `/api/health`.
 4. Expect `200` with `"overall":"ok"` when preview is wired to real services. If preview is intentionally partial, capture the degraded components in the PR before merge.
 5. Confirm one customer-facing route and one carrier-facing route render with the expected environment banner or live data state.
+6. Treat preview cron as manual verification only. Do not assume the platform will actually execute scheduled jobs in preview.
+
+## Optional staging smoke
+
+Run this only if staging exists as a distinct environment with its own secrets:
+
+1. Confirm staging is documented in the linked GitHub issue or PR as an intentional environment, not an assumption.
+2. Load `/api/health` and capture whether staging is expected to be fully wired or partially degraded.
+3. Call cron routes manually with bearer auth if staging is the chosen rehearsal lane for scheduler behavior.
+4. Record any known differences from production in the PR before merge.
 
 ## Non-production bootstrap smoke
 
@@ -38,6 +49,7 @@ Use this only outside production:
 3. If production needs hourly cron execution, record that dependency in GitHub before changing the schedule.
 4. If `CRON_SECRET` or `VERCEL_CRON_SECRET` is set, call each cron route once with `Authorization: Bearer <secret>` and confirm a `200` response.
 5. Confirm Stripe webhook secret rotation is reflected before replaying webhook traffic or validating payout flows.
+6. If staging is absent, use preview or local for manual authenticated cron checks and keep production as the only trusted recurring scheduler.
 
 ## Ship gate
 

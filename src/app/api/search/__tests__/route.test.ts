@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveSearchRecoveryCustomerId } from "@/app/api/search/route";
+import { resolveSearchRecoveryCustomerId } from "@/lib/search-recovery";
 
 test("resolveSearchRecoveryCustomerId returns the marketplace customer id for a signed-in user", async () => {
   const customerId = await resolveSearchRecoveryCustomerId(

@@ -113,3 +113,11 @@ gstack is an approved workflow dependency for this repo across Claude and Codex.
 - The canonical gstack rules live in [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md).
 - gstack does not overrule MoveMate product truth or repo authority docs. It is the workflow layer, not the product source of truth.
 - Keep gstack as a global install or external local reference, not as a repo-root source tree inside MoveMate.
+
+## Reference Material And Archive Rules
+
+- Canonical docs and the linked GitHub issue carry the truth. Derived digests stay derived.
+- `docs/reference/**` is the only in-repo home for intentionally archived non-authoritative reference.
+- Every archived reference addition must say where it came from, why it is being kept, and that it does not overrule canonical docs.
+- Do not vendor global tooling, local research dumps, browser exports, or machine-specific agent workspace material into the repo root.
+- If reference material changes the understanding of product or workflow truth, update the canonical doc in the same work unit instead of leaving the insight stranded in archive material.

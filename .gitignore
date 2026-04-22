@@ -45,7 +45,9 @@ CLAUDE.local.md
 # Agent session observability log (local only)
 .claude/session-log.jsonl
 
-# Local reference and machine-only agent workspace material
+# Local reference and machine-only agent workspace material.
+# If a small curated reference must live in-repo, put it under docs/reference
+# with an explicit non-authoritative label instead of adding repo-root sprawl.
 /.codex/
 /.jules/
 /codes/

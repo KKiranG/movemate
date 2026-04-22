@@ -97,4 +97,10 @@ Some legacy technical identifiers still use `moverrr` because changing them in-p
 
 ## Reference Policy
 
-Keep imported workflow libraries and local research material outside this repo root unless a small curated file is intentionally archived as non-authoritative reference. MoveMate stays app-first; GitHub and the canonical docs above remain the authority.
+Treat repo material in three buckets:
+
+1. Canonical authority: the docs in the read order above plus the linked GitHub issue and PR history.
+2. Derived snapshots: `docs/operations/**`, which summarize live GitHub state but never replace it.
+3. Reference-only material: optional non-authoritative notes, examples, or archived research.
+
+Keep imported workflow libraries and machine-local research outside this repo root. If a small curated reference file is worth keeping in-repo, store it under [`docs/reference/`](docs/reference/README.md), mark it as non-authoritative, and update the canonical doc that actually carries the truth. Do not treat archived reference as product source of truth, queue state, or vendored tooling.

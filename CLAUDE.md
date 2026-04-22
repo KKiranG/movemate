@@ -106,3 +106,11 @@ Every meaningful change should leave behind:
 - residual risk if something could not be fully exercised
 
 If truth changed, update the relevant docs in the same work unit.
+
+## Reference Boundary
+
+- Canonical docs in this repo and the linked GitHub issue hold authority; archived reference does not.
+- `docs/operations/**` is derived state only, never a claimable queue.
+- `docs/reference/**` may hold curated non-authoritative reference, but every addition should identify source, purpose, and why the canonical docs were not the right home.
+- Keep imported workflow libraries, local research, and machine-specific agent workspace material outside the repo root unless there is a deliberate, explicitly marked archive exception.
+- If archived reference influences a product or workflow change, mirror the durable truth into the canonical doc in the same task.

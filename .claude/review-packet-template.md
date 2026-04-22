@@ -4,6 +4,14 @@
 ## Verdict
 - approve / revise / duplicate / block / escalate
 
+## Merge blockers
+- must-fix before merge:
+- why each item blocks:
+
+## Queueable follow-ups
+- follow-up issues to file or link:
+- why each item is not a merge blocker:
+
 ## Issue match
 - linked issue:
 - matches stated outcome: yes / no / partial
@@ -42,6 +50,8 @@
 ## Scope drift check
 - touched files fit issue scope: yes / no / partial
 - unexpected surfaces:
+- issue split needed: yes / no
+- follow-up captured for drift: yes / no / N/A
 
 ## Risk scan
 - user risk:
@@ -52,6 +62,8 @@
 - direct automated:
 - targeted manual:
 - not rerun / env blocked:
+- evidence quality: strong / partial / weak
+- weak or missing proof called out explicitly: yes / no
 
 ## Founder decision needed
 - yes / no
@@ -62,6 +74,14 @@
 - options:
 - recommended default:
 - risk if we wait:
+- risk if we choose wrong:
+
+## Founder digest
+- what shipped:
+- what was approved or rejected:
+- what is blocked:
+- what needs founder attention right now:
+- next ranked follow-up:
 
 ## Residual risk
 ```

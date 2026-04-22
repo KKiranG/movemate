@@ -153,6 +153,13 @@ Packet must state:
 - explicit risk
 - required revisions or founder packet
 
+Review packets must also separate:
+
+- must-fix blockers that stop merge now
+- queueable follow-up issues that should not be smuggled into the current PR
+
+If scope drift is real but non-blocking, capture it as a follow-up issue or explicit queue item instead of leaving it as an ambiguous note.
+
 ### Pass 3 — Founder digest
 
 The founder sees:
@@ -184,6 +191,13 @@ Store the packet summary in:
 - the PR body when possible
 - a PR comment if the body is already crowded
 - the linked issue if the work is blocked or reshaped before merge
+
+Validation credibility must be explicit in the packet:
+
+- what was directly rerun
+- what was only spot-checked manually
+- what could not be rerun
+- whether the remaining evidence is strong enough to merge safely
 
 ## Documentation Ownership
 
