@@ -252,7 +252,7 @@ async function BookingsListSection({ userId }: { userId: string }) {
               MoveMate ranks spare-capacity matches after you declare the route, timing, and move type.
             </p>
             <Button asChild className="min-h-[44px] active:opacity-80">
-              <Link href="/search">Find a match</Link>
+              <Link href="/move/new">Declare a move</Link>
             </Button>
           </div>
         </Card>

@@ -13,8 +13,9 @@ Payments are a trust surface first.
 
 ## Non-Negotiables
 
-- customer authorization and carrier payout are different moments
-- capture should follow completion logic, not vibes
+- payment authorised when customer submits the request; captured when the driver accepts; held through delivery and any dispute window; released on customer confirmation or 72-hour proof-backed auto-release
+- authorisation and capture are distinct events — do not conflate them
+- customer payment and carrier payout are distinct moments — do not conflate them
 - proof-pack requirements gate status and payout progression
 - payout holds must be explained clearly
 - refunds and cancellations need durable audit trails

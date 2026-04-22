@@ -30,11 +30,12 @@ MoveMate is a need-first, match-ranked spare-capacity marketplace for awkward-mi
 
 ### Pricing
 
-- The current pricing code in `src/lib/pricing/breakdown.ts` is canonical for this pass.
-- Current code keeps platform commission on `basePriceCents` only.
-- No new pricing-economic change should ship until the founder resolves the blueprint-versus-code conflict.
-- Detour-cost pricing stays blocked until an explicit founder decision.
-- Do not resurrect the historical flat booking-fee model.
+- Platform commission is 15% of `basePriceCents` only — never applied to stairs, helper, or any other add-on.
+- Pricing code in `src/lib/pricing/breakdown.ts` is canonical. Blueprint §9.2 is now aligned to it.
+- Pricing template must support: minimum job floor per category, base price by category/variant, same-category quantity, a fixed stairs add-on, and a fixed helper add-on.
+- Parking difficulty is captured as operational/fit data and is not a pricing factor.
+- Detour is not a pricing factor in the MoveMate model. No detour surcharge exists. Detour tolerance is a matching and eligibility input only.
+- Do not resurrect the historical flat booking-fee model. `bookingFeeCents` stays 0 unless the founder explicitly changes it.
 
 ### Booking and dispute flow
 

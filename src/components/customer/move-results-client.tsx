@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Route } from "lucide-react";
+import { Bell, Route, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { TripCard } from "@/components/trip/trip-card";
 import {
   draftFromMoveRequest,
   getMoveRequestDraftFirstIncompleteStep,
-  getMoveRequestFastMatchHref,
   getMoveRequestOfferHref,
   getMoveRequestResultsHref,
   isPersistedMoveRequestReusable,
@@ -16,6 +15,7 @@ import {
 } from "@/components/customer/move-request-draft";
 import { useMoveRequestDraft } from "@/components/customer/use-move-request-draft";
 import {
+  createFastMatchRequest,
   createLiveMoveRequest,
   fetchLiveOffersForMoveRequest,
   getCustomerMoveRequestLoginHref,
@@ -25,7 +25,7 @@ import {
 import { TopAppBar } from "@/components/spec/chrome";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ITEM_CATEGORY_LABELS, TIME_WINDOW_LABELS } from "@/lib/constants";
+import { ITEM_CATEGORY_LABELS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 
 type LoadState =
@@ -49,11 +49,7 @@ function splitOfferGroups(offers: LiveMoveOffer[]) {
       entry.offer.fitConfidence !== "needs_approval",
   );
 
-  return {
-    topMatches,
-    needsReview,
-    nearbyDate,
-  };
+  return { topMatches, needsReview, nearbyDate };
 }
 
 function getStepHref(step: ReturnType<typeof getMoveRequestDraftFirstIncompleteStep>) {
@@ -71,13 +67,15 @@ function OfferSection({
   description,
   offers,
   moveRequestId,
-  preferredDate,
+  selectedIds,
+  onSelect,
 }: {
   title: string;
   description: string;
   offers: LiveMoveOffer[];
   moveRequestId: string;
-  preferredDate?: string;
+  selectedIds: Set<string>;
+  onSelect: (tripId: string) => void;
 }) {
   if (offers.length === 0) {
     return null;
@@ -91,17 +89,13 @@ function OfferSection({
       </div>
       <div className="space-y-3">
         {offers.map(({ offer, trip }) => (
-          <div key={offer.id} className="space-y-2">
-            <TripCard
-              trip={trip}
-              preferredDate={preferredDate}
-              href={getMoveRequestOfferHref({
-                offerId: offer.id,
-                moveRequestId,
-              })}
-            />
-            <p className="px-1 text-sm text-text-secondary">{offer.matchExplanation}</p>
-          </div>
+          <TripCard
+            key={offer.id}
+            trip={trip}
+            href={getMoveRequestOfferHref({ offerId: offer.id, moveRequestId })}
+            selected={selectedIds.has(trip.id)}
+            onSelect={selectedIds.size > 0 || onSelect ? onSelect : undefined}
+          />
         ))}
       </div>
     </section>
@@ -119,6 +113,9 @@ export function MoveResultsClient({
   const [state, setState] = useState<LoadState>("loading");
   const [message, setMessage] = useState<string | null>(null);
   const [data, setData] = useState<LiveMoveOfferResponse | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isFastMatching, setIsFastMatching] = useState(false);
+  const [fastMatchMessage, setFastMatchMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -130,7 +127,7 @@ export function MoveResultsClient({
     async function loadLiveResults() {
       if (!isAuthenticated) {
         setState("auth_required");
-        setMessage("Log in to turn this move into a live request and see real spare-capacity matches.");
+        setMessage("Log in to see real spare-capacity matches for this move.");
         return;
       }
 
@@ -142,11 +139,7 @@ export function MoveResultsClient({
 
         if (missingStep) {
           setState("incomplete");
-          setMessage(
-            missingStep === "route"
-              ? "Add both addresses first so MoveMate can match the real corridor."
-              : "Finish the item details before loading live route fits.",
-          );
+          setMessage("Add both addresses so we can match the corridor.");
           return;
         }
 
@@ -200,6 +193,31 @@ export function MoveResultsClient({
     };
   }, [initialMoveRequestId, isAuthenticated, isHydrated, setDraft]);
 
+  function toggleSelect(tripId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tripId)) {
+        next.delete(tripId);
+      } else if (next.size < 3) {
+        next.add(tripId);
+      }
+      return next;
+    });
+  }
+
+  async function handleFastMatch() {
+    if (!data || isFastMatching || selectedIds.size === 0) return;
+    setIsFastMatching(true);
+    setFastMatchMessage(null);
+    try {
+      await createFastMatchRequest(data.moveRequest.id);
+      window.location.href = "/bookings";
+    } catch (error) {
+      setFastMatchMessage(error instanceof Error ? error.message : "Fast Match failed. Try again.");
+      setIsFastMatching(false);
+    }
+  }
+
   const loginHref = getCustomerMoveRequestLoginHref({
     pathname: "/move/new/results",
     moveRequestId: initialMoveRequestId,
@@ -212,15 +230,8 @@ export function MoveResultsClient({
         <TopAppBar title="Live matches" backHref="/move/new" rightHref="/" rightLabel="Close" />
         <section className="screen space-y-4">
           <Card className="p-4">
-            <p className="section-label">{state === "creating" ? "Creating request" : "Loading matches"}</p>
-            <h1 className="mt-1 text-lg text-text">
-              {state === "creating"
-                ? "Saving your move so we can fetch real offers"
-                : "Pulling live spare-capacity trips for this corridor"}
-            </h1>
-            <p className="mt-2 text-sm text-text-secondary">
-              MoveMate is checking current listings and ranking them by route fit, timing, and trust.
-            </p>
+            <p className="section-label">{state === "creating" ? "One moment" : "Loading"}</p>
+            <h1 className="mt-1 text-lg text-text">Finding drivers going your way</h1>
           </Card>
         </section>
       </main>
@@ -233,18 +244,17 @@ export function MoveResultsClient({
         <TopAppBar title="Live matches" backHref="/move/new" rightHref="/" rightLabel="Close" />
         <section className="screen space-y-4">
           <Card className="p-4">
-            <p className="section-label">Log in first</p>
-            <h1 className="mt-1 text-lg text-text">See real matches after sign-in</h1>
+            <p className="section-label">Sign in first</p>
+            <h1 className="mt-1 text-lg text-text">See your matches after sign-in</h1>
             <p className="mt-2 text-sm text-text-secondary">
-              {message ??
-                "Your route and item draft stay on this device, so you can sign in and come straight back to live results."}
+              {message ?? "Your move stays saved while you sign in."}
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <Button asChild>
-                <Link href={loginHref}>Log in to continue</Link>
+                <Link href={loginHref}>Log in</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link href="/move/new/route">Edit this move</Link>
+                <Link href="/move/new">Edit move</Link>
               </Button>
             </div>
           </Card>
@@ -259,19 +269,16 @@ export function MoveResultsClient({
         <TopAppBar title="Live matches" backHref="/move/new" rightHref="/" rightLabel="Close" />
         <section className="screen space-y-4">
           <Card className="p-4">
-            <p className="section-label">{state === "incomplete" ? "Finish the draft" : "Could not load matches"}</p>
+            <p className="section-label">{state === "incomplete" ? "Almost there" : "Something went wrong"}</p>
             <h1 className="mt-1 text-lg text-text">
-              {state === "incomplete"
-                ? "We need a little more detail before we can rank real offers"
-                : "Something blocked the live offer load"}
+              {state === "incomplete" ? "Finish the route details first" : "Could not load matches"}
             </h1>
             <p className="mt-2 text-sm text-text-secondary">
-              {message ??
-                "Go back one step and try again. The move draft stays intact while you adjust it."}
+              {message ?? "Go back and try again."}
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <Button asChild>
-                <Link href={incompleteStepHref}>Edit the move</Link>
+                <Link href={incompleteStepHref}>Edit move</Link>
               </Button>
               <Button asChild variant="secondary">
                 <Link href={getMoveRequestResultsHref(initialMoveRequestId)}>Try again</Link>
@@ -283,110 +290,40 @@ export function MoveResultsClient({
     );
   }
 
-  const { moveRequest, offers, source } = data;
+  const { moveRequest, offers } = data;
   const { topMatches, needsReview, nearbyDate } = splitOfferGroups(offers);
-  const fastMatchHref = getMoveRequestFastMatchHref(moveRequest.id);
-  const itemSummary = [
-    ITEM_CATEGORY_LABELS[moveRequest.item.category],
-    moveRequest.item.sizeClass ? `${moveRequest.item.sizeClass} size` : null,
-    moveRequest.item.weightBand ? moveRequest.item.weightBand.replaceAll("_", " ") : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const itemLabel = ITEM_CATEGORY_LABELS[moveRequest.item.category];
 
   return (
     <main className="pb-28">
       <TopAppBar title="Live matches" backHref="/move/new" rightHref="/" rightLabel="Close" />
       <section className="screen space-y-5">
-        <div className="space-y-2">
+        <div className="space-y-1">
           <p className="eyebrow">
             {moveRequest.route.pickupSuburb} → {moveRequest.route.dropoffSuburb}
           </p>
           <h1 className="heading">
             {offers.length === 0
-              ? "No live route fits yet"
-              : `${offers.length} live ${offers.length === 1 ? "offer" : "offers"} ranked for this move`}
+              ? "No drivers going that way — yet."
+              : `${offers.length} ${offers.length === 1 ? "match" : "matches"}`}
           </h1>
           <p className="body text-[var(--text-secondary)]">
-            {moveRequest.item.description} · {itemSummary}
+            {itemLabel}
             {moveRequest.route.preferredDate
               ? ` · ${formatDate(moveRequest.route.preferredDate)}`
-              : " · Date flexible"}
-            {moveRequest.route.preferredTimeWindow
-              ? ` · ${TIME_WINDOW_LABELS[moveRequest.route.preferredTimeWindow]}`
-              : ""}
+              : " · Flexible dates"}
           </p>
         </div>
 
-        <Card className="p-4">
-          <p className="section-label">Move summary</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2 text-sm text-text-secondary">
-              <p className="font-medium text-text">Route</p>
-              <p>
-                {moveRequest.route.pickupSuburb} to {moveRequest.route.dropoffSuburb}
-              </p>
-              <p>
-                {moveRequest.route.preferredDate
-                  ? formatDate(moveRequest.route.preferredDate)
-                  : "Any nearby date"}{" "}
-                · {TIME_WINDOW_LABELS[moveRequest.route.preferredTimeWindow ?? "flexible"]}
-              </p>
-            </div>
-            <div className="space-y-2 text-sm text-text-secondary">
-              <p className="font-medium text-text">Handling</p>
-              <p>{moveRequest.item.description}</p>
-              <p>
-                {moveRequest.needsStairs ? "Stairs flagged" : "No stairs"} ·{" "}
-                {moveRequest.needsHelper ? "Helper requested" : "No helper"}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/move/new#route">Edit route</Link>
-            </Button>
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/move/new#item">Edit item</Link>
-            </Button>
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/move/new#timing">Edit timing</Link>
-            </Button>
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/move/new#access">Edit access</Link>
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <p className="section-label">How these were ranked</p>
-          <p className="mt-2 text-sm text-text-secondary">
-            MoveMate starts from your need, then ranks live spare-capacity trips by route fit,
-            timing, access compatibility, and carrier trust. This is not a browse-first list of
-            drivers.
-          </p>
-          <p className="mt-2 text-sm text-text-secondary">
-            {source === "persisted"
-              ? "These offers were already attached to your move request."
-              : "These offers were derived from currently active live listings for this route."}
-          </p>
-        </Card>
-
-        {offers.length > 1 ? (
-          <Card className="border-accent/15 bg-accent/5 p-4">
-            <p className="section-label">Need a faster yes?</p>
-            <h2 className="mt-1 text-lg text-text">Fast Match can ask the next-best carriers at once</h2>
-            <p className="mt-2 text-sm text-text-secondary">
-              The price stays all-in and fixed. Fast Match is explicit, not bidding, and closes the
-              rest as soon as one carrier accepts.
-            </p>
-            <div className="mt-4">
-              <Button asChild>
-                <Link href={fastMatchHref}>Review Fast Match</Link>
-              </Button>
-            </div>
-          </Card>
-        ) : null}
+        {/* Move summary — compact edit row */}
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/move/new#route">Edit route</Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/move/new#timing">Edit timing</Link>
+          </Button>
+        </div>
 
         {offers.length === 0 ? (
           <>
@@ -395,15 +332,10 @@ export function MoveResultsClient({
                 <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-elevated-2)]">
                   <Route className="h-5 w-5 text-[var(--text-primary)]" strokeWidth={1.7} />
                 </div>
-                <h2
-                  className="text-[34px] leading-[1.05] tracking-[-0.03em] text-[var(--text-primary)]"
-                  style={{ fontFamily: "var(--font-display)", fontWeight: 400 }}
-                >
-                  No drivers going<br />that way — yet.
-                </h2>
                 <p className="mt-3 text-[15px] leading-[1.5] text-[var(--text-secondary)]">
-                  {moveRequest.route.pickupSuburb} → {moveRequest.route.dropoffSuburb} is quiet right now.
-                  We&apos;ll alert drivers on similar corridors and let you know the moment one posts.
+                  {moveRequest.route.pickupSuburb} → {moveRequest.route.dropoffSuburb} is quiet
+                  right now. We&apos;ll alert drivers on similar corridors and notify you the moment
+                  one posts.
                 </p>
               </div>
 
@@ -413,7 +345,7 @@ export function MoveResultsClient({
                   {[
                     ["We alert drivers now", "Usually a match within 24 hrs on popular weekends"],
                     ["You get notified", "Push and email the moment someone posts your route"],
-                    ["If still nothing in 48 hrs", "Our team finds a driver for you manually — same price, no premium"],
+                    ["If still nothing in 48 hrs", "Our team finds a driver manually — same price, no premium"],
                   ].map(([title, note], i) => (
                     <div key={title} className="flex items-start gap-3">
                       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--text-primary)]">
@@ -430,10 +362,10 @@ export function MoveResultsClient({
 
               <div className="flex flex-wrap gap-2">
                 <Button asChild variant="secondary" size="sm">
-                  <Link href="/move/new#timing">Edit timing</Link>
+                  <Link href="/move/new#timing">Adjust timing</Link>
                 </Button>
                 <Button asChild variant="secondary" size="sm">
-                  <Link href="/move/new#route">Edit route</Link>
+                  <Link href="/move/new#route">Adjust route</Link>
                 </Button>
               </div>
             </div>
@@ -452,30 +384,68 @@ export function MoveResultsClient({
           </>
         ) : (
           <>
+            {/* Fast Match tip — only shown when 2+ offers and none yet selected */}
+            {offers.length > 1 && selectedIds.size === 0 ? (
+              <p className="text-sm text-text-secondary">
+                Tap a card to select it, or tap <strong className="text-text">View offer</strong> to
+                review details. Select up to 3 to Fast Match them simultaneously.
+              </p>
+            ) : null}
+
             <OfferSection
               title="Top matches"
-              description="Best current route fits with the clearest price and trust story."
+              description="Best current route fits."
               offers={topMatches}
               moveRequestId={moveRequest.id}
-              preferredDate={moveRequest.route.preferredDate ?? undefined}
+              selectedIds={selectedIds}
+              onSelect={toggleSelect}
             />
             <OfferSection
               title="Needs review"
-              description="These might still work, but the carrier will likely need a closer fit check."
+              description="Could work — carrier will want a closer look."
               offers={needsReview}
               moveRequestId={moveRequest.id}
-              preferredDate={moveRequest.route.preferredDate ?? undefined}
+              selectedIds={selectedIds}
+              onSelect={toggleSelect}
             />
             <OfferSection
               title="Nearby dates"
-              description="Live routes that fit the corridor but run on a nearby day."
+              description="Same corridor, slightly different day."
               offers={nearbyDate}
               moveRequestId={moveRequest.id}
-              preferredDate={moveRequest.route.preferredDate ?? undefined}
+              selectedIds={selectedIds}
+              onSelect={toggleSelect}
             />
           </>
         )}
       </section>
+
+      {/* Fast Match sticky bottom bar — appears when 1+ cards selected */}
+      {selectedIds.size > 0 ? (
+        <div className="fixed bottom-0 left-0 right-0 border-t border-[var(--border-subtle)] bg-[var(--bg-base)] px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3">
+          {fastMatchMessage ? (
+            <p className="mb-2 text-sm text-error">{fastMatchMessage}</p>
+          ) : null}
+          <Button
+            type="button"
+            onClick={handleFastMatch}
+            disabled={isFastMatching}
+            className="w-full"
+          >
+            <Zap className="mr-2 h-4 w-4" />
+            {isFastMatching
+              ? "Sending requests…"
+              : `Fast Match ${selectedIds.size} ${selectedIds.size === 1 ? "offer" : "offers"} — first accept wins`}
+          </Button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="mt-2 w-full text-center text-sm text-text-secondary active:opacity-70"
+          >
+            Cancel selection
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }

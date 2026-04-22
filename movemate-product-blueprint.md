@@ -2,7 +2,7 @@
 
 **Version:** 2.0 (revision of the Moverrr blueprint, integrating the Movemate design system)
 **Status:** Binding
-**Supersedes:** `moverrr-governing-product-blueprint.md`
+**Supersedes:** legacy Moverrr blueprint (deleted)
 **Audience:** Founders, product, design, engineers, and any AI coding agent contributing to the codebase
 
 This document is the single governing source of truth for the product. It integrates the strongest product logic from the previous Moverrr blueprint with the new Movemate visual and interaction design. Where the two conflict, this document resolves. Where either was weak, this document improves. Where the previous document was authoritative, it is preserved.
@@ -366,8 +366,9 @@ Two modes.
 1. **Route** — start + end via Places Autocomplete; up to 2 optional waypoints; optional "Return trip available" toggle.
 2. **Schedule** — date + time window; optional "This is a regular run" with frequency.
 3. **Vehicle & capacity** — select vehicle; space descriptor; accepted categories; constraint toggles.
-4. **Detour & pricing** — max detour km/min; base price per category; predefined add-ons (stairs, helper); optional detour rate.
-5. **Review & publish** (or save as draft).
+4. **Detour tolerance** — max detour km/min the carrier will accept. This is a matching eligibility input, not a pricing variable.
+5. **Pricing** — minimum job floor per category; base price per category and variant; stairs add-on (fixed amount); helper add-on (fixed amount).
+6. **Review & publish** (or save as draft).
 
 **Hard requirements to publish:** vehicle photo ≥1; route defined; date + window; ≥1 accepted category; pricing set for every accepted category; stairs/helper policy set.
 
@@ -494,22 +495,38 @@ The "why-this-matches" string on each card is templated from match_class + detou
 
 ### 9.1 Model — Deterministic
 
-Carrier-set base rates + structured add-ons + platform fee + GST. No bidding, no counter-proposals, no freeform pricing. One structured adjustment path for genuine mismatches only.
+The carrier pre-commits a pricing template when posting a trip. The platform computes the customer-facing total from that template plus the customer's structured selections. The customer sees a real, exact, requestable price before submitting. The driver accepts or declines — re-quoting after seeing the request is not permitted. Price can only change through the structured factual-mismatch path (Section 9.4), where the customer's declared conditions materially conflict with what the driver finds at pickup.
+
+**MVP pricing template fields:**
+- Minimum job floor per category — no job price below this regardless of distance or simplicity
+- Base price by item category and variant (e.g. sofa 2-seater vs 3-seater, fridge, queen mattress, small boxes)
+- Same-category quantity — e.g. 2 fridges. Mixed-item loads are out of normal MVP scope.
+- Stairs: fixed add-on (not per-flight metering); applies only when a stair-sensitive item has stairs at pickup or drop-off and no lift is available
+- Lift availability: if lift is present, the stairs add-on typically does not apply
+- Helper availability: fixed add-on; applies when a helper is required or the job is a 2-person lift
+- Parking difficulty: captured as operational/fit data only — not a pricing factor in MVP
+
+**Detour is not a pricing factor.** No surcharge exists for detour distance or time. Detour tolerance is a matching and eligibility input set by the carrier when posting a route — it is not something the customer pays for separately.
+
+No bidding, no counter-proposals, no freeform pricing. One structured adjustment path for genuine mismatches only.
 
 ### 9.2 Formula
 
 ```
-base       = driver_pricing[category][variant]
-add_ons    = sum of:
-               stairs_surcharge = driver_stairs_rate × (pickup_flights + dropoff_flights)
-               helper_surcharge = driver_helper_rate if helper_required
-detour_adj = driver_detour_rate × max(0, detour_km - included_tolerance)
-subtotal   = (base × quantity) + add_ons + detour_adj
-platform   = subtotal × 0.15
+floor      = carrier_minimum_price[category]
+base       = max(floor, carrier_pricing[category][variant])
+stairs     = carrier_stairs_add_on   # fixed amount; applied once if stair-sensitive item
+                                     # + stairs present at pickup or dropoff + no lift
+helper     = carrier_helper_add_on   # fixed amount; applied if helper required or 2-person job
+quantity   = declared item count (same category only; mixed loads out of MVP scope)
+subtotal   = (base × quantity) + stairs + helper
+platform   = (base × quantity) × 0.15   # commission on base price only — not on add-ons
 gst        = (subtotal + platform) × 0.10
 total      = subtotal + platform + gst
 payout     = subtotal    # platform fee and GST withheld at settlement
 ```
+
+Parking difficulty and detour distance do not appear in this formula. They are eligibility and operational inputs, not pricing variables.
 
 ### 9.3 Display Rule — Total Price on Every Card
 

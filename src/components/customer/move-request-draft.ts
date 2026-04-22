@@ -193,20 +193,33 @@ export function clearMoveRequestDraft() {
   window.sessionStorage.removeItem(MOVE_REQUEST_DRAFT_STORAGE_KEY);
 }
 
+// Category-to-description fallback so the server always receives a non-empty
+// itemDescription even when the intake's optional note field is blank.
+const CATEGORY_DESCRIPTION_FALLBACK: Record<string, string> = {
+  furniture: "Furniture",
+  boxes: "Boxes",
+  appliance: "Appliance",
+  fragile: "Fragile item",
+  other: "Bulky item",
+};
+
 export function toMoveRequestInputFromDraft(draft: MoveRequestDraft): MoveRequestInput | null {
   if (!draft.pickup || !draft.dropoff) {
     return null;
   }
 
-  if (!draft.itemDescription.trim() || !draft.itemSizeClass || !draft.itemWeightBand) {
-    return null;
-  }
+  // Derive description: prefer the customer's note; fall back to category label.
+  const derivedDescription =
+    draft.itemDescription.trim() ||
+    draft.specialInstructions.trim() ||
+    CATEGORY_DESCRIPTION_FALLBACK[draft.itemCategory] ||
+    "Item";
 
   return {
-    itemDescription: draft.itemDescription.trim(),
+    itemDescription: derivedDescription,
     itemCategory: draft.itemCategory,
-    itemSizeClass: draft.itemSizeClass,
-    itemWeightBand: draft.itemWeightBand,
+    itemSizeClass: draft.itemSizeClass || undefined,
+    itemWeightBand: draft.itemWeightBand || undefined,
     itemDimensions: draft.itemDimensions.trim() || undefined,
     itemWeightKg: draft.itemWeightKg.trim() ? Number(draft.itemWeightKg) : undefined,
     itemPhotoUrls: [],
@@ -245,12 +258,10 @@ export function isMoveRequestDraftReady(draft: MoveRequestDraft) {
 }
 
 export function getMoveRequestDraftFirstIncompleteStep(draft: MoveRequestDraft) {
+  // Intake only requires route + category. Description/size/weight are collected
+  // later in the booking form after the customer selects an offer.
   if (!draft.pickup || !draft.dropoff) {
     return "route" as const;
-  }
-
-  if (!draft.itemDescription.trim() || !draft.itemSizeClass || !draft.itemWeightBand) {
-    return "item" as const;
   }
 
   return null;
