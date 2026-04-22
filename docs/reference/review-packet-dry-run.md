@@ -38,3 +38,6 @@ Authority note: non-authoritative reference only. The real review contract lives
 - what is blocked: nothing
 - what needs founder attention right now: nothing
 - next ranked follow-up: continue queue work on review/deploy/system-hygiene issues
+
+## Residual risk
+- none identified for this docs-only pass; no runtime code changed

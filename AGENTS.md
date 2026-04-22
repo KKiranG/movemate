@@ -114,7 +114,7 @@ gstack is an approved workflow dependency for this repo across Claude and Codex.
 - gstack does not overrule MoveMate product truth or repo authority docs. It is the workflow layer, not the product source of truth.
 - Keep gstack as a global install or external local reference, not as a repo-root source tree inside MoveMate.
 
-## Reference Material And Archive Rules
+## Reference Material and Archive Rules
 
 - Canonical docs and the linked GitHub issue carry the truth. Derived digests stay derived.
 - `docs/reference/**` is the only in-repo home for intentionally archived non-authoritative reference.

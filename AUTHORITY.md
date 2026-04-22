@@ -64,7 +64,7 @@ These paths may contain useful patterns, but they do not overrule MoveMate runti
 - `docs/reference/**`
 - `docs/designs/**`
 
-Archive rules:
+### Archive rules
 
 - Keep reference material small, curated, and explicitly marked non-authoritative.
 - Prefer external/global installs for imported tooling and local research trees instead of repo-root copies.
