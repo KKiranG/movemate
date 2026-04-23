@@ -14,9 +14,15 @@ import {
   deriveOffersForMoveRequest,
   ensureOfferForMoveRequestSelection,
   getOfferByIdForAdmin,
+  getOfferByIdForMoveRequest,
   updateOfferStatus,
 } from "@/lib/data/offers";
-import { getMoveRequestByIdForAdmin, getMoveRequestByIdForCustomer, updateMoveRequestStatus } from "@/lib/data/move-requests";
+import {
+  getMoveRequestByIdForAdmin,
+  getMoveRequestByIdForCarrier,
+  getMoveRequestByIdForCustomer,
+  updateMoveRequestStatus,
+} from "@/lib/data/move-requests";
 import { requireCarrierProfileForUser, requireCustomerProfileForUser } from "@/lib/data/profiles";
 import {
   ensureRecoveryAlertForMoveRequest,
@@ -654,6 +660,54 @@ function buildAccessSummary(moveRequest: MoveRequest) {
   return parts.length > 0 ? parts.join(" · ") : "Standard access";
 }
 
+export function carrierBookingDependenciesMatch({
+  carrierId,
+  bookingRequest,
+  offer,
+  trip,
+}: {
+  carrierId: string;
+  bookingRequest: Pick<BookingRequest, "carrierId" | "listingId" | "moveRequestId" | "offerId">;
+  offer: Pick<Offer, "id" | "carrierId" | "listingId" | "moveRequestId"> | null;
+  trip?: { id: string; carrier: { id: string } } | null;
+}) {
+  if (!offer) {
+    return false;
+  }
+
+  if (bookingRequest.carrierId !== carrierId) {
+    return false;
+  }
+
+  if (
+    offer.id !== bookingRequest.offerId ||
+    offer.carrierId !== carrierId ||
+    offer.listingId !== bookingRequest.listingId ||
+    offer.moveRequestId !== bookingRequest.moveRequestId
+  ) {
+    return false;
+  }
+
+  if (trip && (trip.id !== bookingRequest.listingId || trip.carrier.id !== carrierId)) {
+    return false;
+  }
+
+  return true;
+}
+
+async function getCarrierRequestMoveAndOffer(carrierId: string, bookingRequest: BookingRequest) {
+  const [moveRequest, offer] = await Promise.all([
+    getMoveRequestByIdForCarrier(carrierId, bookingRequest.moveRequestId),
+    getOfferByIdForMoveRequest(bookingRequest.moveRequestId, bookingRequest.offerId),
+  ]);
+
+  if (!moveRequest || !offer || !carrierBookingDependenciesMatch({ carrierId, bookingRequest, offer })) {
+    return null;
+  }
+
+  return { moveRequest, offer };
+}
+
 export async function listCarrierRequestCards(userId: string) {
   const carrier = await requireCarrierProfileForUser(userId);
   const bookingRequests = await listBookingRequestsForCarrier(carrier.id);
@@ -667,14 +721,13 @@ export async function listCarrierRequestCards(userId: string) {
 
   const cards = await Promise.all(
     activeRequests.map(async (bookingRequest) => {
-      const [moveRequest, offer] = await Promise.all([
-        getMoveRequestByIdForAdmin(bookingRequest.moveRequestId),
-        getOfferByIdForAdmin(bookingRequest.offerId),
-      ]);
+      const dependencies = await getCarrierRequestMoveAndOffer(carrier.id, bookingRequest);
 
-      if (!moveRequest || !offer) {
+      if (!dependencies) {
         return null;
       }
+
+      const { moveRequest, offer } = dependencies;
 
       return {
         id: bookingRequest.id,
@@ -725,14 +778,13 @@ export async function listCarrierRecentRequestOutcomeCards(userId: string) {
 
   const cards = await Promise.all(
     settledRequests.slice(0, 8).map(async (bookingRequest) => {
-      const [moveRequest, offer] = await Promise.all([
-        getMoveRequestByIdForAdmin(bookingRequest.moveRequestId),
-        getOfferByIdForAdmin(bookingRequest.offerId),
-      ]);
+      const dependencies = await getCarrierRequestMoveAndOffer(carrier.id, bookingRequest);
 
-      if (!moveRequest || !offer) {
+      if (!dependencies) {
         return null;
       }
+
+      const { moveRequest } = dependencies;
 
       return {
         id: bookingRequest.id,

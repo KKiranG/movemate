@@ -83,6 +83,26 @@ export async function getMoveRequestByIdForCustomer(customerId: string, moveRequ
   return data ? toMoveRequest(data as MoveRequestRow) : null;
 }
 
+export async function getMoveRequestByIdForCarrier(carrierId: string, moveRequestId: string) {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("move_requests")
+    .select("*, booking_requests!inner(id)")
+    .eq("id", moveRequestId)
+    .eq("booking_requests.carrier_id", carrierId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "move_request_lookup_failed");
+  }
+
+  return data ? toMoveRequest(data as MoveRequestRow) : null;
+}
+
 export async function listMoveRequestsForCustomer(customerId: string) {
   if (!hasSupabaseEnv()) {
     return [] as MoveRequest[];

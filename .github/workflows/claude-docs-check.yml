@@ -9,7 +9,13 @@ on:
       - "AGENTS.md"
       - "CLAUDE.md"
       - "TASK-RULES.md"
+      - ".agent-skills/**"
+      - ".claude/agents/**"
+      - ".claude/capability-index.md"
+      - ".claude/command-catalog.md"
       - ".claude/project-ops.md"
+      - ".claude/rules/**"
+      - ".claude/skills/**"
       - ".claude/lock-groups.md"
       - ".env.example"
       - ".github/workflows/ci.yml"
@@ -32,7 +38,13 @@ on:
       - "AGENTS.md"
       - "CLAUDE.md"
       - "TASK-RULES.md"
+      - ".agent-skills/**"
+      - ".claude/agents/**"
+      - ".claude/capability-index.md"
+      - ".claude/command-catalog.md"
       - ".claude/project-ops.md"
+      - ".claude/rules/**"
+      - ".claude/skills/**"
       - ".claude/lock-groups.md"
       - ".env.example"
       - ".github/workflows/ci.yml"
@@ -76,6 +88,10 @@ jobs:
             "AGENTS.md",
             "CLAUDE.md",
             "TASK-RULES.md",
+            ".claude/capability-index.md",
+            ".claude/command-catalog.md",
+            ".claude/skills/verify-movemate-change/SKILL.md",
+            ".agent-skills/VERIFICATION.md",
             ".claude/project-ops.md",
             ".claude/lock-groups.md",
             ".env.example",
@@ -187,6 +203,41 @@ jobs:
               ],
             },
             {
+              file: ".claude/capability-index.md",
+              snippets: [
+                "MoveMate Capability Index",
+                "verify-movemate-change",
+                "AGENTS.md",
+                ".claude/project-ops.md",
+              ],
+            },
+            {
+              file: ".claude/command-catalog.md",
+              snippets: [
+                "MoveMate Command Catalog",
+                "verify-movemate-change",
+                "npm run check",
+              ],
+            },
+            {
+              file: ".claude/skills/verify-movemate-change/SKILL.md",
+              snippets: [
+                "Verify MoveMate Change",
+                "Read `AUTHORITY.md`, `AGENTS.md`, and the tool overlay",
+                "npm run check",
+                "Adversarial Probe",
+              ],
+            },
+            {
+              file: ".agent-skills/VERIFICATION.md",
+              snippets: [
+                "Verification",
+                "npm run check",
+                "Adversarial probe",
+                "Residual risk",
+              ],
+            },
+            {
               file: ".claude/project-ops.md",
               snippets: [
                 "MoveMate Project Ops",
@@ -279,6 +330,62 @@ jobs:
             for (const snippet of snippets) {
               if (!content.includes(snippet)) {
                 console.error(`Missing required content in ${file}: ${snippet}`);
+                failed = true;
+              }
+            }
+          }
+
+          if (failed) {
+            process.exit(1);
+          }
+
+          const staleReferenceChecks = [
+            {
+              label: "old verification skill name",
+              pattern: /verify-moverrr-change|moverrr-change/g,
+              files: [
+                ".claude",
+                ".agent-skills",
+                "AUTHORITY.md",
+                "AGENTS.md",
+                "CLAUDE.md",
+                "README.md",
+                "TASK-RULES.md",
+              ],
+            },
+            {
+              label: "tool overlay before universal contract",
+              pattern: /Read [`\[]CLAUDE\.md[`\\\]](?:\\([^)]*\\))? first|Read `CLAUDE\.md`,/g,
+              files: [
+                ".claude/agents",
+                ".claude/skills",
+              ],
+            },
+          ];
+
+          function collectFiles(entry) {
+            const stats = fs.statSync(entry);
+
+            if (stats.isFile()) {
+              return [entry];
+            }
+
+            return fs
+              .readdirSync(entry, { withFileTypes: true })
+              .flatMap((dirent) => collectFiles(`${entry}/${dirent.name}`));
+          }
+
+          for (const check of staleReferenceChecks) {
+            for (const file of check.files.flatMap(collectFiles)) {
+              if (!file.endsWith(".md") && !file.endsWith(".yml") && !file.endsWith(".yaml")) {
+                continue;
+              }
+
+              const content = fs.readFileSync(file, "utf8");
+              const matches = content.match(check.pattern);
+
+              if (matches) {
+                console.error(`Stale ${check.label} in ${file}: ${matches.join(", ")}`);
                 failed = true;
               }
             }

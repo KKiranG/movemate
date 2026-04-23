@@ -5,10 +5,13 @@ import { CarrierRequestDetailView } from "@/components/carrier/carrier-request-d
 import { PageIntro } from "@/components/layout/page-intro";
 import { Button } from "@/components/ui/button";
 import { requirePageSessionUser } from "@/lib/auth";
-import { getBookingRequestByIdForCarrier } from "@/lib/data/booking-requests";
+import {
+  carrierBookingDependenciesMatch,
+  getBookingRequestByIdForCarrier,
+} from "@/lib/data/booking-requests";
 import { getCarrierByUserId } from "@/lib/data/carriers";
 import { getOfferByIdForMoveRequest } from "@/lib/data/offers";
-import { getMoveRequestByIdForAdmin } from "@/lib/data/move-requests";
+import { getMoveRequestByIdForCarrier } from "@/lib/data/move-requests";
 import { getTripById } from "@/lib/data/trips";
 import { getBookingRequestUrgencyLabel } from "@/lib/request-presenters";
 import type { BookingRequest } from "@/types/booking-request";
@@ -68,16 +71,21 @@ export default async function CarrierRequestDetailPage({
   }
 
   const [moveRequest, offer, trip] = await Promise.all([
-    getMoveRequestByIdForAdmin(bookingRequest.moveRequestId),
+    getMoveRequestByIdForCarrier(carrier.id, bookingRequest.moveRequestId),
     getOfferByIdForMoveRequest(bookingRequest.moveRequestId, bookingRequest.offerId),
     getTripById(bookingRequest.listingId),
   ]);
 
-  if (!moveRequest || !offer) {
-    notFound();
-  }
-
-  if (trip && trip.carrier.id !== carrier.id) {
+  if (
+    !moveRequest ||
+    !offer ||
+    !carrierBookingDependenciesMatch({
+      carrierId: carrier.id,
+      bookingRequest,
+      offer,
+      trip,
+    })
+  ) {
     notFound();
   }
 

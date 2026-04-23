@@ -16,9 +16,10 @@ Use this skill after non-trivial work. The point is to prove behavior, not to na
 
 Always do these first:
 
-1. Read `CLAUDE.md` and the relevant `.claude/rules/` file.
-2. Read the matching `.agent-skills/` file for the area you changed.
-3. Run:
+1. Read `AUTHORITY.md`, `AGENTS.md`, and the tool overlay for the tool you are running in.
+2. Read the relevant `.claude/rules/` file.
+3. Read the matching `.agent-skills/` file for the area you changed.
+4. Run:
 
 ```bash
 npm run check

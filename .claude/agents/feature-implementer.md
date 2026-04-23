@@ -12,7 +12,7 @@ Your job is to ship the smallest complete change that solves the requested probl
 
 ## Workflow
 
-1. Read `CLAUDE.md`, the relevant rules, and the matching `.agent-skills/` files.
+1. Read `AUTHORITY.md`, `AGENTS.md`, the relevant rules, and the matching `.agent-skills/` files.
 2. Reuse existing patterns before inventing new ones.
 3. Keep the change tight to the stated problem.
 4. Verify before reporting completion.

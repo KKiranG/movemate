@@ -94,7 +94,12 @@ export default async function CarrierTripNewIndexPage() {
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <Suspense
           fallback={
-            <div role="status" aria-label="Loading posting form" className="skeleton h-[340px] w-full rounded-xl" />
+            <div
+              role="status"
+              aria-label="Loading posting form"
+              aria-busy="true"
+              className="skeleton min-h-[720px] w-full rounded-xl sm:min-h-[680px] lg:min-h-[760px]"
+            />
           }
         >
           <CarrierPostPrefill canPost={vehicleOptions.length > 0} vehicles={vehicleOptions} />

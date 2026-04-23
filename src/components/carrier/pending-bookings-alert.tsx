@@ -56,6 +56,7 @@ export function PendingBookingsAlert({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [clarifyingRequestId, setClarifyingRequestId] = useState<string | null>(null);
   const [declineReasons, setDeclineReasons] = useState<Record<string, string>>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const openRequests = useMemo(
     () => requests.filter((request) => ["pending", "clarification_requested"].includes(request.status)),
     [requests],
@@ -72,6 +73,7 @@ export function PendingBookingsAlert({
     clarification?: { clarificationReason: string; clarificationMessage: string },
   ) {
     setBusyId(`${request.id}:${action}`);
+    setErrorMessage(null);
 
     try {
       const response = await fetch(`/api/booking-requests/${request.id}`, {
@@ -95,7 +97,7 @@ export function PendingBookingsAlert({
 
       router.refresh();
     } catch (error) {
-      throw error;
+      setErrorMessage(error instanceof Error ? error.message : "Unable to update request.");
     } finally {
       setBusyId(null);
     }
@@ -122,6 +124,15 @@ export function PendingBookingsAlert({
         </div>
 
         <div className="grid gap-3">
+          {errorMessage ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-error/20 bg-error/10 px-3 py-2 text-sm text-error"
+            >
+              {errorMessage}
+            </div>
+          ) : null}
+
           {openRequests.map((request) => (
             <div key={request.id} className="rounded-xl border border-warning/20 bg-background p-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -191,16 +202,16 @@ export function PendingBookingsAlert({
                   <Button
                     type="button"
                     className="min-h-[44px]"
-                    disabled={busyId === `${request.id}:accept`}
+                    disabled={busyId !== null}
                     onClick={() => void updateRequest(request, "accept")}
                   >
-                    Accept
+                    {busyId === `${request.id}:accept` ? "Accepting..." : "Accept"}
                   </Button>
                   <Button
                     type="button"
                     variant="secondary"
                     className="min-h-[44px]"
-                    disabled={busyId === `${request.id}:clarify`}
+                    disabled={busyId !== null}
                     onClick={() => setClarifyingRequestId(request.id)}
                   >
                     Request clarification
@@ -211,6 +222,7 @@ export function PendingBookingsAlert({
                     </span>
                     <select
                       className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+                      disabled={busyId !== null}
                       value={declineReasons[request.id] ?? declineOptions[0].value}
                       onChange={(event) =>
                         setDeclineReasons((current) => ({
@@ -230,10 +242,10 @@ export function PendingBookingsAlert({
                     type="button"
                     variant="ghost"
                     className="min-h-[44px]"
-                    disabled={busyId === `${request.id}:decline`}
+                    disabled={busyId !== null}
                     onClick={() => void updateRequest(request, "decline")}
                   >
-                    Decline
+                    {busyId === `${request.id}:decline` ? "Declining..." : "Decline"}
                   </Button>
                 </div>
               </div>
@@ -241,7 +253,10 @@ export function PendingBookingsAlert({
                 <RequestClarificationSheet
                   isOpen={clarifyingRequestId === request.id}
                   busy={busyId === `${request.id}:clarify`}
-                  onClose={() => setClarifyingRequestId(null)}
+                  onClose={() => {
+                    setClarifyingRequestId(null);
+                    setErrorMessage(null);
+                  }}
                   onSubmit={(payload) => updateRequest(request, "clarify", payload)}
                 />
               </div>
