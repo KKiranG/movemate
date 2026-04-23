@@ -11,6 +11,10 @@ const bookingSafetySql = fs.readFileSync(
   path.join(process.cwd(), "supabase/migrations/011_booking_safety_p0.sql"),
   "utf8",
 );
+const minimumFloorSql = fs.readFileSync(
+  path.join(process.cwd(), "supabase/migrations/033_minimum_base_price_floor.sql"),
+  "utf8",
+);
 
 function getCreateBookingForCustomerSource() {
   const match = bookingsSource.match(
@@ -48,5 +52,20 @@ test("capacity recalculation still ignores cancelled bookings when remaining cap
   assert.match(
     bookingSafetySql,
     /where booking\.listing_id = p_listing_id\s+and booking\.status <> 'cancelled';/i,
+  );
+});
+
+test("atomic booking SQL applies the listing minimum base price floor before fees", () => {
+  assert.match(
+    minimumFloorSql,
+    /v_base_price_cents\s*:=\s*greatest\(v_listing\.price_cents,\s*coalesce\(v_listing\.minimum_base_price_cents,\s*0\)\);/i,
+  );
+  assert.match(
+    minimumFloorSql,
+    /v_platform_fee_cents\s*:=\s*round\(v_base_price_cents \* 0\.15\);/i,
+  );
+  assert.match(
+    minimumFloorSql,
+    /v_carrier_payout_cents\s*:=\s*v_base_price_cents \+ v_stairs_fee_cents \+ v_helper_fee_cents;/i,
   );
 });

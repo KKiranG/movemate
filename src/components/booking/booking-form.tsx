@@ -127,6 +127,7 @@ export function BookingForm({
   const isAddressResolved = Boolean(pickup && dropoff);
   const pricing = calculateBookingBreakdown({
     basePriceCents: trip.priceCents,
+    minimumBasePriceCents: trip.minimumBasePriceCents,
     needsStairs,
     stairsExtraCents: trip.rules.stairsExtraCents,
     needsHelper,

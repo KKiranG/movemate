@@ -10,9 +10,13 @@ function getDayOffset(fromDate: string, toDate: string) {
   return Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
 }
 
-export function getTripCustomerPricePreview(basePriceCents: number) {
+export function getTripCustomerPricePreview(
+  basePriceCents: number,
+  minimumBasePriceCents = 0,
+) {
   return calculateBookingBreakdown({
     basePriceCents,
+    minimumBasePriceCents,
     needsStairs: false,
     stairsExtraCents: 0,
     needsHelper: false,
@@ -20,13 +24,16 @@ export function getTripCustomerPricePreview(basePriceCents: number) {
   });
 }
 
-export function getBaseCustomerPriceCents(trip: Pick<Trip, "priceCents"> | number) {
+export function getBaseCustomerPriceCents(
+  trip: Pick<Trip, "priceCents" | "minimumBasePriceCents"> | number,
+) {
   const basePriceCents = typeof trip === "number" ? trip : trip.priceCents;
-  return getTripCustomerPricePreview(basePriceCents).totalPriceCents;
+  const minimumBasePriceCents = typeof trip === "number" ? 0 : trip.minimumBasePriceCents;
+  return getTripCustomerPricePreview(basePriceCents, minimumBasePriceCents).totalPriceCents;
 }
 
-export function getTripAllInPriceSummary(basePriceCents: number) {
-  const preview = getTripCustomerPricePreview(basePriceCents);
+export function getTripAllInPriceSummary(basePriceCents: number, minimumBasePriceCents = 0) {
+  const preview = getTripCustomerPricePreview(basePriceCents, minimumBasePriceCents);
 
   return {
     totalPriceCents: preview.totalPriceCents,

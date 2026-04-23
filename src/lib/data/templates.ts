@@ -6,6 +6,7 @@ import { hasSupabaseEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { getNextWeekdayDate } from "@/lib/utils";
+import { getMinimumTripBasePriceCents, getRouteDistanceKm } from "@/lib/pricing/guardrails";
 import type {
   CreateTripTemplateInput,
   RecurringTemplateSuggestion,
@@ -32,6 +33,7 @@ const createTemplateSchema = z.object({
   maxWeightKg: z.number().int().min(0).max(5000).nullable().optional(),
   detourRadiusKm: z.number().int().min(0).max(50).default(5),
   suggestedPriceCents: z.number().int().min(1000).max(100000),
+  minimumBasePriceCents: z.number().int().min(0).max(100000).optional(),
   stairsOk: z.boolean().default(false),
   stairsExtraCents: z.number().int().min(0).default(0),
   helperExtraCents: z.number().int().min(0).default(0),
@@ -45,9 +47,30 @@ const templatePostSchema = z.object({
   tripDate: z.string().min(1),
   timeWindow: timeWindowSchema.optional(),
   priceCents: z.number().int().min(1000).max(100000).optional(),
+  minimumBasePriceCents: z.number().int().min(0).max(100000).optional(),
 });
 
 type TripTemplateRow = Database["public"]["Tables"]["trip_templates"]["Row"];
+
+function getEffectiveMinimumBasePriceCents(params: {
+  originLatitude: number;
+  originLongitude: number;
+  destinationLatitude: number;
+  destinationLongitude: number;
+  minimumBasePriceCents?: number | null;
+}) {
+  const distanceKm = getRouteDistanceKm({
+    originLatitude: params.originLatitude,
+    originLongitude: params.originLongitude,
+    destinationLatitude: params.destinationLatitude,
+    destinationLongitude: params.destinationLongitude,
+  });
+
+  return Math.max(
+    params.minimumBasePriceCents ?? 0,
+    getMinimumTripBasePriceCents(distanceKm),
+  );
+}
 
 function parsePoint(point: unknown) {
   if (typeof point === "string") {
@@ -97,6 +120,7 @@ function toTripTemplate(row: TripTemplateRow): TripTemplate {
     maxWeightKg: row.max_weight_kg,
     detourRadiusKm: row.detour_radius_km,
     suggestedPriceCents: row.suggested_price_cents,
+    minimumBasePriceCents: row.minimum_base_price_cents,
     stairsOk: row.stairs_ok,
     stairsExtraCents: row.stairs_extra_cents,
     helperExtraCents: row.helper_extra_cents,
@@ -149,6 +173,17 @@ export async function createTemplate(
   }
 
   const supabase = createServerSupabaseClient();
+  const minimumBasePriceCents = getEffectiveMinimumBasePriceCents({
+    originLatitude: parsed.data.originLatitude,
+    originLongitude: parsed.data.originLongitude,
+    destinationLatitude: parsed.data.destinationLatitude,
+    destinationLongitude: parsed.data.destinationLongitude,
+    minimumBasePriceCents: parsed.data.minimumBasePriceCents,
+  });
+  const suggestedPriceCents = Math.max(
+    parsed.data.suggestedPriceCents,
+    minimumBasePriceCents,
+  );
   const insertPayload: Database["public"]["Tables"]["trip_templates"]["Insert"] = {
     carrier_id: carrierId,
     name: parsed.data.name,
@@ -165,7 +200,8 @@ export async function createTemplate(
     available_volume_m3: parsed.data.availableVolumeM3 ?? null,
     max_weight_kg: parsed.data.maxWeightKg ?? null,
     detour_radius_km: parsed.data.detourRadiusKm,
-    suggested_price_cents: parsed.data.suggestedPriceCents,
+    suggested_price_cents: suggestedPriceCents,
+    minimum_base_price_cents: minimumBasePriceCents,
     stairs_ok: parsed.data.stairsOk,
     stairs_extra_cents: parsed.data.stairsExtraCents,
     helper_extra_cents: parsed.data.helperExtraCents,
@@ -240,6 +276,7 @@ export async function createTemplateFromTrip(
     maxWeightKg: Math.round(Number(listing.available_weight_kg ?? 0)) || null,
     detourRadiusKm: Math.round(Number(listing.detour_radius_km)),
     suggestedPriceCents: listing.price_cents,
+    minimumBasePriceCents: listing.minimum_base_price_cents,
     stairsOk: listing.stairs_ok,
     stairsExtraCents: listing.stairs_extra_cents,
     helperExtraCents: listing.helper_extra_cents,
@@ -310,6 +347,20 @@ export async function createTripFromTemplate(
   }
 
   const accepted = new Set(template.accepts);
+  const minimumBasePriceCents = Math.max(
+    parsed.data.minimumBasePriceCents ?? 0,
+    template.minimum_base_price_cents,
+  );
+  const priceCents = parsed.data.priceCents ?? template.suggested_price_cents;
+
+  if (priceCents < minimumBasePriceCents) {
+    throw new AppError(
+      `Trips from this template need to be at least $${(minimumBasePriceCents / 100).toFixed(0)}.`,
+      400,
+      "template_trip_price_below_floor",
+    );
+  }
+
   const insertPayload: Database["public"]["Tables"]["capacity_listings"]["Insert"] = {
     carrier_id: carrierId,
     vehicle_id: vehicle.id,
@@ -325,7 +376,8 @@ export async function createTripFromTemplate(
     space_size: template.space_size,
     available_volume_m3: template.available_volume_m3,
     available_weight_kg: template.max_weight_kg,
-    price_cents: parsed.data.priceCents ?? template.suggested_price_cents,
+    price_cents: priceCents,
+    minimum_base_price_cents: minimumBasePriceCents,
     suggested_price_cents: template.suggested_price_cents,
     accepts_furniture: accepted.has("furniture"),
     accepts_boxes: accepted.has("boxes"),

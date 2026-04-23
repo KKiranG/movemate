@@ -150,6 +150,7 @@ export interface Database {
           available_volume_m3: number | null;
           available_weight_kg: number | null;
           price_cents: number;
+          minimum_base_price_cents: number;
           suggested_price_cents: number | null;
           accepts_furniture: boolean;
           accepts_boxes: boolean;
@@ -212,6 +213,7 @@ export interface Database {
           available_volume_m3?: number | null;
           available_weight_kg?: number | null;
           price_cents: number;
+          minimum_base_price_cents?: number;
           suggested_price_cents?: number | null;
           accepts_furniture?: boolean;
           accepts_boxes?: boolean;
@@ -266,6 +268,7 @@ export interface Database {
           max_weight_kg: number | null;
           detour_radius_km: number;
           suggested_price_cents: number;
+          minimum_base_price_cents: number;
           stairs_ok: boolean;
           stairs_extra_cents: number;
           helper_extra_cents: number;
@@ -295,6 +298,7 @@ export interface Database {
           max_weight_kg?: number | null;
           detour_radius_km?: number;
           suggested_price_cents: number;
+          minimum_base_price_cents?: number;
           stairs_ok?: boolean;
           stairs_extra_cents?: number;
           helper_extra_cents?: number;

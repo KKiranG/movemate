@@ -205,6 +205,10 @@ export function toTrip(record: ListingJoinedRecord): Trip {
         ? record.detour_tolerance_label
         : "standard",
     priceCents: record.price_cents,
+    minimumBasePriceCents:
+      "minimum_base_price_cents" in record
+        ? Number(record.minimum_base_price_cents ?? 0)
+        : 0,
     suggestedPriceCents: record.suggested_price_cents,
     dedicatedEstimateCents,
     savingsPct,

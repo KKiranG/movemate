@@ -256,6 +256,7 @@ function applyTripPriceGuardrail(
     destinationLatitude: number;
     destinationLongitude: number;
     priceCents: number;
+    minimumBasePriceCents?: number;
   },
   ctx: z.RefinementCtx,
 ) {
@@ -265,7 +266,10 @@ function applyTripPriceGuardrail(
     destinationLatitude: data.destinationLatitude,
     destinationLongitude: data.destinationLongitude,
   });
-  const minimumPriceCents = getMinimumTripBasePriceCents(distanceKm);
+  const minimumPriceCents = Math.max(
+    getMinimumTripBasePriceCents(distanceKm),
+    data.minimumBasePriceCents ?? 0,
+  );
 
   if (data.priceCents < minimumPriceCents) {
     ctx.addIssue({
@@ -299,6 +303,7 @@ export const tripSchema = z
     availableVolumeM3: z.number().min(0.1).max(8),
     availableWeightKg: z.number().min(20).max(500),
     priceCents: z.number().min(1000).max(100000),
+    minimumBasePriceCents: z.number().int().min(0).max(100000).optional(),
     suggestedPriceCents: z.number().min(1000).max(100000).optional(),
     accepts: z.array(categorySet).min(1),
     stairsOk: z.boolean().default(false),
@@ -330,6 +335,7 @@ export const tripUpdateSchema = z
     detourToleranceLabel: z.enum(["tight", "standard", "flexible"]).default("standard"),
     detourRadiusKm: z.number().min(0).max(30),
     priceCents: z.number().min(1000).max(100000),
+    minimumBasePriceCents: z.number().int().min(0).max(100000).optional(),
     accepts: z.array(categorySet).min(1),
     stairsOk: z.boolean().default(false),
     stairsExtraCents: z.number().min(0).default(0),
