@@ -12,8 +12,12 @@ Documentation in this repo is part of the agent runtime, not an afterthought.
 
 ## Where Truth Belongs
 
+- `AGENTS.md`
+  Universal, cross-tool, always-on truth (product thesis, invariants, parallelism, review model, verification bar)
 - `CLAUDE.md`
-  Repo-wide, always-on truth
+  Claude Code overlay — additive tool-specific workflow only, never redeclares universal truth
+- `AUTHORITY.md`
+  Meta-map: which file is authoritative, alias policy, reference-only trees
 - `.claude/rules/*.md`
   Scoped instructions that should load only for certain files
 - `.agent-skills/*.md`
@@ -57,10 +61,10 @@ If you have to correct the same mistake twice, encode it as a standing instructi
 
 - First occurrence: fix it inline, no standing rule needed.
 - Second occurrence of the same mistake: add a rule in `docs-and-memory.md` or the relevant scoped rule file. Keep it one sentence.
-- If the correction applies everywhere, add it to `CLAUDE.md`. If it applies only in one subsystem, add it to the relevant `.claude/rules/*.md`.
+- If the correction applies everywhere across every tool, add it to `AGENTS.md` (universal). If it applies only to a single tool, add it to that tool's overlay (e.g. `CLAUDE.md`). If it applies only in one subsystem, add it to the relevant `.claude/rules/*.md`.
 - Do not add a standing rule for one-off errors, exploratory missteps, or typos.
 
-Corrections about the review process belong in the review-packet template or review-pr skill, not in CLAUDE.md.
+Corrections about the review process belong in the review-packet template or review-pr skill, not in `AGENTS.md` or `CLAUDE.md`.
 
 ## Context Budget
 

@@ -1,3 +1,9 @@
+# Antigravity indexing policy:
+#   Exclude runtime residue, worktree copies, and derived digests.
+#   Include durable governance (AGENTS.md, CLAUDE.md, AUTHORITY.md, blueprint),
+#   scoped rules under .claude/rules/**, domain context under .agent-skills/**,
+#   skills under .claude/skills/**, and the issue/PR templates.
+
 # Build / dependency noise
 node_modules/
 .next/
@@ -36,6 +42,11 @@ supabase/migrations/
 .claude/settings.json
 .claude/settings.local.json
 .claude/launch.json
+.claude/session-log.jsonl
+
+# Workflow-layer runtime state (local-only, never product truth)
+.gstack/
+.codex/
 
 # Derived task digests (snapshots only — sync from GitHub, not truth)
 docs/operations/todolist.md

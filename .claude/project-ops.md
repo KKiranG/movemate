@@ -12,10 +12,10 @@ Authority order matches [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUT
 
 1. Active session instructions
 2. `movemate-product-blueprint.md`
-3. `CLAUDE.md`
-4. `AGENTS.md`
-5. this file
-6. relevant rules and skills
+3. `AGENTS.md` (universal agent contract)
+4. Tool overlays (`CLAUDE.md`, future `GEMINI.md`, etc.) — additive only
+5. this file (`.claude/project-ops.md`)
+6. relevant rules and skills under `.claude/**`
 7. linked GitHub issue
 8. derived digests
 9. legacy references
@@ -205,8 +205,8 @@ If work changes product truth, workflow truth, or deploy truth, the same work un
 
 Do not spray new docs across the repo. Prefer updating:
 
-- `CLAUDE.md`
-- `AGENTS.md`
+- `AGENTS.md` (universal truth)
+- `CLAUDE.md` (Claude overlay only — additive)
 - `TASK-RULES.md`
 - this file
 - narrow scoped rules only when necessary

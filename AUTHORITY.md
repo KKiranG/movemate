@@ -1,30 +1,66 @@
 # MoveMate Authority Map
 
-This file exists so agents do not have to guess what is authoritative.
+This file is the meta-map. It tells any AI tool — Claude Code, Codex, Antigravity, Gemini/VS Code, Jules, and future entrants — which file holds universal truth, which files are tool-specific overlays, and which files are derived or reference-only.
+
+The universal contract itself is [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md). This file tells you how to read it.
+
+---
 
 ## Order Of Authority
 
-1. System, developer, and direct user instructions in the active session.
-2. [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md)
-3. [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md)
-4. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md)
-5. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
-6. Relevant scoped rules in `.claude/rules/**`, relevant `.agent-skills/**`, and relevant agent/skill briefs in `.claude/**`
-7. The linked GitHub issue for the specific work unit
-8. Derived digests in `docs/operations/**`
-9. Legacy or imported reference docs
+This list is definitive. Every other authority list in the repo mirrors it.
 
-If two docs disagree at the same layer, fix the stale one in the same task.
+1. System, developer, and direct user instructions in the active session.
+2. [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md) — product source of truth.
+3. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md) — universal agent contract (cross-tool).
+4. Tool overlays — [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md), and any future `GEMINI.md`, `COPILOT.md`, etc. Overlays are additive only.
+5. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md) — live-work operating runbook (applies to all tools despite the path).
+6. Relevant scoped rules under `.claude/rules/**`, domain context under `.agent-skills/**`, skills and agent briefs under `.claude/**`.
+7. The linked GitHub issue or PR for the current work unit.
+8. Derived digests under `docs/operations/**`.
+9. Legacy or imported reference material.
+
+If two docs disagree at the same layer, fix the stale one in the same task. If a tool overlay disagrees with `AGENTS.md`, the overlay is wrong — `AGENTS.md` wins.
+
+---
+
+## Multi-Tool Policy
+
+MoveMate is designed to be worked on by multiple AI tools in parallel. Different tools auto-load different files, so the shared contract lives in `AGENTS.md` and every tool-specific file stays thin.
+
+- **Universal contract:** `AGENTS.md`. Carries product truth, invariants, parallelism model, review model, verification bar, escalation policy.
+- **Tool overlays:** one thin file per tool, additive only. Current overlays:
+  - `CLAUDE.md` — Claude Code (also loaded by Claude via its own auto-loader)
+- Deferred overlays (create only when the tool demands it):
+  - `GEMINI.md` — Antigravity / Gemini CLI if indexing hygiene alone stops being enough
+  - `AGENTS-CODEX.md` or similar — only if Codex develops tool-specific needs beyond what `AGENTS.md` already covers
+  - `COPILOT.md`, `CURSOR.md`, etc. — only when those tools actively work this repo
+
+### Rules of the overlay
+
+- An overlay may add tool-specific workflow (approved skills, routing rules, hook paths, session-start patterns).
+- An overlay may not override a universal invariant declared in `AGENTS.md`.
+- If an overlay disagrees with `AGENTS.md`, the overlay is stale and must be corrected in the same task.
+- Adding a new tool is a one-file task: create `NEWTOOL.md`, list it here, do not rewrite `AGENTS.md` unless a universal invariant actually changed.
+
+### Indexing hygiene
+
+- Antigravity indexing is controlled by `.antigravityignore` at the repo root.
+- Do not vendor global tooling, worktree copies, or machine-specific agent workspace material into the repo root. Keep imported libraries as global installs or external local references.
+
+---
 
 ## Canonical Docs
 
 - Product truth: [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md)
-- Repo entrypoint: [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md)
-- Repo invariants: [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md)
+- Universal agent contract: [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md)
+- Claude overlay: [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md)
 - Live work model: [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
-- Concurrency contract: [.claude/lock-groups.md](/Users/kiranghimire/Documents/moverrr/.claude/lock-groups.md)
-- Task rules: [TASK-RULES.md](/Users/kiranghimire/Documents/moverrr/TASK-RULES.md)
+- Parallelism contract: [.claude/lock-groups.md](/Users/kiranghimire/Documents/moverrr/.claude/lock-groups.md)
+- Task rules pointer: [TASK-RULES.md](/Users/kiranghimire/Documents/moverrr/TASK-RULES.md)
 - Design system reference: [docs/product/design-system.md](docs/product/design-system.md)
+
+---
 
 ## Live State Versus Derived State
 
@@ -44,6 +80,8 @@ Derived state lives in markdown:
 
 Derived files are snapshots and digests. They are not the live queue.
 
+---
+
 ## Current Alias Policy
 
 Use `MoveMate` for product-facing and founder-facing language.
@@ -56,6 +94,8 @@ Keep `moverrr` where renaming is risky until isolated migration work is shaped:
 - historical database table or enum names
 - old webhook metadata and redirect contracts
 - any route aliases that still protect live links
+
+---
 
 ## Reference-Only Trees
 
@@ -74,6 +114,7 @@ These paths may contain useful patterns, but they do not overrule MoveMate runti
 - Keep reference material small, curated, and explicitly marked non-authoritative.
 - Prefer external/global installs for imported tooling and local research trees instead of repo-root copies.
 - Never treat archived reference as the live queue, product truth, or an excuse to skip updating canonical docs.
+- If archived reference changes the understanding of product or workflow truth, update the canonical doc in the same work unit.
 
 The governing product source of truth is `movemate-product-blueprint.md`. The legacy Moverrr blueprint has been deleted.
 

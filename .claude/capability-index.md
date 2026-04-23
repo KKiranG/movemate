@@ -1,8 +1,8 @@
 # MoveMate Capability Index
 
-Use `.claude/operating-system.md` for the canonical runtime map, precedence, planning, delegation, permissions, worktrees, verification rules, and review rituals.
+The canonical map lives in [`AGENTS.md`](/Users/kiranghimire/Documents/moverrr/AGENTS.md) (universal contract) and [`.claude/project-ops.md`](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md) (live-work runbook). `.claude/operating-system.md` is a one-screen Claude cheatsheet that points at both.
 
-Use this file as the fast inventory of what currently exists.
+Use this file as the fast inventory of rules, roles, navigation files, skills, and commands that currently exist.
 
 ## Scoped Rule Coverage Matrix
 
@@ -80,4 +80,5 @@ Implementation and continuity skills:
 ## Command Catalog
 
 See `.claude/command-catalog.md` for repeatable commands and workflow semantics.
-See `.claude/operating-system.md` for delegation triggers, plan templates, permission matrix, worktree rules, verification discipline, and review rituals.
+See [`AGENTS.md`](/Users/kiranghimire/Documents/moverrr/AGENTS.md) for universal invariants, parallelism lanes, review model, verification bar, and escalation policy.
+See [`.claude/project-ops.md`](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md) for issue lifecycle, review pipeline, founder digest, and scheduled-agent rules.

@@ -153,24 +153,28 @@ jobs:
               file: "AUTHORITY.md",
               snippets: [
                 "MoveMate Authority Map",
+                "AGENTS.md",
+                "Multi-Tool Policy",
                 "Use `MoveMate` for product-facing and founder-facing language.",
-                "claude-moverrr-governing-product-blueprint.md",
+                "The legacy Moverrr blueprint has been deleted.",
               ],
             },
             {
               file: "AGENTS.md",
               snippets: [
-                "MoveMate — Agent Operating Contract",
-                "GitHub Issues + labels + linked PRs are the authoritative live work system.",
-                "Markdown backlog files are derived digests only.",
+                "MoveMate — Universal Agent Contract",
+                "This file is the universal contract for every AI tool working in this repo",
+                "GitHub is the live work system. Markdown is derived.",
+                "Derived snapshots stay derived. `docs/operations/**` is never a claimable queue.",
               ],
             },
             {
               file: "CLAUDE.md",
               snippets: [
-                "MoveMate Repo Truth",
-                "GitHub Issues, labels, linked PRs, and comments are the live work system.",
-                "The current pricing code in `src/lib/pricing/breakdown.ts` is canonical for this pass.",
+                "Claude Code Overlay",
+                "Universal truth lives in [AGENTS.md]",
+                "gstack is the approved workflow layer for Claude in this repo.",
+                "Use the `/session-start` skill at the top of a fresh session.",
               ],
             },
             {
@@ -178,8 +182,8 @@ jobs:
               snippets: [
                 "MoveMate Task Rules",
                 "The live task system is GitHub-first.",
-                "GitHub Project fields when scopes are available",
-                "These files are snapshots and digests only:",
+                "The universal contract is [`AGENTS.md`](AGENTS.md)",
+                "For product invariants, parallelism lanes, lock groups, review model, and escalation",
               ],
             },
             {

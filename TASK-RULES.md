@@ -1,6 +1,6 @@
 # MoveMate Task Rules
 
-The live task system is GitHub-first. See [`.claude/project-ops.md`](.claude/project-ops.md) for the full work OS: issue lifecycle, review pipeline, lock groups, lanes, builder rules, docs sync responsibility, and scheduled agent limits.
+The live task system is GitHub-first. The universal contract is [`AGENTS.md`](AGENTS.md); the full work OS runbook is [`.claude/project-ops.md`](.claude/project-ops.md).
 
 ## Quick Reference
 
@@ -10,4 +10,5 @@ The live task system is GitHub-first. See [`.claude/project-ops.md`](.claude/pro
 - Review packet required for every non-trivial PR — template at `.claude/review-packet-template.md`
 - If work changes product truth or operational truth, sync docs in the same issue or PR
 
-For lane definitions, lock groups, lifecycle states, and scheduled agent rules: [`.claude/project-ops.md`](.claude/project-ops.md).
+For product invariants, parallelism lanes, lock groups, review model, and escalation: see [`AGENTS.md`](AGENTS.md).
+For issue lifecycle, review pipeline, founder digest, and scheduled-agent rules: see [`.claude/project-ops.md`](.claude/project-ops.md).

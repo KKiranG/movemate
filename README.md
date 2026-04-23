@@ -11,12 +11,11 @@ This repository contains two things:
 
 Start here when you are orienting to the repo:
 
-1. [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md)
-2. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md)
-3. [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md)
+1. [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md) — meta-map
+2. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md) — universal agent contract
+3. The tool overlay for the tool you are running in: [CLAUDE.md](/Users/kiranghimire/Documents/moverrr/CLAUDE.md) for Claude Code; future `GEMINI.md` for Antigravity/Gemini
 4. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
-5. [.claude/lock-groups.md](/Users/kiranghimire/Documents/moverrr/.claude/lock-groups.md)
-6. [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md)
+5. [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md)
 
 ## Live Work System
 
@@ -35,25 +34,7 @@ Do not use those files as a transactional queue.
 
 ## Product Truth
 
-MoveMate is:
-
-- need-first
-- match-ranked
-- spare-capacity
-- trust-first
-- structured pricing / booking / proof / payout aware
-
-MoveMate is not:
-
-- browse-first
-- a quote marketplace
-- a bidding marketplace
-- a dispatch layer
-- a generic removalist platform
-
-Priority order:
-
-`Trust -> Simplicity -> Supply speed -> Customer clarity -> Automation -> Polish`
+Product thesis and invariants live in [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md) (universal agent contract) and [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md) (product source of truth). This README does not redeclare them.
 
 ## Stack
 

@@ -1,116 +1,75 @@
-# MoveMate Repo Truth
+# Claude Code Overlay
 
-This file holds the always-on product and execution invariants for the MoveMate repo.
+This is the Claude Code tool overlay. It carries only Claude-specific workflow.
 
-## Product Thesis
+**Universal truth lives in [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md).** Read that first for product thesis, invariants (pricing, booking, matching, mobile), the bounded parallelism contract, the review model, the verification bar, and escalation policy. This file does not redeclare any of that.
 
-MoveMate is a need-first, match-ranked spare-capacity marketplace for awkward-middle moves. The customer declares a move need once. The system returns a short ranked set of route-compatible options with deterministic all-in pricing, trust signals, and clear next steps. Drivers monetize trips they are already taking through structured posting, request review, proof-backed delivery, and payout release.
+If this file ever appears to disagree with `AGENTS.md`, `AGENTS.md` wins — fix this file in the same task.
 
-## Authority Order
+---
 
-1. System, developer, and direct user instructions
-2. [movemate-product-blueprint.md](/Users/kiranghimire/Documents/moverrr/movemate-product-blueprint.md)
-3. This file
-4. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md)
-5. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
-6. Relevant scoped rules, skills, and agent briefs
-7. The linked GitHub issue
-8. Derived markdown digests
-9. Stale or legacy docs
+## Read Order For A Claude Session
 
-## Core Invariants
+1. [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md) — meta-map
+2. [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md) — universal contract
+3. This file — Claude-specific workflow
+4. [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md) — issue lifecycle, review pipeline
+5. Relevant `.claude/rules/**` for the surface being touched
+6. The linked GitHub issue
 
-### Product shape
+---
 
-- Need-first beats browse-first.
-- Trust is a product feature, not decoration.
-- Sparse supply recovery matters as much as happy-path matching.
-- Customer and driver UX are asymmetric on purpose.
-- iOS-quality touch ergonomics matter even when Android compatibility must remain intact.
+## Approved Workflow Layer — gstack
 
-### Pricing
+gstack is the approved workflow layer for Claude in this repo. It is also installed globally for Codex on this Mac.
 
-- Platform commission is 15% of `basePriceCents` only — never applied to stairs, helper, or any other add-on.
-- Pricing code in `src/lib/pricing/breakdown.ts` is canonical. Blueprint §9.2 is now aligned to it.
-- Pricing template must support: minimum job floor per category, base price by category/variant, same-category quantity, a fixed stairs add-on, and a fixed helper add-on.
-- Parking difficulty is captured as operational/fit data and is not a pricing factor.
-- Detour is not a pricing factor in the MoveMate model. No detour surcharge exists. Detour tolerance is a matching and eligibility input only.
-- Do not resurrect the historical flat booking-fee model. `bookingFeeCents` stays 0 unless the founder explicitly changes it.
-
-### Booking and dispute flow
-
-- Customer flow is `declare need -> ranked offers -> Request to Book or Fast Match -> driver decision -> proof -> confirmation -> payout release`.
-- Fast Match is first-accept-wins and must revoke siblings atomically.
-- One factual clarification round is allowed. One structured adjustment path is allowed for genuine mismatch.
-- Payment is authorised before acceptance, captured on acceptance, and released only after confirmation or the proof-backed auto-release window.
-- Proof and payout logic are trust-critical and require stronger review.
-
-### Matching and trust
-
-- Match ranking is deterministic and explanation-backed.
-- Result cards must show why the match fits, not just a price.
-- Access, stairs, helper, and parking details are matching inputs, not optional polish.
-- No direct-contact or off-platform drift should appear in customer-facing flows.
-
-### Mobile and UX
-
-- Customer-facing quality is the highest app-level priority after repo constitution and operating-system stability.
-- Tap targets must stay usable on iPhone-sized viewports.
-- Sticky actions must respect safe areas.
-- One clay focal point per screen; primary CTAs stay ink-led unless a component pattern explicitly says otherwise.
-
-## Live Work And Queue Rules
-
-- GitHub Issues, labels, linked PRs, and comments are the live work system.
-- Markdown backlog files are derived only.
-- No builder should self-claim vague work outside a shaped `Ready` issue with a lane and lock group.
-
-## gstack
-
-gstack is the approved workflow layer for this repo in Claude and is also installed globally for Codex on this Mac.
-
-- Use `/browse` from gstack for web browsing in Claude. Do not use `mcp__claude-in-chrome__*`.
-- Approved gstack skills for this repo include:
-  `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`,
-  `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`,
-  `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/open-gstack-browser`,
-  `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`,
-  `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`,
-  `/plan-devex-review`, `/devex-review`, `/pair-agent`, `/careful`, `/freeze`,
-  `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`.
-- gstack governs workflow execution and browser tooling. MoveMate product truth, pricing truth, and repo-operating truth still come from the canonical docs in this repo.
 - Global paths:
   - Claude: `~/.claude/skills/gstack`
   - Codex: `~/.codex/skills/gstack*`
-- Keep gstack as a global install or external local reference. Do not vendor its skill trees into the MoveMate repo root.
+- Keep gstack as a global install. Do not vendor its skill trees into the MoveMate repo root.
 
-## Escalation
+### Browser tooling
 
-Escalate only when the work truly needs a founder decision:
+- Use `/browse` from gstack for web browsing.
+- Do not use `mcp__claude-in-chrome__*` directly.
 
-- pricing economics
-- product-strategy forks
-- risky migration cutovers
-- legal or trust-policy changes
-- cases where preserving two incompatible truths would silently ship confusion
+### Approved gstack skills for this repo
 
-Do not escalate routine engineering judgment, doc cleanup, or obvious stale wording.
+`/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`,
+`/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`,
+`/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/open-gstack-browser`,
+`/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`,
+`/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`,
+`/plan-devex-review`, `/devex-review`, `/pair-agent`, `/careful`, `/freeze`,
+`/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`.
 
-## Verification Bar
+gstack governs workflow execution and browser tooling only. Product truth, pricing truth, and repo-operating truth come from `AGENTS.md` and the canonical docs it points to.
 
-Every meaningful change should leave behind:
+---
 
-- a clear outcome
-- a verification path
-- evidence or test output
-- residual risk if something could not be fully exercised
+## Claude Memory Layering
 
-If truth changed, update the relevant docs in the same work unit.
+Claude Code auto-loads `CLAUDE.md` at session start. It does not auto-load `AGENTS.md`. The first job of any non-trivial Claude session is therefore to read `AGENTS.md` before planning.
 
-## Reference Boundary
+Claude-scoped files that continue to apply:
 
-- Canonical docs in this repo and the linked GitHub issue hold authority; archived reference does not.
-- `docs/operations/**` is derived state only, never a claimable queue.
-- `docs/reference/**` may hold curated non-authoritative reference, but every addition should identify source, purpose, and why the canonical docs were not the right home.
-- Keep imported workflow libraries, local research, and machine-specific agent workspace material outside the repo root unless there is a deliberate, explicitly marked archive exception.
-- If archived reference influences a product or workflow change, mirror the durable truth into the canonical doc in the same task.
+- `.claude/rules/**` — scoped instructions loaded for specific file surfaces
+- `.claude/skills/**` — reusable workflows and runbooks
+- `.claude/agents/**` — agent-role briefs
+- `.claude/project-ops.md` — live-work runbook (applies to all tools despite the path)
+- `.claude/lock-groups.md` — parallelism contract detail
+- `.claude/capability-index.md` — index of skills, rules, and commands
+
+---
+
+## Session Start
+
+Use the `/session-start` skill at the top of a fresh session. It loads GitHub live state, surfaces `state:needs-founder-decision`, `state:blocked`, and top `state:ready` work, and asks for scope confirmation before implementation.
+
+Do not plan from memory when the user names a specific task. Read the relevant `.claude/rules/` and `.agent-skills/` file for the area first.
+
+---
+
+## Claude-Specific Hooks
+
+Hooks live at `.claude/settings.local.json` and `.claude/hooks/**`. They are Claude-runtime-only and do not affect Codex or Antigravity sessions.
