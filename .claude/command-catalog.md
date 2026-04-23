@@ -17,7 +17,7 @@ Use this file as the discoverable index of repeatable repo workflows.
 
 ## Workflow Skills
 
-- `verify-moverrr-change`
+- `verify-movemate-change`
   Final evidence-led verification pass.
 - `verify-web-ui`
   375px and touch-state focused verification.

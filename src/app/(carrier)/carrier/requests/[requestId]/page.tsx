@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { requirePageSessionUser } from "@/lib/auth";
 import { getBookingRequestByIdForCarrier } from "@/lib/data/booking-requests";
 import { getCarrierByUserId } from "@/lib/data/carriers";
-import { getOfferByIdForAdmin } from "@/lib/data/offers";
+import { getOfferByIdForMoveRequest } from "@/lib/data/offers";
 import { getMoveRequestByIdForAdmin } from "@/lib/data/move-requests";
 import { getTripById } from "@/lib/data/trips";
 import { getBookingRequestUrgencyLabel } from "@/lib/request-presenters";
@@ -69,7 +69,7 @@ export default async function CarrierRequestDetailPage({
 
   const [moveRequest, offer, trip] = await Promise.all([
     getMoveRequestByIdForAdmin(bookingRequest.moveRequestId),
-    getOfferByIdForAdmin(bookingRequest.offerId),
+    getOfferByIdForMoveRequest(bookingRequest.moveRequestId, bookingRequest.offerId),
     getTripById(bookingRequest.listingId),
   ]);
 

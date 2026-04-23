@@ -49,7 +49,7 @@ Read these before starting any non-trivial task:
 ## Skills And Workflows
 
 Core workflows:
-- `verify-moverrr-change`
+- `verify-movemate-change`
 - `docs-memory-sync`
 - `booking-safety-audit`
 - `ios-touch-audit`

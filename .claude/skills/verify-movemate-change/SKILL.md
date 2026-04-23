@@ -1,5 +1,5 @@
 ---
-name: verify-moverrr-change
+name: verify-movemate-change
 description: Run a real MoveMate verification pass after non-trivial changes, with explicit evidence instead of ceremonial "looks good" validation.
 when_to_use: Use when the user asks to verify, audit, sanity-check, or review a change, or when you are about to finish a meaningful implementation. Examples: "verify this works", "do a final pass", "review the booking flow", "sanity check this PR", or "make sure the mobile UI is correct".
 argument-hint: [area: frontend|backend|booking|database|docs]

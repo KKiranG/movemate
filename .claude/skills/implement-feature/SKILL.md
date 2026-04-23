@@ -106,7 +106,7 @@ Work top-down. Do not skip a layer and come back.
 
 ### Step 6 — Verification
 
-Run the `/verify-moverrr-change` skill scoped to the area changed. Do not write the verification section yourself — the skill produces the evidence report.
+Run the `/verify-movemate-change` skill scoped to the area changed. Do not write the verification section yourself — the skill produces the evidence report.
 
 Minimum before calling the feature done:
 

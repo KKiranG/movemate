@@ -38,7 +38,7 @@ Do not start implementation until you can state the root cause clearly.
 
 ## Step 4 — Verify
 
-Run the `/verify-moverrr-change` skill scoped to the changed area.
+Run the `/verify-movemate-change` skill scoped to the changed area.
 
 Minimum before the PR is ready:
 1. `npm run check` passes

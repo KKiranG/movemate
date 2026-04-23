@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 
 import { CarrierPostPrefill } from "@/components/carrier/carrier-post-prefill";
@@ -91,7 +92,13 @@ export default async function CarrierTripNewIndexPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <CarrierPostPrefill canPost={vehicleOptions.length > 0} vehicles={vehicleOptions} />
+        <Suspense
+          fallback={
+            <div role="status" aria-label="Loading posting form" className="skeleton h-[340px] w-full rounded-xl" />
+          }
+        >
+          <CarrierPostPrefill canPost={vehicleOptions.length > 0} vehicles={vehicleOptions} />
+        </Suspense>
 
         <div className="space-y-4">
           <Card className="p-4">
