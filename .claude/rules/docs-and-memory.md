@@ -21,7 +21,7 @@ Documentation in this repo is part of the agent runtime, not an afterthought.
 - `.claude/skills/<skill>/SKILL.md`
   Reusable workflows and runbooks
 - `TASK-RULES.md`
-  Backlog operating system
+  Backlog OS quick-reference pointer (full work OS: `.claude/project-ops.md`)
 - `README.md`
   Human-facing repo orientation
 

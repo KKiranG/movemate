@@ -370,7 +370,7 @@ When picking up a task:
 /db
   /schema                    # Supabase / Drizzle schema
 /.agent-skills
-  /movemate-design-system-skill.md   # this file
+  /docs/product/design-system.md     # this file (moved from root)
   /pricing.md
   /matching.md
   /data-model.md

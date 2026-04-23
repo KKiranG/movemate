@@ -770,4 +770,4 @@ These are the principles any contributor — product, design, engineering, AI ag
 
 ---
 
-**End of blueprint.** Engineering, design, and AI coding agents should read this document first. The companion reference `movemate-design-system-skill.md` provides the dense implementation reference for daily build work.
+**End of blueprint.** Engineering, design, and AI coding agents should read this document first. The companion reference `docs/product/design-system.md` provides the dense implementation reference for daily build work.

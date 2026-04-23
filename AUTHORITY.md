@@ -24,6 +24,7 @@ If two docs disagree at the same layer, fix the stale one in the same task.
 - Live work model: [.claude/project-ops.md](/Users/kiranghimire/Documents/moverrr/.claude/project-ops.md)
 - Concurrency contract: [.claude/lock-groups.md](/Users/kiranghimire/Documents/moverrr/.claude/lock-groups.md)
 - Task rules: [TASK-RULES.md](/Users/kiranghimire/Documents/moverrr/TASK-RULES.md)
+- Design system reference: [docs/product/design-system.md](docs/product/design-system.md)
 
 ## Live State Versus Derived State
 
@@ -63,6 +64,10 @@ These paths may contain useful patterns, but they do not overrule MoveMate runti
 - `codes/**`
 - `docs/reference/**`
 - `docs/designs/**`
+- `docs/product/**`
+- `docs/reference/decisions.md` — point-in-time decision checkpoint (full settled log: `.claude/DECISION-LOG.md`)
+- `docs/reference/experiment-ledger.md` — experiment schema template
+- `docs/engineering/repo-structure.md` — generated directory snapshot (not authority)
 
 ### Archive rules
 

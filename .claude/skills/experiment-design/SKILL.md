@@ -17,4 +17,4 @@ Every experiment must state:
 - keep threshold
 - discard or reframe threshold
 
-Log the result in `EXPERIMENT-LEDGER.md`.
+Log the result in `docs/reference/experiment-ledger.md`.

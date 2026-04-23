@@ -1,0 +1,48 @@
+# Build / dependency noise
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Lockfiles / generated artifacts
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+*.tsbuildinfo
+*.d.ts
+next-env.d.ts
+
+# Heavy generated DB history
+supabase/migrations/
+
+# Local noise
+*.log
+.DS_Store
+.env*.local
+
+# Test snapshots
+**/__snapshots__/
+**/*.snap
+
+# Agent worktrees (each is a full repo copy — catastrophic indexing noise)
+.claude/worktrees/
+
+# Agent runtime internals (not product content)
+.claude/agent-memory/
+.claude/scripts/
+.claude/hooks/
+.claude/settings.json
+.claude/settings.local.json
+.claude/launch.json
+
+# Derived task digests (snapshots only — sync from GitHub, not truth)
+docs/operations/todolist.md
+docs/operations/completed.md
+
+# Generated structural snapshots
+docs/engineering/repo-structure.md
+
+# Ephemeral lesson artifacts from external tools
+.jules/
