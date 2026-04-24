@@ -474,10 +474,10 @@ export async function getFounderOpsCockpitData() {
       title: booking.booking_reference,
       detail:
         booking.payment_status === "capture_failed"
-          ? "Capture failed after completion."
+          ? "Capture failed during acceptance."
           : booking.status === "delivered"
             ? "Waiting on customer confirmation before release."
-            : "Completed, but capture has not cleared yet.",
+            : "Completed, but payment state still needs ops review.",
       href: `/admin/bookings?q=${booking.booking_reference}`,
     }));
 

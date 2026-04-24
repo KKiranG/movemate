@@ -155,7 +155,7 @@ Route groups use parentheses notation `(name)` for layout/auth isolation — the
 | `008_atomic_booking_function.sql` | `create_booking_atomic` RPC |
 | `009_trip_templates.sql` | Trip templates table |
 | `010_capacity_recalculation.sql` | `recalculate_listing_capacity` RPC |
-| `010_saved_searches.sql` | Saved searches table |
+| `019_saved_searches.sql` | Legacy saved-search compatibility table |
 | `011_booking_safety_p0.sql` | Booking state and payment safety hardening |
 | `012_p1_p2_marketplace_experience.sql` | Marketplace UX tables and fields |
 | `013_p3_enhancements.sql` | Enhancements (reviews, proofs, events) |
@@ -242,4 +242,5 @@ Next migration file: `017_<short_description>.sql`
 - `hasSupabaseEnv()` returns false locally when `.env.local` is missing — graceful degradation is intentional
 - Email sending is fire-and-forget — the booking flow must not depend on it succeeding
 - Webhook handler (`payments/webhook/route.ts`) must remain idempotent — check before mutating
-- Booking creation MUST go through `create_booking_atomic` RPC — never direct INSERT
+- Direct booking creation MUST go through `create_booking_atomic` RPC — never direct INSERT
+- Booking-request acceptance MUST go through `accept_booking_request_atomic` so Fast Match groups close transactionally

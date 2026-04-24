@@ -622,6 +622,67 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["bookings"]["Insert"]>;
       };
+      booking_request_payment_authorizations: {
+        Row: {
+          id: string;
+          move_request_id: string;
+          customer_id: string;
+          request_group_id: string | null;
+          booking_id: string | null;
+          amount_cents: number;
+          captured_amount_cents: number | null;
+          currency: string;
+          stripe_payment_intent_id: string | null;
+          status:
+            | "pending"
+            | "authorized"
+            | "captured"
+            | "capture_failed"
+            | "failed"
+            | "authorization_cancelled"
+            | "refund_pending"
+            | "refunded"
+            | "manual_review";
+          failure_code: string | null;
+          failure_reason: string | null;
+          authorized_at: string | null;
+          captured_at: string | null;
+          cancelled_at: string | null;
+          refunded_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          move_request_id: string;
+          customer_id: string;
+          request_group_id?: string | null;
+          booking_id?: string | null;
+          amount_cents: number;
+          captured_amount_cents?: number | null;
+          currency?: string;
+          stripe_payment_intent_id?: string | null;
+          status?:
+            | "pending"
+            | "authorized"
+            | "captured"
+            | "capture_failed"
+            | "failed"
+            | "authorization_cancelled"
+            | "refund_pending"
+            | "refunded"
+            | "manual_review";
+          failure_code?: string | null;
+          failure_reason?: string | null;
+          authorized_at?: string | null;
+          captured_at?: string | null;
+          cancelled_at?: string | null;
+          refunded_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["booking_request_payment_authorizations"]["Insert"]>;
+      };
       booking_requests: {
         Row: {
           id: string;
@@ -632,6 +693,7 @@ export interface Database {
           carrier_id: string;
           booking_id: string | null;
           request_group_id: string | null;
+          payment_authorization_id: string | null;
           status: "pending" | "clarification_requested" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
           requested_total_price_cents: number;
           response_deadline_at: string;
@@ -656,6 +718,7 @@ export interface Database {
           carrier_id: string;
           booking_id?: string | null;
           request_group_id?: string | null;
+          payment_authorization_id?: string | null;
           status?: "pending" | "clarification_requested" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
           requested_total_price_cents: number;
           response_deadline_at: string;
@@ -1219,6 +1282,44 @@ export interface Database {
       };
     };
     Functions: {
+      accept_booking_request_atomic: {
+        Args: {
+          p_booking_request_id: string;
+          p_actor_user_id: string;
+          p_carrier_id: string;
+          p_customer_id: string;
+          p_dropoff_access_notes?: string | null;
+          p_dropoff_address: string;
+          p_dropoff_contact_name?: string | null;
+          p_dropoff_contact_phone?: string | null;
+          p_dropoff_lat: number;
+          p_dropoff_lng: number;
+          p_dropoff_postcode: string;
+          p_dropoff_suburb: string;
+          p_client_idempotency_key?: string | null;
+          p_idempotency_request_hash?: string | null;
+          p_item_category: "furniture" | "boxes" | "appliance" | "fragile" | "other";
+          p_item_description: string;
+          p_item_dimensions?: string | null;
+          p_item_photo_urls?: string[] | null;
+          p_item_size_class?: "S" | "M" | "L" | "XL" | null;
+          p_item_weight_band?: "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg" | null;
+          p_item_weight_kg?: number | null;
+          p_listing_id: string;
+          p_needs_helper: boolean;
+          p_needs_stairs: boolean;
+          p_pickup_access_notes?: string | null;
+          p_pickup_address: string;
+          p_pickup_contact_name?: string | null;
+          p_pickup_contact_phone?: string | null;
+          p_pickup_lat: number;
+          p_pickup_lng: number;
+          p_pickup_postcode: string;
+          p_pickup_suburb: string;
+          p_special_instructions?: string | null;
+        };
+        Returns: string;
+      };
       create_booking_atomic: {
         Args: {
           p_actor_user_id: string;

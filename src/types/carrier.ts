@@ -189,6 +189,7 @@ export interface CarrierRequestCard {
   listingId: string;
   bookingId?: string | null;
   requestGroupId?: string | null;
+  paymentAuthorizationId?: string | null;
   status: "pending" | "clarification_requested";
   itemDescription: string;
   itemCategory: string;

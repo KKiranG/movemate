@@ -23,6 +23,7 @@ export const bookingRequestSchema = z.object({
   carrierId: z.string().uuid(),
   bookingId: z.string().uuid().optional(),
   requestGroupId: z.string().uuid().optional(),
+  paymentAuthorizationId: z.string().uuid().optional(),
   status: z
     .enum([
       "pending",

@@ -12,7 +12,11 @@ const bookingSafetySql = fs.readFileSync(
   "utf8",
 );
 const minimumFloorSql = fs.readFileSync(
-  path.join(process.cwd(), "supabase/migrations/034_minimum_base_price_floor.sql"),
+  path.join(process.cwd(), "supabase/migrations/035_minimum_base_price_floor.sql"),
+  "utf8",
+);
+const requestAcceptanceSql = fs.readFileSync(
+  path.join(process.cwd(), "supabase/migrations/037_accept_booking_request_atomic.sql"),
   "utf8",
 );
 
@@ -68,4 +72,13 @@ test("atomic booking SQL applies the listing minimum base price floor before fee
     minimumFloorSql,
     /v_carrier_payout_cents\s*:=\s*v_base_price_cents \+ v_stairs_fee_cents \+ v_helper_fee_cents;/i,
   );
+});
+
+test("booking request acceptance has a database-level Fast Match group guard", () => {
+  assert.match(requestAcceptanceSql, /create or replace function public\.accept_booking_request_atomic/);
+  assert.match(requestAcceptanceSql, /for update;/i);
+  assert.match(requestAcceptanceSql, /pg_advisory_xact_lock/i);
+  assert.match(requestAcceptanceSql, /fast_match_already_accepted/);
+  assert.match(requestAcceptanceSql, /status = 'accepted'/);
+  assert.match(requestAcceptanceSql, /status = 'revoked'/);
 });

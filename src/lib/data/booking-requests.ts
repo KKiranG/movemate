@@ -8,6 +8,12 @@ import { toBookingRequest } from "@/lib/data/mappers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { getBookingByIdForUser } from "@/lib/data/bookings";
+import {
+  attachCapturedAuthorizationToBooking,
+  captureBookingRequestPaymentAuthorization,
+  createBookingRequestPaymentAuthorization,
+  markCapturedAuthorizationNeedsManualReview,
+} from "@/lib/data/booking-request-payments";
 import { getTripById } from "@/lib/data/trips";
 import { sendRequestLifecycleEmail } from "@/lib/notifications";
 import {
@@ -277,33 +283,6 @@ async function updateBookingRequestById(params: {
   }
 
   return toBookingRequest(data as BookingRequestRow);
-}
-
-async function attachRequestFlowToBooking(params: {
-  bookingId: string;
-  moveRequestId: string;
-  offerId: string;
-  bookingRequestId: string;
-  requestGroupId?: string | null;
-}) {
-  if (!hasSupabaseAdminEnv()) {
-    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
-  }
-
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("bookings")
-    .update({
-      move_request_id: params.moveRequestId,
-      offer_id: params.offerId,
-      booking_request_id: params.bookingRequestId,
-      request_group_id: params.requestGroupId ?? null,
-    })
-    .eq("id", params.bookingId);
-
-  if (error) {
-    throw new AppError(error.message, 500, "booking_request_flow_attach_failed");
-  }
 }
 
 async function ensureRecoveryAfterRequestFailure(bookingRequest: BookingRequest) {
@@ -605,6 +584,7 @@ export async function createBookingRequest(params: BookingRequestInput) {
     carrier_id: parsed.data.carrierId,
     booking_id: parsed.data.bookingId ?? null,
     request_group_id: parsed.data.requestGroupId ?? null,
+    payment_authorization_id: parsed.data.paymentAuthorizationId ?? null,
     status: parsed.data.status,
     requested_total_price_cents: parsed.data.requestedTotalPriceCents,
     response_deadline_at: parsed.data.responseDeadlineAt,
@@ -793,6 +773,7 @@ export async function listCarrierRequestCards(userId: string) {
         listingId: bookingRequest.listingId,
         bookingId: bookingRequest.bookingId ?? null,
         requestGroupId: bookingRequest.requestGroupId ?? null,
+        paymentAuthorizationId: bookingRequest.paymentAuthorizationId ?? null,
         status: bookingRequest.status,
         itemDescription: moveRequest.item.description,
         itemCategory: moveRequest.item.category,
@@ -1197,6 +1178,12 @@ export async function createRequestToBook(userId: string, input: BookingRequestC
     offerId: input.offerId,
     listingId: input.listingId,
   });
+  const paymentAuthorization = await createBookingRequestPaymentAuthorization({
+    userId,
+    customerId: customer.id,
+    moveRequestId: moveRequest.id,
+    amountCents: offer.pricing.totalPriceCents,
+  });
 
   const bookingRequest = await createBookingRequest({
     moveRequestId: moveRequest.id,
@@ -1204,6 +1191,7 @@ export async function createRequestToBook(userId: string, input: BookingRequestC
     listingId: offer.listingId,
     customerId: customer.id,
     carrierId: offer.carrierId,
+    paymentAuthorizationId: paymentAuthorization.id,
     status: "pending",
     requestedTotalPriceCents: offer.pricing.totalPriceCents,
     responseDeadlineAt: getResponseDeadline(input.responseHours),
@@ -1299,6 +1287,15 @@ export async function createFastMatchBookingRequests(
   const requestGroupId = randomUUID();
   const responseDeadlineAt = getResponseDeadline(input.responseHours);
   const bookingRequests: BookingRequest[] = [];
+  const paymentAuthorization = await createBookingRequestPaymentAuthorization({
+    userId,
+    customerId: customer.id,
+    moveRequestId: moveRequest.id,
+    requestGroupId,
+    amountCents: Math.max(
+      ...uniqueCarrierOffers.map((offer) => offer.pricing.totalPriceCents),
+    ),
+  });
 
   for (const offer of uniqueCarrierOffers) {
     bookingRequests.push(
@@ -1309,6 +1306,7 @@ export async function createFastMatchBookingRequests(
         customerId: customer.id,
         carrierId: offer.carrierId,
         requestGroupId,
+        paymentAuthorizationId: paymentAuthorization.id,
         status: "pending",
         requestedTotalPriceCents: offer.pricing.totalPriceCents,
         responseDeadlineAt,
@@ -1535,6 +1533,19 @@ export async function applyCarrierBookingRequestAction(
 
   await ensureFastMatchGroupHasNoAcceptedSibling(bookingRequest);
 
+  if (!bookingRequest.paymentAuthorizationId) {
+    throw new AppError(
+      "This request is missing a payment authorization, so it cannot be accepted.",
+      409,
+      "payment_authorization_missing",
+    );
+  }
+
+  await captureBookingRequestPaymentAuthorization({
+    paymentAuthorizationId: bookingRequest.paymentAuthorizationId,
+    amountToCaptureCents: bookingRequest.requestedTotalPriceCents,
+  });
+
   const moveRequest = await getMoveRequestByIdForAdmin(bookingRequest.moveRequestId);
   const offer = await getOfferByIdForAdmin(bookingRequest.offerId);
 
@@ -1545,7 +1556,8 @@ export async function applyCarrierBookingRequestAction(
   const bookingInput = createBookingPayloadFromMoveRequest(moveRequest, offer);
   const supabase = createAdminClient();
   const idempotencyKey = `booking-request-accept:${bookingRequest.id}`;
-  const { data: bookingId, error } = await supabase.rpc("create_booking_atomic", {
+  const { data: bookingId, error } = await supabase.rpc("accept_booking_request_atomic", {
+    p_booking_request_id: bookingRequest.id,
     p_actor_user_id: userId,
     p_carrier_id: bookingRequest.carrierId,
     p_customer_id: bookingRequest.customerId,
@@ -1581,27 +1593,24 @@ export async function applyCarrierBookingRequestAction(
   });
 
   if (error || !bookingId) {
+    await markCapturedAuthorizationNeedsManualReview({
+      paymentAuthorizationId: bookingRequest.paymentAuthorizationId,
+      reason: error?.message ?? "Booking creation failed after payment capture.",
+    });
+
     throw new AppError(error?.message ?? "Could not create the accepted booking.", 500, "booking_create_failed");
   }
 
-  await attachRequestFlowToBooking({
+  await attachCapturedAuthorizationToBooking({
+    paymentAuthorizationId: bookingRequest.paymentAuthorizationId,
     bookingId,
-    moveRequestId: bookingRequest.moveRequestId,
-    offerId: bookingRequest.offerId,
-    bookingRequestId,
-    requestGroupId: bookingRequest.requestGroupId ?? null,
   });
 
-  const acceptedRequest = await updateBookingRequestById({
-    bookingRequestId,
-    patch: {
-      status: "accepted",
-      booking_id: bookingId,
-      responded_at: new Date().toISOString(),
-      clarification_reason: null,
-      clarification_message: null,
-    },
-  });
+  const acceptedRequest = await getBookingRequestByIdForCarrier(carrier.id, bookingRequestId);
+
+  if (!acceptedRequest) {
+    throw new AppError("Accepted booking request could not be reloaded.", 500, "booking_request_reload_failed");
+  }
 
   await updateOfferStatus(acceptedRequest.offerId, "selected");
   await updateMoveRequestStatus(acceptedRequest.moveRequestId, "booked");

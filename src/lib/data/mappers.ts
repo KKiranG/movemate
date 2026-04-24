@@ -475,6 +475,7 @@ export function toBookingRequest(row: BookingRequestRow): BookingRequest {
     carrierId: row.carrier_id,
     bookingId: row.booking_id,
     requestGroupId: row.request_group_id,
+    paymentAuthorizationId: row.payment_authorization_id,
     status: row.status,
     requestedTotalPriceCents: row.requested_total_price_cents,
     responseDeadlineAt: row.response_deadline_at,

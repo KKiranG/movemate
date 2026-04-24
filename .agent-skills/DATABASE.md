@@ -59,6 +59,7 @@ The `capacity_listings` (trips) table should include:
 ## Important functions and derived truth
 
 - `create_booking_atomic`
+- `accept_booking_request_atomic`
 - `recalculate_listing_capacity`
 - `remaining_capacity_pct`
 
