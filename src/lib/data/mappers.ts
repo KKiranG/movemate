@@ -486,6 +486,8 @@ export function toBookingRequest(row: BookingRequestRow): BookingRequest {
     clarificationMessage: row.clarification_message,
     customerResponse: row.customer_response,
     customerResponseAt: row.customer_response_at,
+    acceptanceClaimedAt: row.acceptance_claimed_at,
+    acceptanceClaimExpiresAt: row.acceptance_claim_expires_at,
     respondedAt: row.responded_at,
     expiresAt: row.expires_at,
     createdAt: row.created_at,

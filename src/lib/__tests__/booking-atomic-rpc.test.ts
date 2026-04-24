@@ -19,6 +19,10 @@ const requestAcceptanceSql = fs.readFileSync(
   path.join(process.cwd(), "supabase/migrations/037_accept_booking_request_atomic.sql"),
   "utf8",
 );
+const requestAcceptanceClaimSql = fs.readFileSync(
+  path.join(process.cwd(), "supabase/migrations/038_booking_request_acceptance_claims.sql"),
+  "utf8",
+);
 
 function getCreateBookingForCustomerSource() {
   const match = bookingsSource.match(
@@ -81,4 +85,12 @@ test("booking request acceptance has a database-level Fast Match group guard", (
   assert.match(requestAcceptanceSql, /fast_match_already_accepted/);
   assert.match(requestAcceptanceSql, /status = 'accepted'/);
   assert.match(requestAcceptanceSql, /status = 'revoked'/);
+});
+
+test("booking request acceptance must be claimed before payment capture finalizes it", () => {
+  assert.match(requestAcceptanceClaimSql, /create or replace function public\.claim_booking_request_acceptance_atomic/);
+  assert.match(requestAcceptanceClaimSql, /status = 'accepting'/);
+  assert.match(requestAcceptanceClaimSql, /fast_match_already_claimed/);
+  assert.match(requestAcceptanceClaimSql, /create or replace function public\.release_booking_request_acceptance_claim_atomic/);
+  assert.match(requestAcceptanceClaimSql, /raise exception 'booking_request_acceptance_not_claimed'/);
 });

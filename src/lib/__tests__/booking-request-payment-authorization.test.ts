@@ -15,6 +15,14 @@ const requestPaymentSql = fs.readFileSync(
   path.join(process.cwd(), "supabase/migrations/036_booking_request_payment_authorizations.sql"),
   "utf8",
 );
+const acceptanceClaimsSql = fs.readFileSync(
+  path.join(process.cwd(), "supabase/migrations/038_booking_request_acceptance_claims.sql"),
+  "utf8",
+);
+const webhookSource = fs.readFileSync(
+  path.join(process.cwd(), "src/lib/stripe/payment-intent-events.ts"),
+  "utf8",
+);
 
 test("booking requests persist request-level payment authorizations", () => {
   assert.match(requestPaymentSql, /create table if not exists public\.booking_request_payment_authorizations/);
@@ -56,21 +64,56 @@ test("Fast Match shares one authorization across sibling requests", () => {
   );
 });
 
-test("carrier acceptance captures authorization before atomic request acceptance", () => {
+test("carrier acceptance claims the request before capture and finalizes after capture", () => {
   const source = bookingRequestsSource.match(
     /export async function applyCarrierBookingRequestAction[\s\S]*?\n}\n$/,
   );
 
   assert.ok(source, "applyCarrierBookingRequestAction source should be present.");
   assert.match(source[0], /payment_authorization_missing/);
+  assert.match(source[0], /claimBookingRequestAcceptance/);
   assert.match(source[0], /captureBookingRequestPaymentAuthorization/);
+  assert.match(source[0], /releaseBookingRequestAcceptanceClaim/);
   assert.match(source[0], /\.rpc\("accept_booking_request_atomic"/);
+  assert.ok(
+    source[0].indexOf("claimBookingRequestAcceptance") <
+      source[0].indexOf("captureBookingRequestPaymentAuthorization"),
+    "The request/group should be claimed before Stripe capture is attempted.",
+  );
   assert.ok(
     source[0].indexOf("captureBookingRequestPaymentAuthorization") <
       source[0].indexOf('.rpc("accept_booking_request_atomic"'),
-    "Payment capture should happen before the request is accepted.",
+    "Payment capture should happen before the request is finalized as accepted.",
   );
   assert.match(source[0], /attachCapturedAuthorizationToBooking/);
+});
+
+test("request acceptance SQL uses an accepting claim to prevent double capture races", () => {
+  assert.match(acceptanceClaimsSql, /'accepting'/);
+  assert.match(acceptanceClaimsSql, /create or replace function public\.claim_booking_request_acceptance_atomic/);
+  assert.match(acceptanceClaimsSql, /acceptance_claim_expires_at = v_now \+ interval '5 minutes'/);
+  assert.match(acceptanceClaimsSql, /fast_match_already_claimed/);
+  assert.match(acceptanceClaimsSql, /create or replace function public\.release_booking_request_acceptance_claim_atomic/);
+  assert.match(acceptanceClaimsSql, /if v_request\.status <> 'accepting' then/i);
+  assert.match(acceptanceClaimsSql, /raise exception 'booking_request_acceptance_not_claimed'/);
+});
+
+test("request-level payment intent webhooks update request authorizations", () => {
+  assert.match(webhookSource, /paymentAuthorizationId/);
+  assert.match(webhookSource, /markBookingRequestPaymentAuthorizationFromWebhook/);
+  assert.match(webhookSource, /marked_request_authorization_authorized/);
+  assert.match(webhookSource, /marked_request_authorization_captured/);
+  assert.match(webhookSource, /marked_request_authorization_cancelled/);
+  assert.match(webhookSource, /marked_request_authorization_failed/);
+});
+
+test("terminal request groups cancel unused request-level authorizations", () => {
+  assert.match(requestPaymentsSource, /cancelBookingRequestPaymentAuthorizationIfUnused/);
+  assert.match(requestPaymentsSource, /paymentIntents\.cancel/);
+  assert.match(bookingRequestsSource, /cancelUnusedRequestAuthorizationAfterTerminalRequest/);
+  assert.match(bookingRequestsSource, /booking_request_declined/);
+  assert.match(bookingRequestsSource, /booking_request_cancelled/);
+  assert.match(bookingRequestsSource, /booking_request_expired/);
 });
 
 test("payment authorization helper uses manual capture and local-dev fallback", () => {

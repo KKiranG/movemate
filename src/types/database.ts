@@ -694,7 +694,7 @@ export interface Database {
           booking_id: string | null;
           request_group_id: string | null;
           payment_authorization_id: string | null;
-          status: "pending" | "clarification_requested" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
+          status: "pending" | "clarification_requested" | "accepting" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
           requested_total_price_cents: number;
           response_deadline_at: string;
           clarification_round_count: number;
@@ -704,6 +704,8 @@ export interface Database {
           clarification_message: string | null;
           customer_response: string | null;
           customer_response_at: string | null;
+          acceptance_claimed_at: string | null;
+          acceptance_claim_expires_at: string | null;
           responded_at: string | null;
           expires_at: string | null;
           created_at: string;
@@ -719,7 +721,7 @@ export interface Database {
           booking_id?: string | null;
           request_group_id?: string | null;
           payment_authorization_id?: string | null;
-          status?: "pending" | "clarification_requested" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
+          status?: "pending" | "clarification_requested" | "accepting" | "accepted" | "declined" | "expired" | "revoked" | "cancelled";
           requested_total_price_cents: number;
           response_deadline_at: string;
           clarification_round_count?: number;
@@ -729,6 +731,8 @@ export interface Database {
           clarification_message?: string | null;
           customer_response?: string | null;
           customer_response_at?: string | null;
+          acceptance_claimed_at?: string | null;
+          acceptance_claim_expires_at?: string | null;
           responded_at?: string | null;
           expires_at?: string | null;
           created_at?: string;
@@ -1282,6 +1286,21 @@ export interface Database {
       };
     };
     Functions: {
+      claim_booking_request_acceptance_atomic: {
+        Args: {
+          p_booking_request_id: string;
+          p_carrier_id: string;
+        };
+        Returns: string;
+      };
+      release_booking_request_acceptance_claim_atomic: {
+        Args: {
+          p_booking_request_id: string;
+          p_failure_code?: string | null;
+          p_failure_reason?: string | null;
+        };
+        Returns: void;
+      };
       accept_booking_request_atomic: {
         Args: {
           p_booking_request_id: string;

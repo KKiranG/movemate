@@ -105,6 +105,25 @@ async function getPaymentAuthorizationById(authorizationId: string) {
   return toPaymentAuthorization(data as PaymentAuthorizationRow);
 }
 
+async function getPaymentAuthorizationByStripeIntentId(paymentIntentId: string) {
+  if (!hasSupabaseAdminEnv()) {
+    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("booking_request_payment_authorizations")
+    .select("*")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "payment_authorization_lookup_failed");
+  }
+
+  return data ? toPaymentAuthorization(data as PaymentAuthorizationRow) : null;
+}
+
 async function getCustomerPaymentInstrument(params: {
   userId: string;
   customerId: string;
@@ -400,6 +419,96 @@ export async function captureBookingRequestPaymentAuthorization(params: {
   }
 }
 
+export async function cancelBookingRequestPaymentAuthorizationIfUnused(params: {
+  paymentAuthorizationId: string;
+  failureCode: string;
+  failureReason: string;
+}) {
+  const authorization = await getPaymentAuthorizationById(params.paymentAuthorizationId);
+
+  if (["captured", "manual_review", "refund_pending", "refunded"].includes(authorization.status)) {
+    return authorization;
+  }
+
+  const supabase = createAdminClient();
+  const { data: requests, error } = await supabase
+    .from("booking_requests")
+    .select("id, status, booking_id")
+    .eq("payment_authorization_id", authorization.id);
+
+  if (error) {
+    throw new AppError(error.message, 500, "payment_authorization_request_lookup_failed");
+  }
+
+  const stillNeedsAuthorization = (requests ?? []).some((request) =>
+    ["pending", "clarification_requested", "accepting", "accepted"].includes(request.status) ||
+    Boolean(request.booking_id),
+  );
+
+  if (stillNeedsAuthorization) {
+    return authorization;
+  }
+
+  if (!hasStripeEnv() || !authorization.stripePaymentIntentId) {
+    return updateAuthorization({
+      authorizationId: authorization.id,
+      patch: {
+        status: "authorization_cancelled",
+        cancelled_at: new Date().toISOString(),
+        failure_code: params.failureCode,
+        failure_reason: params.failureReason,
+      },
+    });
+  }
+
+  const stripe = getStripeServerClient();
+
+  try {
+    const intent = await stripe.paymentIntents.retrieve(authorization.stripePaymentIntentId);
+
+    if (intent.status === "succeeded") {
+      return updateAuthorization({
+        authorizationId: authorization.id,
+        patch: {
+          status: "manual_review",
+          failure_code: "cancel_after_capture",
+          failure_reason:
+            "A request group became terminal after Stripe reported capture. Manual review is required.",
+        },
+      });
+    }
+
+    if (!["canceled", "requires_capture", "requires_payment_method", "requires_confirmation"].includes(intent.status)) {
+      return authorization;
+    }
+
+    if (intent.status !== "canceled") {
+      await stripe.paymentIntents.cancel(intent.id, undefined, {
+        idempotencyKey: `booking-request-auth-cancel:${authorization.id}`,
+      });
+    }
+
+    return updateAuthorization({
+      authorizationId: authorization.id,
+      patch: {
+        status: "authorization_cancelled",
+        cancelled_at: new Date().toISOString(),
+        failure_code: params.failureCode,
+        failure_reason: params.failureReason,
+      },
+    });
+  } catch (error) {
+    const failure = normaliseStripeFailure(error);
+    return updateAuthorization({
+      authorizationId: authorization.id,
+      patch: {
+        failure_code: failure.code,
+        failure_reason: failure.reason,
+      },
+    });
+  }
+}
+
 export async function attachCapturedAuthorizationToBooking(params: {
   paymentAuthorizationId: string;
   bookingId: string;
@@ -449,5 +558,58 @@ export async function markCapturedAuthorizationNeedsManualReview(params: {
       failure_code: "captured_without_booking",
       failure_reason: params.reason,
     },
+  });
+}
+
+export async function markBookingRequestPaymentAuthorizationFromWebhook(params: {
+  paymentAuthorizationId?: string | null;
+  stripePaymentIntentId: string;
+  status: BookingRequestPaymentAuthorizationStatus;
+  capturedAmountCents?: number | null;
+  failureCode?: string | null;
+  failureReason?: string | null;
+}) {
+  let authorization: BookingRequestPaymentAuthorization | null = null;
+
+  try {
+    authorization = params.paymentAuthorizationId
+      ? await getPaymentAuthorizationById(params.paymentAuthorizationId)
+      : await getPaymentAuthorizationByStripeIntentId(params.stripePaymentIntentId);
+  } catch (error) {
+    if (error instanceof AppError && error.code === "payment_authorization_not_found") {
+      return null;
+    }
+
+    throw error;
+  }
+
+  if (!authorization) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  const patch: Database["public"]["Tables"]["booking_request_payment_authorizations"]["Update"] = {
+    stripe_payment_intent_id: authorization.stripePaymentIntentId ?? params.stripePaymentIntentId,
+    status: params.status,
+    failure_code: params.failureCode ?? null,
+    failure_reason: params.failureReason ?? null,
+  };
+
+  if (params.status === "authorized") {
+    patch.authorized_at = authorization.authorizedAt ?? now;
+  }
+
+  if (params.status === "captured") {
+    patch.captured_at = authorization.capturedAt ?? now;
+    patch.captured_amount_cents = params.capturedAmountCents ?? authorization.capturedAmountCents ?? authorization.amountCents;
+  }
+
+  if (params.status === "authorization_cancelled") {
+    patch.cancelled_at = authorization.cancelledAt ?? now;
+  }
+
+  return updateAuthorization({
+    authorizationId: authorization.id,
+    patch,
   });
 }

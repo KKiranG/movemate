@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 
+import { markBookingRequestPaymentAuthorizationFromWebhook } from "@/lib/data/booking-request-payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type PaymentStatusRecord = {
@@ -10,6 +11,11 @@ type PaymentStatusRecord = {
 export type PaymentIntentEventOutcome =
   | "ignored_event_type"
   | "missing_booking_metadata"
+  | "request_authorization_not_found"
+  | "marked_request_authorization_failed"
+  | "marked_request_authorization_cancelled"
+  | "marked_request_authorization_authorized"
+  | "marked_request_authorization_captured"
   | "booking_not_found"
   | "marked_failed"
   | "marked_authorization_cancelled"
@@ -19,6 +25,7 @@ export type PaymentIntentEventOutcome =
 
 export type PaymentIntentEventResult = {
   bookingId: string | null;
+  paymentAuthorizationId?: string | null;
   eventId: string;
   eventType: string;
   outcome: PaymentIntentEventOutcome;
@@ -127,10 +134,125 @@ export function createSupabaseBookingPaymentRepository(
 function createBaseContext(event: Stripe.Event, paymentIntent: Stripe.PaymentIntent, bookingId: string | null) {
   return {
     bookingId,
+    paymentAuthorizationId: paymentIntent.metadata?.paymentAuthorizationId ?? null,
     eventId: event.id,
     eventType: event.type,
     paymentIntentId: paymentIntent.id,
     paymentIntentStatus: paymentIntent.status,
+  };
+}
+
+async function applyRequestAuthorizationPaymentIntentEvent(params: {
+  event: Stripe.Event;
+  paymentIntent: Stripe.PaymentIntent;
+  paymentAuthorizationId: string;
+  log?: PaymentEventLogger;
+}): Promise<PaymentIntentEventResult> {
+  const { event, paymentIntent, paymentAuthorizationId } = params;
+
+  if (event.type === "payment_intent.payment_failed") {
+    const failureReason =
+      paymentIntent.last_payment_error?.message ??
+      paymentIntent.last_payment_error?.decline_code ??
+      "Card authorization failed.";
+    const authorization = await markBookingRequestPaymentAuthorizationFromWebhook({
+      paymentAuthorizationId,
+      stripePaymentIntentId: paymentIntent.id,
+      status: "failed",
+      failureCode: paymentIntent.last_payment_error?.decline_code ?? null,
+      failureReason,
+    });
+
+    return {
+      bookingId: null,
+      paymentAuthorizationId,
+      eventId: event.id,
+      eventType: event.type,
+      outcome: authorization ? "marked_request_authorization_failed" : "request_authorization_not_found",
+    };
+  }
+
+  if (event.type === "payment_intent.canceled") {
+    const authorization = await markBookingRequestPaymentAuthorizationFromWebhook({
+      paymentAuthorizationId,
+      stripePaymentIntentId: paymentIntent.id,
+      status: "authorization_cancelled",
+      failureCode: paymentIntent.cancellation_reason ?? null,
+      failureReason:
+        paymentIntent.cancellation_reason?.replace(/_/g, " ") ??
+        "The request authorization was cancelled before carrier acceptance.",
+    });
+
+    return {
+      bookingId: null,
+      paymentAuthorizationId,
+      eventId: event.id,
+      eventType: event.type,
+      outcome: authorization
+        ? "marked_request_authorization_cancelled"
+        : "request_authorization_not_found",
+    };
+  }
+
+  if (event.type === "payment_intent.amount_capturable_updated") {
+    const authorization = await markBookingRequestPaymentAuthorizationFromWebhook({
+      paymentAuthorizationId,
+      stripePaymentIntentId: paymentIntent.id,
+      status: "authorized",
+    });
+
+    params.log?.("info", "Request payment authorization marked authorized.", {
+      paymentAuthorizationId,
+      eventId: event.id,
+      eventType: event.type,
+      paymentIntentId: paymentIntent.id,
+      paymentIntentStatus: paymentIntent.status,
+    });
+
+    return {
+      bookingId: null,
+      paymentAuthorizationId,
+      eventId: event.id,
+      eventType: event.type,
+      outcome: authorization
+        ? "marked_request_authorization_authorized"
+        : "request_authorization_not_found",
+    };
+  }
+
+  if (event.type === "payment_intent.succeeded") {
+    const authorization = await markBookingRequestPaymentAuthorizationFromWebhook({
+      paymentAuthorizationId,
+      stripePaymentIntentId: paymentIntent.id,
+      status: "captured",
+      capturedAmountCents: paymentIntent.amount_received || paymentIntent.amount,
+    });
+
+    params.log?.("info", "Request payment authorization marked captured.", {
+      paymentAuthorizationId,
+      eventId: event.id,
+      eventType: event.type,
+      paymentIntentId: paymentIntent.id,
+      paymentIntentStatus: paymentIntent.status,
+    });
+
+    return {
+      bookingId: null,
+      paymentAuthorizationId,
+      eventId: event.id,
+      eventType: event.type,
+      outcome: authorization
+        ? "marked_request_authorization_captured"
+        : "request_authorization_not_found",
+    };
+  }
+
+  return {
+    bookingId: null,
+    paymentAuthorizationId,
+    eventId: event.id,
+    eventType: event.type,
+    outcome: "ignored_event_type",
   };
 }
 
@@ -172,12 +294,23 @@ export async function applyPaymentIntentEvent(
 
   const paymentIntent = event.data.object as Stripe.PaymentIntent;
   const bookingId = paymentIntent.metadata?.bookingId ?? null;
+  const paymentAuthorizationId = paymentIntent.metadata?.paymentAuthorizationId ?? null;
   const context = createBaseContext(event, paymentIntent, bookingId);
 
   if (!bookingId) {
+    if (paymentAuthorizationId) {
+      return applyRequestAuthorizationPaymentIntentEvent({
+        event,
+        paymentIntent,
+        paymentAuthorizationId,
+        log: params.log,
+      });
+    }
+
     params.log?.("warn", "Missing booking metadata on payment intent event.", context);
     return {
       bookingId,
+      paymentAuthorizationId,
       eventId: event.id,
       eventType: event.type,
       outcome: "missing_booking_metadata",

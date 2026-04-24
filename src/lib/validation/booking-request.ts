@@ -28,6 +28,7 @@ export const bookingRequestSchema = z.object({
     .enum([
       "pending",
       "clarification_requested",
+      "accepting",
       "accepted",
       "declined",
       "expired",

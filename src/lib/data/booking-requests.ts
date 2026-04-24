@@ -10,6 +10,7 @@ import { createClient as createServerSupabaseClient } from "@/lib/supabase/serve
 import { getBookingByIdForUser } from "@/lib/data/bookings";
 import {
   attachCapturedAuthorizationToBooking,
+  cancelBookingRequestPaymentAuthorizationIfUnused,
   captureBookingRequestPaymentAuthorization,
   createBookingRequestPaymentAuthorization,
   markCapturedAuthorizationNeedsManualReview,
@@ -318,6 +319,22 @@ async function ensureRecoveryAfterRequestFailure(bookingRequest: BookingRequest)
   });
 }
 
+async function cancelUnusedRequestAuthorizationAfterTerminalRequest(params: {
+  bookingRequest: BookingRequest;
+  failureCode: string;
+  failureReason: string;
+}) {
+  if (!params.bookingRequest.paymentAuthorizationId) {
+    return null;
+  }
+
+  return cancelBookingRequestPaymentAuthorizationIfUnused({
+    paymentAuthorizationId: params.bookingRequest.paymentAuthorizationId,
+    failureCode: params.failureCode,
+    failureReason: params.failureReason,
+  });
+}
+
 async function expireStaleBookingRequests() {
   if (!hasSupabaseAdminEnv()) {
     return;
@@ -409,6 +426,11 @@ async function expireStaleBookingRequests() {
       });
 
       await ensureRecoveryAfterRequestFailure(bookingRequest);
+      await cancelUnusedRequestAuthorizationAfterTerminalRequest({
+        bookingRequest,
+        failureCode: "booking_request_expired",
+        failureReason: "All requests attached to this authorization expired before carrier acceptance.",
+      });
     }),
   );
 }
@@ -562,6 +584,46 @@ async function ensureFastMatchGroupHasNoAcceptedSibling(bookingRequest: BookingR
     409,
     "fast_match_already_accepted",
   );
+}
+
+async function claimBookingRequestAcceptance(params: {
+  bookingRequestId: string;
+  carrierId: string;
+}) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc("claim_booking_request_acceptance_atomic", {
+    p_booking_request_id: params.bookingRequestId,
+    p_carrier_id: params.carrierId,
+  });
+
+  if (error || !data) {
+    throw new AppError(
+      error?.message ?? "Could not claim this booking request for acceptance.",
+      409,
+      error?.message === "fast_match_already_claimed"
+        ? "fast_match_already_claimed"
+        : "booking_request_acceptance_claim_failed",
+    );
+  }
+
+  return data;
+}
+
+async function releaseBookingRequestAcceptanceClaim(params: {
+  bookingRequestId: string;
+  failureCode: string;
+  failureReason: string;
+}) {
+  const supabase = createAdminClient();
+  const { error } = await supabase.rpc("release_booking_request_acceptance_claim_atomic", {
+    p_booking_request_id: params.bookingRequestId,
+    p_failure_code: params.failureCode,
+    p_failure_reason: params.failureReason,
+  });
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_request_acceptance_claim_release_failed");
+  }
 }
 
 export async function createBookingRequest(params: BookingRequestInput) {
@@ -1110,6 +1172,16 @@ export async function cancelBookingRequestByCustomer(
     }),
   );
 
+  await Promise.all(
+    cancelledRequests.map((request) =>
+      cancelUnusedRequestAuthorizationAfterTerminalRequest({
+        bookingRequest: request,
+        failureCode: "booking_request_cancelled",
+        failureReason: "The customer cancelled every open request attached to this authorization.",
+      }),
+    ),
+  );
+
   return cancelledRequests.find((request) => request.id === bookingRequestId) ?? bookingRequest;
 }
 
@@ -1411,7 +1483,7 @@ export async function applyCarrierBookingRequestAction(
 
   const nextStatus =
     input.action === "accept"
-      ? "accepted"
+      ? "accepting"
       : input.action === "decline"
         ? "declined"
         : "clarification_requested";
@@ -1521,6 +1593,11 @@ export async function applyCarrierBookingRequestAction(
     });
 
     await ensureRecoveryAfterRequestFailure(declinedRequest);
+    await cancelUnusedRequestAuthorizationAfterTerminalRequest({
+      bookingRequest: declinedRequest,
+      failureCode: "booking_request_declined",
+      failureReason: "All requests attached to this authorization were declined or closed before acceptance.",
+    });
 
     return {
       bookingRequest: declinedRequest,
@@ -1541,21 +1618,46 @@ export async function applyCarrierBookingRequestAction(
     );
   }
 
-  await captureBookingRequestPaymentAuthorization({
-    paymentAuthorizationId: bookingRequest.paymentAuthorizationId,
-    amountToCaptureCents: bookingRequest.requestedTotalPriceCents,
+  const claimedPaymentAuthorizationId = await claimBookingRequestAcceptance({
+    bookingRequestId: bookingRequest.id,
+    carrierId: carrier.id,
   });
 
   const moveRequest = await getMoveRequestByIdForAdmin(bookingRequest.moveRequestId);
   const offer = await getOfferByIdForAdmin(bookingRequest.offerId);
 
   if (!moveRequest || !offer) {
+    await releaseBookingRequestAcceptanceClaim({
+      bookingRequestId: bookingRequest.id,
+      failureCode: "booking_request_dependency_missing",
+      failureReason: "Booking request dependencies are missing.",
+    });
+
     throw new AppError("Booking request dependencies are missing.", 500, "booking_request_dependency_missing");
   }
 
   const bookingInput = createBookingPayloadFromMoveRequest(moveRequest, offer);
   const supabase = createAdminClient();
   const idempotencyKey = `booking-request-accept:${bookingRequest.id}`;
+
+  try {
+    await captureBookingRequestPaymentAuthorization({
+      paymentAuthorizationId: claimedPaymentAuthorizationId,
+      amountToCaptureCents: bookingRequest.requestedTotalPriceCents,
+    });
+  } catch (error) {
+    await releaseBookingRequestAcceptanceClaim({
+      bookingRequestId: bookingRequest.id,
+      failureCode: error instanceof AppError ? error.code : "payment_capture_failed",
+      failureReason:
+        error instanceof Error
+          ? error.message
+          : "Payment capture failed before the request could be accepted.",
+    });
+
+    throw error;
+  }
+
   const { data: bookingId, error } = await supabase.rpc("accept_booking_request_atomic", {
     p_booking_request_id: bookingRequest.id,
     p_actor_user_id: userId,
@@ -1594,7 +1696,7 @@ export async function applyCarrierBookingRequestAction(
 
   if (error || !bookingId) {
     await markCapturedAuthorizationNeedsManualReview({
-      paymentAuthorizationId: bookingRequest.paymentAuthorizationId,
+      paymentAuthorizationId: claimedPaymentAuthorizationId,
       reason: error?.message ?? "Booking creation failed after payment capture.",
     });
 
@@ -1602,7 +1704,7 @@ export async function applyCarrierBookingRequestAction(
   }
 
   await attachCapturedAuthorizationToBooking({
-    paymentAuthorizationId: bookingRequest.paymentAuthorizationId,
+    paymentAuthorizationId: claimedPaymentAuthorizationId,
     bookingId,
   });
 

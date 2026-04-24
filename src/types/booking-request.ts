@@ -1,6 +1,7 @@
 export type BookingRequestStatus =
   | "pending"
   | "clarification_requested"
+  | "accepting"
   | "accepted"
   | "declined"
   | "expired"
@@ -63,6 +64,8 @@ export interface BookingRequest {
   clarificationMessage?: string | null;
   customerResponse?: string | null;
   customerResponseAt?: string | null;
+  acceptanceClaimedAt?: string | null;
+  acceptanceClaimExpiresAt?: string | null;
   respondedAt?: string | null;
   expiresAt?: string | null;
   createdAt: string;
@@ -116,6 +119,8 @@ export interface CustomerBookingRequestCard {
   clarificationExpiresAt?: string | null;
   customerResponse?: string | null;
   customerResponseAt?: string | null;
+  acceptanceClaimedAt?: string | null;
+  acceptanceClaimExpiresAt?: string | null;
   respondedAt?: string | null;
   expiresAt?: string | null;
   recoveryAlertId?: string | null;
