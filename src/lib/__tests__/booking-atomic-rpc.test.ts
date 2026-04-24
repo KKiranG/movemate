@@ -12,7 +12,7 @@ const bookingSafetySql = fs.readFileSync(
   "utf8",
 );
 const minimumFloorSql = fs.readFileSync(
-  path.join(process.cwd(), "supabase/migrations/033_minimum_base_price_floor.sql"),
+  path.join(process.cwd(), "supabase/migrations/034_minimum_base_price_floor.sql"),
   "utf8",
 );
 
