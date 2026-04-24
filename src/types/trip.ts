@@ -80,6 +80,7 @@ export interface Trip {
   detourRadiusKm: number;
   detourTolerance: TripDetourTolerance;
   priceCents: number;
+  minimumBasePriceCents: number;
   suggestedPriceCents?: number | null;
   dedicatedEstimateCents: number;
   savingsPct: number;

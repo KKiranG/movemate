@@ -44,6 +44,23 @@ test("booking breakdown only commissions the base price", () => {
   assert.equal(breakdown.totalPriceCents, 10_753);
 });
 
+test("booking breakdown enforces the minimum base price floor before fees", () => {
+  const breakdown = calculateBookingBreakdown({
+    basePriceCents: 3_000,
+    minimumBasePriceCents: 5_000,
+    needsStairs: true,
+    stairsExtraCents: 1_200,
+    needsHelper: true,
+    helperExtraCents: 2_000,
+  });
+
+  assert.equal(breakdown.basePriceCents, 5_000);
+  assert.equal(breakdown.platformFeeCents, 750);
+  assert.equal(breakdown.carrierPayoutCents, 8_200);
+  assert.equal(breakdown.gstCents, 895);
+  assert.equal(breakdown.totalPriceCents, 9_845);
+});
+
 test("booking breakdown carries a structured adjustment without changing base commission", () => {
   const breakdown = calculateBookingBreakdown({
     basePriceCents: 10_000,

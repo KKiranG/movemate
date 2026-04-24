@@ -38,7 +38,7 @@ export function TripCard({ trip, href, selected, onSelect }: TripCardProps) {
   // One-line match rationale (e.g. "Already travelling Inner West → Bondi with spare room").
   const matchRationale = getTripFitSummary(trip);
 
-  const allIn = getTripAllInPriceSummary(trip.priceCents);
+  const allIn = getTripAllInPriceSummary(trip.priceCents, trip.minimumBasePriceCents);
 
   const content = (
     <Card

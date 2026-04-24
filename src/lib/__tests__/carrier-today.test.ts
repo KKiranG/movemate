@@ -37,6 +37,7 @@ function createTrip(overrides: Partial<Trip> = {}): Trip {
     detourRadiusKm: overrides.detourRadiusKm ?? 10,
     detourTolerance: overrides.detourTolerance ?? "standard",
     priceCents: overrides.priceCents ?? 10000,
+    minimumBasePriceCents: overrides.minimumBasePriceCents ?? 1000,
     suggestedPriceCents: overrides.suggestedPriceCents ?? 10000,
     dedicatedEstimateCents: overrides.dedicatedEstimateCents ?? 16000,
     savingsPct: overrides.savingsPct ?? 35,

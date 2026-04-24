@@ -31,6 +31,7 @@ const createTemplateSchema = z.object({
   maxWeightKg: z.number().nullable().optional(),
   detourRadiusKm: z.number().optional(),
   suggestedPriceCents: z.number().int().min(0),
+  minimumBasePriceCents: z.number().int().min(0).optional(),
   stairsOk: z.boolean().optional(),
   stairsExtraCents: z.number().int().min(0).optional(),
   helperExtraCents: z.number().int().min(0).optional(),

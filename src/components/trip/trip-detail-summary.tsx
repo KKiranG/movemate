@@ -31,7 +31,10 @@ export function TripDetailSummary({
   matchExplanation,
   ctaHref = "#booking-form",
 }: TripDetailSummaryProps) {
-  const pricingPreview = getTripCustomerPricePreview(trip.priceCents);
+  const pricingPreview = getTripCustomerPricePreview(
+    trip.priceCents,
+    trip.minimumBasePriceCents,
+  );
   const routeFitLabel = getTripRouteFitLabel(trip);
   const nearbyDateExplanation = getTripNearbyDateExplanation({
     preferredDate,

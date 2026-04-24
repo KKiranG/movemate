@@ -56,3 +56,34 @@ test("trip schema blocks prices below the intercity floor", () => {
   assert.equal(result.success, false);
   assert.match(result.error.issues[0]?.message ?? "", /at least \$50/i);
 });
+
+test("trip schema blocks prices below a declared minimum base floor", () => {
+  const result = tripSchema.safeParse({
+    originSuburb: "Newtown",
+    originPostcode: "2042",
+    originLatitude: -33.8981,
+    originLongitude: 151.1745,
+    destinationSuburb: "Marrickville",
+    destinationPostcode: "2204",
+    destinationLatitude: -33.9113,
+    destinationLongitude: 151.1557,
+    detourRadiusKm: 5,
+    tripDate: "2030-05-10",
+    timeWindow: "morning",
+    spaceSize: "S",
+    availableVolumeM3: 0.5,
+    availableWeightKg: 40,
+    priceCents: 3000,
+    minimumBasePriceCents: 5000,
+    accepts: ["furniture"],
+    stairsOk: false,
+    stairsExtraCents: 0,
+    helperAvailable: false,
+    helperExtraCents: 0,
+    isReturnTrip: false,
+    status: "active",
+  });
+
+  assert.equal(result.success, false);
+  assert.match(result.error.issues[0]?.message ?? "", /at least \$50/i);
+});

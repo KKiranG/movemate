@@ -10,6 +10,7 @@ const createTripFromTemplateSchema = z.object({
   tripDate: z.string().trim().min(1),
   timeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]).optional(),
   priceCents: z.number().int().min(0).optional(),
+  minimumBasePriceCents: z.number().int().min(0).optional(),
 });
 
 export async function POST(

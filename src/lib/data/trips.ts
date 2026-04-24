@@ -32,6 +32,26 @@ type SearchRpcRow = {
   total_count?: number;
 };
 
+function getEffectiveMinimumBasePriceCents(params: {
+  originLatitude: number;
+  originLongitude: number;
+  destinationLatitude: number;
+  destinationLongitude: number;
+  minimumBasePriceCents?: number | null;
+}) {
+  const distanceKm = getRouteDistanceKm({
+    originLatitude: params.originLatitude,
+    originLongitude: params.originLongitude,
+    destinationLatitude: params.destinationLatitude,
+    destinationLongitude: params.destinationLongitude,
+  });
+
+  return Math.max(
+    params.minimumBasePriceCents ?? 0,
+    getMinimumTripBasePriceCents(distanceKm),
+  );
+}
+
 function getTripStartDateTimeIso(trip: Pick<Trip, "tripDate" | "timeWindow">) {
   const timeByWindow: Record<Trip["timeWindow"], string> = {
     morning: "09:00:00",
@@ -754,6 +774,14 @@ export async function createTripForCarrier(userId: string, input: TripInput) {
     );
   }
 
+  const minimumBasePriceCents = getEffectiveMinimumBasePriceCents({
+    originLatitude: parsed.data.originLatitude,
+    originLongitude: parsed.data.originLongitude,
+    destinationLatitude: parsed.data.destinationLatitude,
+    destinationLongitude: parsed.data.destinationLongitude,
+    minimumBasePriceCents: parsed.data.minimumBasePriceCents,
+  });
+
   const insertPayload = {
     carrier_id: carrier.id,
     vehicle_id: vehicle.id,
@@ -781,6 +809,7 @@ export async function createTripForCarrier(userId: string, input: TripInput) {
     available_weight_kg: parsed.data.availableWeightKg,
     available_volume_m3: parsed.data.availableVolumeM3,
     price_cents: parsed.data.priceCents,
+    minimum_base_price_cents: minimumBasePriceCents,
     suggested_price_cents: parsed.data.suggestedPriceCents ?? null,
     accepts_furniture: parsed.data.accepts.includes("furniture"),
     accepts_boxes: parsed.data.accepts.includes("boxes"),
@@ -900,23 +929,26 @@ export async function updateTripForCarrier(
 
   const currentTrip = await getTripById(tripId);
 
+  let minimumBasePriceCents =
+    parsed.data.minimumBasePriceCents ?? currentTrip?.minimumBasePriceCents ?? 0;
+
   if (
     currentTrip?.route.originLatitude !== undefined &&
     currentTrip.route.originLongitude !== undefined &&
     currentTrip.route.destinationLatitude !== undefined &&
     currentTrip.route.destinationLongitude !== undefined
   ) {
-    const distanceKm = getRouteDistanceKm({
+    minimumBasePriceCents = getEffectiveMinimumBasePriceCents({
       originLatitude: currentTrip.route.originLatitude,
       originLongitude: currentTrip.route.originLongitude,
       destinationLatitude: currentTrip.route.destinationLatitude,
       destinationLongitude: currentTrip.route.destinationLongitude,
+      minimumBasePriceCents,
     });
-    const minimumPriceCents = getMinimumTripBasePriceCents(distanceKm);
 
-    if (parsed.data.priceCents < minimumPriceCents) {
+    if (parsed.data.priceCents < minimumBasePriceCents) {
       throw new AppError(
-        `Trips on this corridor need to be at least $${(minimumPriceCents / 100).toFixed(0)}.`,
+        `Trips on this corridor need to be at least $${(minimumBasePriceCents / 100).toFixed(0)}.`,
         400,
         "trip_price_below_floor",
       );
@@ -948,6 +980,7 @@ export async function updateTripForCarrier(
       detour_tolerance_label: parsed.data.detourToleranceLabel,
       detour_radius_km: parsed.data.detourRadiusKm,
       price_cents: parsed.data.priceCents,
+      minimum_base_price_cents: minimumBasePriceCents,
       accepts_furniture: parsed.data.accepts.includes("furniture"),
       accepts_boxes: parsed.data.accepts.includes("boxes"),
       accepts_appliances: parsed.data.accepts.includes("appliance"),

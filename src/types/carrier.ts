@@ -68,6 +68,7 @@ export interface TripTemplate {
   maxWeightKg?: number | null;
   detourRadiusKm: number;
   suggestedPriceCents: number;
+  minimumBasePriceCents: number;
   stairsOk: boolean;
   stairsExtraCents: number;
   helperExtraCents: number;
@@ -98,6 +99,7 @@ export interface CreateTripTemplateInput {
   maxWeightKg?: number | null;
   detourRadiusKm?: number;
   suggestedPriceCents: number;
+  minimumBasePriceCents?: number;
   stairsOk?: boolean;
   stairsExtraCents?: number;
   helperExtraCents?: number;

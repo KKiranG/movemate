@@ -115,6 +115,7 @@ function getDerivedOfferPricing(moveRequest: MoveRequest, trip: TripSearchResult
   const basePriceCents = trip.priceCents;
   return calculateBookingBreakdown({
     basePriceCents,
+    minimumBasePriceCents: trip.minimumBasePriceCents,
     needsStairs: moveRequest.needsStairs && trip.rules.stairsOk,
     stairsExtraCents: trip.rules.stairsExtraCents,
     needsHelper: moveRequest.needsHelper && trip.rules.helperAvailable,
