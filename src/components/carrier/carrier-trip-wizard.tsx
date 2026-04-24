@@ -146,6 +146,7 @@ export function CarrierTripWizard({
   );
   const [priceGuidance, setPriceGuidance] = useState<RoutePriceGuidance | null>(null);
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
+  const [guidanceError, setGuidanceError] = useState(false);
   const [hasEditedPrice, setHasEditedPrice] = useState(Boolean(initialPriceDollars));
   const guidanceAbortRef = useRef<AbortController | null>(null);
   const guidanceTimerRef = useRef<number | null>(null);
@@ -314,12 +315,14 @@ export function CarrierTripWizard({
     if (!origin?.suburb || !destination?.suburb) {
       setPriceGuidance(null);
       setIsGuidanceLoading(false);
+      setGuidanceError(false);
       return;
     }
 
     const controller = new AbortController();
     guidanceAbortRef.current = controller;
     setIsGuidanceLoading(true);
+    setGuidanceError(false);
 
     guidanceTimerRef.current = window.setTimeout(() => {
       void fetch(
@@ -345,6 +348,7 @@ export function CarrierTripWizard({
         .catch(() => {
           if (!controller.signal.aborted) {
             setPriceGuidance(null);
+            setGuidanceError(true);
           }
         })
         .finally(() => {
@@ -433,7 +437,7 @@ export function CarrierTripWizard({
         throw new Error(payload.error ?? "Unable to create trip.");
       }
 
-      router.push(`/carrier/post?successTripId=${payload.trip.id}`);
+      router.push(`/carrier/trips/${payload.trip.id}?published=1`);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to create trip.");
@@ -768,28 +772,69 @@ export function CarrierTripWizard({
             <p className="section-label">Price rationale</p>
             {/* Future post-MVP extension: return/backload listings may allow one customer counter up to 20% below ask,
                 followed by one final carrier response, with no contact detail exposure and no open-ended bidding. */}
-            <h3 className="mt-1 text-lg text-text">
-              {isGuidanceLoading
-                ? "Checking corridor pricing..."
-                : `Similar Sydney jobs: ${formatCurrency(
+            {isGuidanceLoading ? (
+              <div className="mt-2 animate-pulse space-y-2">
+                <div className="h-6 w-3/5 rounded bg-black/[0.08] dark:bg-white/[0.12]" />
+                <div className="h-4 w-4/5 rounded bg-black/[0.08] dark:bg-white/[0.12]" />
+                <div className="h-4 w-2/3 rounded bg-black/[0.08] dark:bg-white/[0.12]" />
+              </div>
+            ) : guidanceError ? (
+              <div className="mt-2">
+                <p className="text-sm text-text-secondary">
+                  Could not load corridor pricing. Using local estimate instead.
+                </p>
+                <button
+                  type="button"
+                  className="mt-2 text-xs text-accent underline-offset-2 hover:underline active:opacity-70"
+                  onClick={() => {
+                    setGuidanceError(false);
+                    setIsGuidanceLoading(true);
+                    void fetch(
+                      `/api/trips/price-guidance?${new URLSearchParams({
+                        from: origin?.suburb ?? "",
+                        to: destination?.suburb ?? "",
+                        spaceSize,
+                        originLat: String(origin?.latitude ?? 0),
+                        originLng: String(origin?.longitude ?? 0),
+                        destinationLat: String(destination?.latitude ?? 0),
+                        destinationLng: String(destination?.longitude ?? 0),
+                      }).toString()}`,
+                    )
+                      .then((r) => r.json())
+                      .then((payload) => {
+                        setPriceGuidance(payload.guidance ?? null);
+                      })
+                      .catch(() => setGuidanceError(true))
+                      .finally(() => setIsGuidanceLoading(false));
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <>
+                <h3 className="mt-1 text-lg text-text">
+                  {`Similar Sydney jobs: ${formatCurrency(
                     priceGuidance?.lowCents ?? pricingSuggestion.lowCents,
                   )} to ${formatCurrency(priceGuidance?.highCents ?? pricingSuggestion.highCents)}`}
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              {priceGuidance?.explanation ??
-                "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
-            </p>
-            <p className="mt-2 text-xs text-text-secondary">
-              Built for founder-led price guidance, not a black-box market estimate. Start here, then adjust for access, handling, and route certainty.
-            </p>
-            <p className="mt-2 text-xs text-text-secondary">
-              Based on an estimated {routeDistanceKm}km between your resolved origin and destination.
-            </p>
-            <p className="mt-2 text-xs text-text-secondary">
-              {priceGuidance?.usedFallback
-                ? "Using the Sydney fallback guide until we have at least 5 route examples."
-                : `Built from ${priceGuidance?.exampleCount ?? 0} MoveMate examples on a similar corridor.`}
-            </p>
+                </h3>
+                <p className="mt-2 text-sm text-text-secondary">
+                  {priceGuidance?.explanation ??
+                    "Spare-capacity pricing normally sits below dedicated-truck pricing because you are filling space on a route that is already happening."}
+                </p>
+                <p className="mt-2 text-xs text-text-secondary">
+                  Built for founder-led price guidance, not a black-box market estimate. Start here, then adjust for access, handling, and route certainty.
+                </p>
+                <p className="mt-2 text-xs text-text-secondary">
+                  Based on an estimated {routeDistanceKm}km between your resolved origin and destination.
+                </p>
+                <p className="mt-2 text-xs text-text-secondary">
+                  {priceGuidance?.usedFallback
+                    ? "Using the Sydney fallback guide until we have at least 5 route examples."
+                    : `Built from ${priceGuidance?.exampleCount ?? 0} MoveMate examples on a similar corridor.`}
+                </p>
+              </>
+            )}
           </div>
           <div
             className={`rounded-xl border p-4 ${

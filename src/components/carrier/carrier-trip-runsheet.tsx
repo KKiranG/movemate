@@ -91,6 +91,7 @@ export function CarrierTripRunsheet({
         carrierId={trip.carrier.id}
         initialBookings={bookings}
         variant="runsheet"
+        tripStatus={trip.status === "draft" ? "draft" : "active"}
       />
 
       <Card className="p-4">

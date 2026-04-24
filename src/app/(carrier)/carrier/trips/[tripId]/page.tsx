@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CarrierTripBookingsPanel } from "@/components/carrier/carrier-trip-bookings-panel";
+import { UndoPublishToast } from "@/components/carrier/undo-publish-toast";
 import { TripChecklist } from "@/components/carrier/trip-checklist";
 import { TripEditForm } from "@/components/carrier/trip-edit-form";
 import { PageIntro } from "@/components/layout/page-intro";
@@ -72,8 +73,11 @@ export default async function CarrierTripDetailShellPage({
     trip.route.destinationLongitude,
   );
 
+  const justPublished = searchParams?.published === "1" && trip.status !== "draft";
+
   return (
     <main id="main-content" className="screen">
+      {justPublished ? <UndoPublishToast tripId={trip.id} /> : null}
       <PageIntro
         eyebrow="Trip detail"
         title="Keep one trip operationally tidy"
@@ -166,6 +170,7 @@ export default async function CarrierTripDetailShellPage({
           carrierId={trip.carrier.id}
           initialBookings={bookings}
           focusBookingId={focusBookingId}
+          tripStatus={trip.status === "draft" ? "draft" : "active"}
         />
 
         <TripChecklist carrier={trip.carrier} />
