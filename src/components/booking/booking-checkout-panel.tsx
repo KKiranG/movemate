@@ -35,7 +35,8 @@ export function BookingCheckoutPanel({
           <p>Address, photo, price, payment method, then authorise.</p>
         </div>
         <p className="mt-3 text-sm text-text-secondary">
-          You&apos;re only charged once your move is done.
+          Payment stays inside MoveMate: the request is authorised before acceptance, captured only when a carrier accepts,
+          then held until proof and release checks pass.
         </p>
       </Card>
 

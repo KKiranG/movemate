@@ -209,13 +209,14 @@ base       = driver_pricing[category][variant]
 add_ons    = stairs_surcharge + helper_surcharge
              (stairs = stairs_rate × (pickup_flights + dropoff_flights))
              (helper = helper_rate if helper_required)
-detour_adj = max(0, detour_km - included_tolerance) × detour_rate
-subtotal   = (base × quantity) + add_ons + detour_adj
-platform   = subtotal × 0.15
+subtotal   = (base × quantity) + add_ons
+platform   = (base × quantity) × 0.15
 gst        = (subtotal + platform) × 0.10
 total      = subtotal + platform + gst
 payout     = subtotal
 ```
+
+Detour is not a pricing factor. Detour distance and tolerance explain fit and eligibility only; they never create a customer surcharge.
 
 **Display rules:**
 - Every surface visible to the customer shows **total all-in**. No "starting from". No hourly mixing.

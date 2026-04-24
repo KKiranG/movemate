@@ -107,3 +107,18 @@ test("carrier move-request reads are backed by an authenticated carrier RLS poli
   assert.match(carrierMoveRequestPolicySql, /booking_request\.move_request_id = move_requests\.id/i);
   assert.match(carrierMoveRequestPolicySql, /carrier_row\.user_id = auth\.uid\(\)/i);
 });
+
+test("Fast Match accept path refuses stale siblings before creating a booking", () => {
+  const acceptSource = bookingRequestsSource.match(
+    /export async function applyCarrierBookingRequestAction[\s\S]*?\n}\n$/,
+  );
+
+  assert.ok(acceptSource, "accept action source should be present.");
+  assert.match(bookingRequestsSource, /ensureFastMatchGroupHasNoAcceptedSibling/);
+  assert.match(bookingRequestsSource, /fast_match_already_accepted/);
+  assert.ok(
+    acceptSource[0].indexOf("ensureFastMatchGroupHasNoAcceptedSibling") <
+      acceptSource[0].indexOf('.rpc("create_booking_atomic"'),
+    "Fast Match stale-sibling guard should run before booking creation.",
+  );
+});

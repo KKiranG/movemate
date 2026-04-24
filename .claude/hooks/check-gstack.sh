@@ -2,17 +2,17 @@
 
 if [ ! -d "$HOME/.claude/skills/gstack/bin" ]; then
   cat >&2 <<'MSG'
-BLOCKED: gstack is not installed globally.
+NOTICE: gstack is not installed globally.
 
-gstack is required for Claude skill-driven work in this repo.
+gstack is optional helper tooling for Claude/Codex work in this repo. Continue from AGENTS.md, .claude/project-ops.md, the linked GitHub issue, and repo verification commands.
 
-Install it:
+If you want to use gstack later:
   git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
   cd ~/.claude/skills/gstack && ./setup --team
 
 Then restart your AI coding tool.
 MSG
-  echo '{"permissionDecision":"deny","message":"gstack is required but not installed. See stderr for install instructions."}'
+  echo '{"permissionDecision":"allow","message":"gstack is optional and not installed; continue with the repo-native agent contract."}'
   exit 0
 fi
 

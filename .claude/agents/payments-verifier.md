@@ -32,7 +32,7 @@ Start every session with these invariants:
 ## Focus Areas
 
 - payment intent creation and authorization
-- capture on booking completion
+- capture on carrier acceptance
 - void or refund on cancellation
 - webhook idempotency and replay safety
 - payout hold and release timing

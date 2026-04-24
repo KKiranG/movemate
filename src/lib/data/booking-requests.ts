@@ -528,6 +528,63 @@ async function revokeSiblingBookingRequests(params: {
   );
 }
 
+async function ensureFastMatchGroupHasNoAcceptedSibling(bookingRequest: BookingRequest) {
+  if (!bookingRequest.requestGroupId) {
+    return;
+  }
+
+  if (!hasSupabaseAdminEnv()) {
+    throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("booking_requests")
+    .select("id")
+    .eq("request_group_id", bookingRequest.requestGroupId)
+    .eq("status", "accepted")
+    .neq("id", bookingRequest.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "booking_request_group_query_failed");
+  }
+
+  if (!data) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const revokedRequest = await updateBookingRequestById({
+    bookingRequestId: bookingRequest.id,
+    patch: {
+      status: "revoked",
+      responded_at: now,
+      expires_at: now,
+    },
+  });
+
+  await updateOfferStatus(revokedRequest.offerId, "rejected");
+  await recordBookingRequestEvent({
+    bookingRequestId: revokedRequest.id,
+    moveRequestId: revokedRequest.moveRequestId,
+    requestGroupId: revokedRequest.requestGroupId ?? null,
+    actorRole: "system",
+    eventType: "revoked",
+    metadata: {
+      acceptedBookingRequestId: data.id,
+      reason: "fast_match_first_accept_won",
+    },
+  });
+
+  throw new AppError(
+    "Another carrier has already accepted this Fast Match request.",
+    409,
+    "fast_match_already_accepted",
+  );
+}
+
 export async function createBookingRequest(params: BookingRequestInput) {
   if (!hasSupabaseEnv()) {
     throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
@@ -1475,6 +1532,8 @@ export async function applyCarrierBookingRequestAction(
   if (!hasSupabaseAdminEnv()) {
     throw new AppError("Supabase admin is not configured.", 503, "supabase_admin_unavailable");
   }
+
+  await ensureFastMatchGroupHasNoAcceptedSibling(bookingRequest);
 
   const moveRequest = await getMoveRequestByIdForAdmin(bookingRequest.moveRequestId);
   const offer = await getOfferByIdForAdmin(bookingRequest.offerId);

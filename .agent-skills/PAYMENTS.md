@@ -21,7 +21,8 @@ Stripe Connect Express.
 
 ## Current money-flow rules
 
-- customer payment is authorized first and captured on trustworthy completion
+- customer payment is authorized before acceptance and captured when a carrier accepts
+- captured funds stay held until proof, customer confirmation, or the proof-backed auto-release window permits payout release
 - webhook replays must be idempotent before any booking mutation runs
 - cancelled uncaptured bookings should void the authorization
 - cancelled captured bookings should refund through Stripe
