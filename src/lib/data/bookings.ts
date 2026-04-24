@@ -933,43 +933,6 @@ export async function updateBookingStatusForActor(params: {
       ? createAdminClient()
       : createServerSupabaseClient();
 
-  if (
-    params.nextStatus === "completed" &&
-    row.stripe_payment_intent_id &&
-    process.env.STRIPE_SECRET_KEY
-  ) {
-    if (row.payment_status !== "captured") {
-      try {
-        await captureBookingPayment({
-          supabase,
-          bookingId: row.id,
-          paymentIntentId: row.stripe_payment_intent_id,
-        });
-      } catch (error) {
-        if (error instanceof AppError && error.code === "payment_not_capturable") {
-          throw error;
-        }
-
-        await markBookingCaptureFailed({
-          supabase,
-          bookingId: row.id,
-          paymentIntentId: row.stripe_payment_intent_id,
-          error,
-        });
-
-        throw new AppError(
-          "Stripe capture failed. Booking completion has been held for manual review.",
-          409,
-          "payment_capture_failed",
-        );
-      }
-
-      patch.payment_status = "captured";
-      patch.payment_failure_code = null;
-      patch.payment_failure_reason = null;
-    }
-  }
-
   const { data, error } = await supabase
     .from("bookings")
     .update(patch)
@@ -1448,9 +1411,12 @@ export async function captureBookingPaymentForAdmin(params: {
     throw new AppError("Booking not found.", 404, "booking_not_found");
   }
 
-  if (row.status !== "completed" || row.payment_status !== "authorized") {
+  if (
+    !["pending", "confirmed"].includes(row.status) ||
+    row.payment_status !== "authorized"
+  ) {
     throw new AppError(
-      "Only completed bookings with an authorized payment can be captured manually.",
+      "Only pre-fulfilment bookings with an authorized payment can be captured manually.",
       409,
       "payment_capture_not_allowed",
     );
@@ -1960,7 +1926,7 @@ export function buildCarrierPayoutHolds(
             stage: "Completed",
             missingStep: "Capture still pending",
             explanation:
-              "The booking is complete, but payment capture has not cleared yet. That hold usually resolves after the completion flow settles.",
+              "The booking is complete, but the acceptance-time capture state still needs ops review before payout can release.",
             nextAction:
               "Keep the booking in-platform and check payouts if this stays blocked longer than expected.",
             ctaHref: "/carrier/payouts",

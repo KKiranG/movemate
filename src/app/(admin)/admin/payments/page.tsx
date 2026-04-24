@@ -151,7 +151,7 @@ export default async function AdminPaymentsPage() {
                   {booking.status === "delivered"
                     ? "Waiting on customer confirmation or the auto-release window."
                     : booking.paymentStatus === "capture_failed"
-                      ? "Payment capture failed after completion."
+                      ? "Payment capture failed during acceptance."
                       : "Delivery is done, but release is still pending."}
                 </p>
               </div>

@@ -7,6 +7,17 @@ export type BookingRequestStatus =
   | "revoked"
   | "cancelled";
 
+export type BookingRequestPaymentAuthorizationStatus =
+  | "pending"
+  | "authorized"
+  | "captured"
+  | "capture_failed"
+  | "failed"
+  | "authorization_cancelled"
+  | "refund_pending"
+  | "refunded"
+  | "manual_review";
+
 export type BookingRequestClarificationReason =
   | "item_details"
   | "access_details"
@@ -41,6 +52,7 @@ export interface BookingRequest {
   carrierId: string;
   bookingId?: string | null;
   requestGroupId?: string | null;
+  paymentAuthorizationId?: string | null;
   status: BookingRequestStatus;
   requestedTotalPriceCents: number;
   responseDeadlineAt: string;
@@ -57,6 +69,27 @@ export interface BookingRequest {
   updatedAt: string;
 }
 
+export interface BookingRequestPaymentAuthorization {
+  id: string;
+  moveRequestId: string;
+  customerId: string;
+  requestGroupId?: string | null;
+  bookingId?: string | null;
+  amountCents: number;
+  capturedAmountCents?: number | null;
+  currency: string;
+  stripePaymentIntentId?: string | null;
+  status: BookingRequestPaymentAuthorizationStatus;
+  failureCode?: string | null;
+  failureReason?: string | null;
+  authorizedAt?: string | null;
+  capturedAt?: string | null;
+  cancelledAt?: string | null;
+  refundedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CustomerBookingRequestCard {
   id: string;
   moveRequestId: string;
@@ -64,6 +97,7 @@ export interface CustomerBookingRequestCard {
   listingId: string;
   bookingId?: string | null;
   requestGroupId?: string | null;
+  paymentAuthorizationId?: string | null;
   status: BookingRequestStatus;
   itemDescription: string;
   pickupSuburb: string;

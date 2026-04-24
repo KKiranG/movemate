@@ -14,7 +14,7 @@ const carrierRequestDetailSource = fs.readFileSync(
   "utf8",
 );
 const carrierMoveRequestPolicySql = fs.readFileSync(
-  path.join(process.cwd(), "supabase/migrations/033_carrier_move_request_read_policy.sql"),
+  path.join(process.cwd(), "supabase/migrations/034_carrier_move_request_read_policy.sql"),
   "utf8",
 );
 
@@ -116,9 +116,10 @@ test("Fast Match accept path refuses stale siblings before creating a booking", 
   assert.ok(acceptSource, "accept action source should be present.");
   assert.match(bookingRequestsSource, /ensureFastMatchGroupHasNoAcceptedSibling/);
   assert.match(bookingRequestsSource, /fast_match_already_accepted/);
+  assert.match(acceptSource[0], /\.rpc\("accept_booking_request_atomic"/);
   assert.ok(
     acceptSource[0].indexOf("ensureFastMatchGroupHasNoAcceptedSibling") <
-      acceptSource[0].indexOf('.rpc("create_booking_atomic"'),
-    "Fast Match stale-sibling guard should run before booking creation.",
+      acceptSource[0].indexOf('.rpc("accept_booking_request_atomic"'),
+    "Fast Match stale-sibling guard should run before atomic acceptance.",
   );
 });
