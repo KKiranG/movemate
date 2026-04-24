@@ -69,10 +69,14 @@ type ParsedIssue = {
   lockGroup: string;
   blockedBy: string;
   safeParallelism: string;
+  touchesSharedLogic: string;
+  parallelismNotes: string;
   founderDecision: string;
   founderDecisionDetail: string;
+  decisionMemory: string;
   doneWhen: string;
   verificationPlan: string;
+  rollbackRisk: string;
   narrative: string;
 };
 
@@ -481,10 +485,14 @@ function parseIssues(issues: GitHubIssueNode[]): ParsedIssue[] {
       lockGroup: findField(fields, 'lock group'),
       blockedBy: findField(fields, 'blocked by'),
       safeParallelism: findField(fields, 'safe parallelism'),
+      touchesSharedLogic: findField(fields, 'touches shared logic'),
+      parallelismNotes: findField(fields, 'parallelism notes'),
       founderDecision: findField(fields, 'founder decision'),
       founderDecisionDetail: findField(fields, 'founder decision detail'),
+      decisionMemory: findField(fields, 'decision memory links'),
       doneWhen: findField(fields, 'done when'),
       verificationPlan: findField(fields, 'verification plan'),
+      rollbackRisk: findField(fields, 'rollback risk', 'rollback or guardrail'),
       narrative: extractNarrative(fields),
     };
   });
@@ -673,6 +681,10 @@ function appendMetadata(lines: string[], issue: ParsedIssue, linkedPrs: ParsedPu
     lines.push(`- Founder decision detail: ${compactInlineText(issue.founderDecisionDetail, 180)}`);
   }
 
+  if (issue.decisionMemory && issue.decisionMemory.toLowerCase() !== 'none') {
+    lines.push(`- Decision memory: ${compactInlineText(issue.decisionMemory, 220)}`);
+  }
+
   if (linkedPrs.length > 0) {
     const linked = linkedPrs
       .map(pr => {
@@ -695,7 +707,20 @@ function appendMetadata(lines: string[], issue: ParsedIssue, linkedPrs: ParsedPu
     lines.push(`- Safe parallelism: ${compactInlineText(issue.safeParallelism, 220)}`);
   }
 
+  if (issue.touchesSharedLogic) {
+    lines.push(`- Touches shared logic: ${compactInlineText(issue.touchesSharedLogic, 80)}`);
+  }
+
+  if (issue.parallelismNotes) {
+    lines.push(`- Parallelism notes: ${compactInlineText(issue.parallelismNotes, 220)}`);
+  }
+
   appendChecklistSection(lines, 'Verification plan', issue.verificationPlan);
+
+  if (issue.rollbackRisk) {
+    lines.push(`- Rollback risk: ${compactInlineText(issue.rollbackRisk, 220)}`);
+  }
+
   lines.push(`- Latest activity: ${formatLatestActivity(latestActivity(issue, linkedPrs))}`);
 }
 

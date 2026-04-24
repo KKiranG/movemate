@@ -2,7 +2,7 @@
 
 ## Visual direction
 
-moverrr should feel:
+MoveMate should feel:
 - clean
 - high-signal
 - information-dense

@@ -116,7 +116,7 @@ export async function getRoutePriceGuidance(params: {
       medianCents: fallbackSuggestion.midCents,
       usedFallback: true,
       explanation:
-        "Distance-matched pricing is unavailable right now, so this uses moverrr's spare-capacity guide for the corridor instead.",
+        "Distance-matched pricing is unavailable right now, so this uses MoveMate's spare-capacity guide for the corridor instead.",
     };
   }
 
@@ -170,7 +170,7 @@ export async function getRoutePriceGuidance(params: {
       medianCents: fallbackSuggestion.midCents,
       usedFallback: true,
       explanation:
-        "Not enough maps-backed corridor examples exist yet, so this is using moverrr's spare-capacity guide instead of weaker suburb-name matching.",
+        "Not enough maps-backed corridor examples exist yet, so this is using MoveMate's spare-capacity guide instead of weaker suburb-name matching.",
     };
   }
 
@@ -181,6 +181,6 @@ export async function getRoutePriceGuidance(params: {
     medianCents: percentile(values, 0.5),
     usedFallback: false,
     explanation:
-      "This range comes from recent moverrr listings with similar origin, destination, and route distance using maps-backed corridor matching.",
+      "This range comes from recent MoveMate listings with similar origin, destination, and route distance using maps-backed corridor matching.",
   };
 }

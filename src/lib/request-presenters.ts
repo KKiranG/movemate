@@ -32,13 +32,13 @@ export function getBookingRequestUrgencyLabel(responseDeadlineAt: string, now = 
 
 export function getBookingRequestOutcomeCopy(status: BookingRequestStatus, typeLabel: string) {
   if (status === "declined") {
-    return `${typeLabel} was declined, so moverrr can route you into the next viable match without restarting from scratch.`;
+    return `${typeLabel} was declined, so MoveMate can route you into the next viable match without restarting from scratch.`;
   }
 
   if (status === "expired") {
     return typeLabel === "Fast Match"
-      ? "Fast Match timed out before any carrier accepted, so moverrr moved the route into recovery."
-      : "The request window closed before this carrier made a decision, so moverrr moved you into recovery.";
+      ? "Fast Match timed out before any carrier accepted, so MoveMate moved the route into recovery."
+      : "The request window closed before this carrier made a decision, so MoveMate moved you into recovery.";
   }
 
   if (status === "revoked") {
@@ -46,7 +46,7 @@ export function getBookingRequestOutcomeCopy(status: BookingRequestStatus, typeL
   }
 
   if (status === "cancelled") {
-    return "You cancelled this request before a carrier accepted, so moverrr reopened the route for a fresh request later.";
+    return "You cancelled this request before a carrier accepted, so MoveMate reopened the route for a fresh request later.";
   }
 
   return null;
@@ -68,7 +68,7 @@ export function buildBookingRequestTimeline(
     {
       key: "submitted",
       title: "Request submitted",
-      description: "moverrr sent the request into the carrier decision queue.",
+      description: "MoveMate sent the request into the carrier decision queue.",
       createdAt: bookingRequest.createdAt,
     },
   ];
@@ -105,7 +105,7 @@ export function buildBookingRequestTimeline(
         timeline.push({
           key: `${event.id}:accepted`,
           title: "Accepted",
-          description: "Carrier accepted and moverrr converted the request into a booking.",
+          description: "Carrier accepted and MoveMate converted the request into a booking.",
           createdAt: event.createdAt,
         });
         break;

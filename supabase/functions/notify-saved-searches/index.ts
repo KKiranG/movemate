@@ -38,25 +38,25 @@ serve(async (request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@moverrr.com.au",
+        from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@movemate.app",
         to: [search.notify_email],
-        subject: "A trip matching your search just posted on moverrr",
+        subject: "A route alert found a possible MoveMate match",
         html: `
           <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;line-height:1.5">
-            <h1 style="font-size:20px;margin-bottom:16px">A new trip matches your saved search</h1>
+            <h1 style="font-size:20px;margin-bottom:16px">A possible route match is live</h1>
             <div style="border:1px solid #e5e5e5;border-radius:12px;padding:16px;margin:16px 0">
               <p style="margin:0 0 8px"><strong>Route:</strong> ${listing.origin_suburb} to ${listing.destination_suburb}</p>
               <p style="margin:0 0 8px"><strong>Date:</strong> ${listing.trip_date}</p>
               <p style="margin:0 0 8px"><strong>Price:</strong> $${Math.round(listing.price_cents / 100)}</p>
               <p style="margin:0"><strong>Space:</strong> ${listing.space_size}</p>
             </div>
-            <p>A browse-first match is available now, so you can book directly into real spare capacity.</p>
+            <p>A route-compatible carrier may fit your move need. Review the match inside MoveMate and continue through the in-app request flow.</p>
             <p style="margin-top:20px">
               <a
                 href="${Deno.env.get("NEXT_PUBLIC_SITE_URL") ?? "http://localhost:3000"}/trip/${listing.id}"
                 style="display:inline-block;background:#0066ff;color:#ffffff;text-decoration:none;padding:12px 16px;border-radius:10px;font-weight:600"
               >
-                Book now
+                Review match
               </a>
             </p>
           </div>

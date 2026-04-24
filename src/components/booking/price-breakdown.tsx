@@ -36,10 +36,10 @@ export function PriceBreakdown({
     <Card className="p-4">
       <div className="space-y-3">
         <div>
-          <p className="section-label">Full moverrr breakdown</p>
+          <p className="section-label">Full MoveMate breakdown</p>
           <h2 className="mt-1 text-lg text-text">Transparent before you send the request</h2>
           <p className="mt-2 text-sm text-text-secondary">
-            Customer total = carrier route price + selected add-ons + moverrr charges.
+            Customer total = carrier route price + selected add-ons + MoveMate charges.
           </p>
         </div>
         <dl className="space-y-2 text-sm text-text-secondary">
@@ -74,7 +74,7 @@ export function PriceBreakdown({
             <dt>
               <span className="text-text">Platform fee</span>
               <span className="mt-1 block text-xs text-text-secondary">
-                moverrr service fee applied to the route base price only.
+                MoveMate service fee applied to the route base price only.
               </span>
             </dt>
             <dd className="text-text">{formatCurrency(pricing.platformFeeCents)}</dd>

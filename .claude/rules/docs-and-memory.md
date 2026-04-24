@@ -66,6 +66,15 @@ If you have to correct the same mistake twice, encode it as a standing instructi
 
 Corrections about the review process belong in the review-packet template or review-pr skill, not in `AGENTS.md` or `CLAUDE.md`.
 
+## Durable Decision Memory
+
+Use `.claude/agent-memory/product-decisions.md` for distilled founder/product decisions that should survive across chats without inflating always-loaded docs.
+
+- Do not paste raw chat or long quotes into memory.
+- Distill the decision, scope it, link the canonical source, and mark status.
+- If the decision changes behavior, update the canonical rule or blueprint in the same task.
+- If a memory entry conflicts with a canonical file, the canonical file wins and the memory entry must be updated or marked superseded.
+
 ## Context Budget
 
 Treat always-loaded docs as a scarce budget.

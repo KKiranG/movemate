@@ -29,7 +29,7 @@ async function sendReminderEmail(to: string, bookingReference: string, hours: nu
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@moverrr.com.au",
+      from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@movemate.app",
       to: [to],
       subject: `Please confirm delivery for ${bookingReference}`,
       html: `<p>Your booking <strong>${bookingReference}</strong> was marked delivered ${hours} hour${hours === 1 ? "" : "s"} ago.</p><p>Please confirm receipt or raise a dispute if something is wrong.</p><p><a href="${siteUrl}/bookings">Open booking detail</a></p>`,

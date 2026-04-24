@@ -43,7 +43,7 @@ Deno.serve(async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@moverrr.com.au",
+          from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@movemate.app",
           to: [carrier.email],
           subject: `Document reminder for ${carrier.business_name}`,
           html: `<p>Your ${expiring.join(" and ")} ${expiring.length > 1 ? "documents expire" : "document expires"} in ${days} days.</p><p>Please resubmit updated documents so your account stays verification-ready.</p><p><a href="${siteUrl}/carrier/onboarding">Update documents</a></p>`,

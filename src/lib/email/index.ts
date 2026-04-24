@@ -82,7 +82,7 @@ export function buildEmailHtml(params: EmailLayoutParams) {
       <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #dbe4f0">
         <div style="background:#0066ff;padding:20px 24px;color:#ffffff">
           <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.85">${escapeHtml(params.eyebrow)}</p>
-          <h1 style="margin:0;font-size:28px;line-height:1.2">moverrr</h1>
+          <h1 style="margin:0;font-size:28px;line-height:1.2">MoveMate</h1>
         </div>
         <div style="padding:24px">
           <h2 style="margin:0 0 12px;font-size:24px;line-height:1.25;color:#111827">${escapeHtml(params.title)}</h2>
@@ -146,7 +146,7 @@ export function buildBookingEmail(params: {
     ctaHref: absoluteUrl(params.ctaPath),
     ctaLabel: params.ctaLabel,
     closingNote:
-      "Keep payment changes, proof, and disputes inside moverrr so the trust record stays usable if anything needs review.",
+      "Keep payment changes, proof, and disputes inside MoveMate so the trust record stays usable if anything needs review.",
   });
 }
 
@@ -159,7 +159,7 @@ export function buildCarrierVerificationEmail(params: {
     eyebrow: "Carrier verification",
     title: params.approved ? "You can start posting trips" : "Verification needs changes",
     intro: params.approved
-      ? `${params.businessName} is now verified on moverrr. You can finish payout setup and publish live routes.`
+      ? `${params.businessName} is now verified on MoveMate. You can finish payout setup and publish live routes.`
       : `${params.businessName} was reviewed, but a few verification details still need attention before the profile can go live.`,
     bodyLines: params.notes?.trim()
       ? [params.notes.trim()]
@@ -179,13 +179,13 @@ export function buildReviewRequestEmail(params: {
   return buildBookingEmail({
     eyebrow: "Review request",
     title: "Close the loop on this booking",
-    intro: "The booking is complete. A short review helps future customers judge real moverrr supply.",
+    intro: "The booking is complete. A short review helps future customers judge real MoveMate supply.",
     bookingReference: params.bookingReference,
     routeLabel: params.routeLabel,
     ctaPath: params.ctaPath,
     ctaLabel: "Leave a review",
     bodyLines: [
-      "Reviews on moverrr only come from completed bookings.",
+      "Reviews on MoveMate only come from completed bookings.",
       "Keep your feedback factual so it stays useful for the next customer.",
     ],
   });

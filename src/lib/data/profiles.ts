@@ -21,6 +21,54 @@ export async function getCustomerProfileForUser(userId: string) {
   return data;
 }
 
+export async function getCustomerProfileSummaryForUser(userId: string) {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, email, full_name")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "customer_lookup_failed");
+  }
+
+  return data;
+}
+
+export async function updateCustomerProfileNameForUser(params: {
+  userId: string;
+  fullName: string;
+}) {
+  if (!hasSupabaseEnv()) {
+    throw new AppError("Supabase is not configured.", 503, "supabase_unavailable");
+  }
+
+  const fullName = params.fullName.trim().replace(/\s+/g, " ");
+
+  if (fullName.length < 2 || fullName.length > 120) {
+    throw new AppError("Enter a name between 2 and 120 characters.", 400, "invalid_profile_name");
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .update({ full_name: fullName })
+    .eq("user_id", params.userId)
+    .select("id, email, full_name")
+    .single();
+
+  if (error) {
+    throw new AppError(error.message, 500, "customer_profile_update_failed");
+  }
+
+  return data;
+}
+
 export async function requireCustomerProfileForUser(userId: string) {
   const customer = await getCustomerProfileForUser(userId);
 

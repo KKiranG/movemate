@@ -1038,7 +1038,7 @@ async function notifyCustomersAboutSuspendedTrip(params: {
           eyebrow: "Trip freshness",
           title: "This route needs carrier reconfirmation",
           intro:
-            "The carrier has not confirmed that the trip is still running inside the required freshness window, so moverrr temporarily suspended the route while ops reviews it.",
+            "The carrier has not confirmed that the trip is still running inside the required freshness window, so MoveMate temporarily suspended the route while ops reviews it.",
           bookingReference: row.booking_reference,
           routeLabel: params.routeLabel,
           priceLabel: new Intl.NumberFormat("en-AU", {
@@ -1050,7 +1050,7 @@ async function notifyCustomersAboutSuspendedTrip(params: {
           ctaLabel: "Open booking",
           bodyLines: [
             "Do not move coordination off-platform while this route is being rechecked.",
-            "moverrr will keep the booking record updated if the route is reconfirmed or a recovery path is needed.",
+            "MoveMate will keep the booking record updated if the route is reconfirmed or a recovery path is needed.",
           ],
         }),
       }),
@@ -1271,7 +1271,7 @@ export async function runTripFreshnessChecks(params?: {
             subject: `Confirm tomorrow's trip: ${routeLabel}`,
             title: "Please confirm tomorrow's trip still has space",
             intro:
-              "This route is inside the 24-hour freshness window. Confirm it so moverrr can keep matching it normally.",
+              "This route is inside the 24-hour freshness window. Confirm it so MoveMate can keep matching it normally.",
             routeLabel,
             ctaPath: `/carrier/trips/${row.id}/freshness-confirm?window=24h`,
             ctaLabel: "Confirm tomorrow's trip",
@@ -1299,7 +1299,7 @@ export async function runTripFreshnessChecks(params?: {
             subject: `Confirm your trip is still on: ${routeLabel}`,
             title: "Confirm your trip is still on",
             intro:
-              "This route is inside the 2-hour freshness window. Confirm now or moverrr will suspend it until ops reviews it.",
+              "This route is inside the 2-hour freshness window. Confirm now or MoveMate will suspend it until ops reviews it.",
             routeLabel,
             ctaPath: `/carrier/trips/${row.id}/freshness-confirm?window=2h`,
             ctaLabel: "Confirm trip is still on",

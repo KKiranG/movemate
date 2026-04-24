@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <p className="text-base leading-7 text-text-secondary">
           We do not sell customer or carrier data. If you need help with your
           data or privacy questions, contact the MoveMate team at
-          hello@moverrr.com.au.
+          hello@movemate.app.
         </p>
       </section>
     </main>

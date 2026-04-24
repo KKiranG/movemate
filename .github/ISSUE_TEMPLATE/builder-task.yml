@@ -61,12 +61,19 @@ body:
         - state:deferred
     validations:
       required: true
-  - type: input
+  - type: dropdown
     id: lock_group
     attributes:
       label: Lock group
-      description: Shared resource or area that must not be edited in parallel. Use `none` if not needed.
-      placeholder: github-control-plane
+      description: Shared resource or area that must not be edited in parallel.
+      options:
+        - customer-acquisition
+        - customer-booking-lifecycle
+        - carrier-activation-posting
+        - carrier-operations
+        - matching-pricing-state
+        - admin-operator
+        - system-hygiene
     validations:
       required: true
   - type: dropdown
@@ -139,11 +146,30 @@ body:
       placeholder: none
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: safe_parallelism
     attributes:
       label: Safe parallelism
       description: Call out what others can work on safely while this issue is active.
+      options:
+        - "no"
+        - "yes"
+    validations:
+      required: true
+  - type: dropdown
+    id: touches_shared_logic
+    attributes:
+      label: Touches shared logic
+      description: Choose yes for pricing, matching, booking state, schema, shared presenters, auth, or payment/payout logic.
+      options:
+        - "no"
+        - "yes"
+    validations:
+      required: true
+  - type: textarea
+    id: parallelism_notes
+    attributes:
+      label: Parallelism notes
       placeholder: Other workers can change app surfaces, but should avoid .github and the GitHub sync scripts.
     validations:
       required: true
@@ -167,6 +193,14 @@ body:
     validations:
       required: true
   - type: textarea
+    id: decision_memory
+    attributes:
+      label: Decision memory links
+      description: Link relevant `.claude/agent-memory/product-decisions.md` entries, decision log entries, issues, or `none`.
+      placeholder: .claude/agent-memory/product-decisions.md#pricing-and-detour
+    validations:
+      required: true
+  - type: textarea
     id: verification_plan
     attributes:
       label: Verification plan
@@ -174,5 +208,12 @@ body:
       placeholder: |
         - Run the label bootstrap in dry-run and real mode.
         - Run the backlog sync in dry-run and inspect generated markdown.
+    validations:
+      required: true
+  - type: textarea
+    id: rollback_risk
+    attributes:
+      label: Rollback risk
+      placeholder: Low. Revert the PR; no migration or user-facing state transition changes.
     validations:
       required: true

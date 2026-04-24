@@ -90,11 +90,18 @@ body:
         - state:deferred
     validations:
       required: true
-  - type: input
+  - type: dropdown
     id: lock_group
     attributes:
       label: Lock group
-      placeholder: release
+      options:
+        - system-hygiene
+        - matching-pricing-state
+        - customer-booking-lifecycle
+        - carrier-activation-posting
+        - carrier-operations
+        - admin-operator
+        - customer-acquisition
     validations:
       required: true
   - type: dropdown
@@ -164,10 +171,29 @@ body:
       placeholder: none
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: safe_parallelism
     attributes:
       label: Safe parallelism
+      options:
+        - "no"
+        - "yes"
+    validations:
+      required: true
+  - type: dropdown
+    id: touches_shared_logic
+    attributes:
+      label: Touches shared logic
+      description: Choose yes for pricing, matching, booking state, schema, shared presenters, auth, or payment/payout logic.
+      options:
+        - "no"
+        - "yes"
+    validations:
+      required: true
+  - type: textarea
+    id: parallelism_notes
+    attributes:
+      label: Parallelism notes
       placeholder: Other workers should avoid the release lane until this issue closes.
     validations:
       required: true

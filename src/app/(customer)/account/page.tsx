@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ChevronRight, Truck } from "lucide-react";
 
 import { TopAppBar } from "@/components/spec/chrome";
+import { requirePageSessionUser } from "@/lib/auth";
+import { getCustomerPaymentProfileForUser } from "@/lib/data/customer-payments";
+import { getCustomerProfileSummaryForUser } from "@/lib/data/profiles";
 
 const rows = [
   { href: "/account/profile", label: "Profile" },
@@ -11,7 +14,17 @@ const rows = [
   { href: "/account/advanced", label: "Advanced" },
 ];
 
-export default function AccountPage() {
+export default async function AccountPage() {
+  const user = await requirePageSessionUser();
+  const [profile, paymentProfile] = await Promise.all([
+    getCustomerProfileSummaryForUser(user.id),
+    getCustomerPaymentProfileForUser({ userId: user.id }),
+  ]);
+  const displayName = profile?.full_name ?? user.email?.split("@")[0] ?? "Customer";
+  const paymentStatus = paymentProfile.hasSavedPaymentMethod
+    ? `Payment method ready: ${paymentProfile.defaultPaymentMethod?.brand ?? "card"} ending ${paymentProfile.defaultPaymentMethod?.last4 ?? "****"}`
+    : "Add a payment method before booking";
+
   return (
     <main className="pb-8">
       <TopAppBar title="Account" />
@@ -22,9 +35,9 @@ export default function AccountPage() {
         </div>
 
         <div className="surface-1 space-y-1">
-          <p className="title">Ava Parker</p>
-          <p className="caption">ava@example.com</p>
-          <p className="caption">Verified payment method ready</p>
+          <p className="title">{displayName}</p>
+          <p className="caption">{profile?.email ?? user.email ?? "Signed in"}</p>
+          <p className="caption">{paymentStatus}</p>
         </div>
 
         <div className="space-y-3">
@@ -45,7 +58,7 @@ export default function AccountPage() {
           className="flex min-h-[54px] items-center justify-center gap-2 rounded-[var(--radius-pill)] border border-[var(--border-subtle)] px-4 text-[14px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-elevated-1)] active:bg-[var(--bg-elevated-2)]"
         >
           <Truck className="h-4 w-4" />
-          Have spare space in your van? Drive with moverrr
+          Have spare space in your van? Drive with MoveMate
         </Link>
       </section>
     </main>

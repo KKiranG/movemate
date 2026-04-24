@@ -129,7 +129,7 @@ export function DisputeForm({ bookingId }: { bookingId: string }) {
         <p className="text-sm font-medium text-text">{guidance.heading}</p>
         <p className="mt-1 text-sm text-text-secondary">{guidance.evidence}</p>
         <p className="mt-2 text-xs text-text-secondary">
-          If someone asked to pay outside moverrr, choose Suspicious / other and
+          If someone asked to pay outside MoveMate, choose Suspicious / other and
           describe exactly what was requested.
         </p>
       </div>

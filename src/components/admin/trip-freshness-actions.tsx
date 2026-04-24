@@ -49,7 +49,7 @@ export function TripFreshnessActions({
   if (!canUnsuspend) {
     return (
       <p className="text-sm text-text-secondary">
-        moverrr is still waiting on the carrier freshness response.
+        MoveMate is still waiting on the carrier freshness response.
       </p>
     );
   }

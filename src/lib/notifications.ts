@@ -163,7 +163,7 @@ export async function sendRequestLifecycleEmail(params: {
       ctaHref: new URL(params.ctaPath, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").toString(),
       ctaLabel: params.ctaLabel,
       closingNote:
-        "Keep replies, payment changes, and any disputes inside moverrr so the request and booking trail stay usable.",
+        "Keep replies, payment changes, and any disputes inside MoveMate so the request and booking trail stay usable.",
     }),
   });
 }

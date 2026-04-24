@@ -55,7 +55,7 @@ export function RequestClarificationResponseForm({
         placeholder="Answer only the missing fact the carrier asked for, such as access, timing, or photo context."
       />
       <p className="text-xs text-text-secondary">
-        Keep this factual and specific. moverrr allows one clarification round, not open-ended negotiation.
+        Keep this factual and specific. MoveMate allows one clarification round, not open-ended negotiation.
       </p>
       {error ? <p className="text-sm text-error">{error}</p> : null}
       <Button type="submit" disabled={isSubmitting || response.trim().length === 0}>

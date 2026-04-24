@@ -48,18 +48,18 @@ const optionalPhoneNumber = () =>
 const PROHIBITED_ITEM_RULES = [
   {
     pattern: /\basbestos(?:\s+sheeting)?\b/i,
-    message: "Asbestos and asbestos sheeting are not allowed on moverrr.",
+    message: "Asbestos and asbestos sheeting are not allowed on MoveMate.",
     hint: "This needs a licensed disposal path, not a spare-capacity trip.",
   },
   {
     pattern: /\b(contaminated waste|hazardous waste|biohazard|contaminated soil)\b/i,
-    message: "Contaminated or hazardous waste is out of scope for moverrr.",
+    message: "Contaminated or hazardous waste is out of scope for MoveMate.",
     hint: "Bookings must stay inside ordinary household or business moving items.",
   },
   {
     pattern:
       /\b(chemical drum|solvent drum|paint disposal|regulated waste|regulated disposal|chemical disposal)\b/i,
-    message: "Regulated chemical or disposal jobs are not allowed on moverrr.",
+    message: "Regulated chemical or disposal jobs are not allowed on MoveMate.",
     hint: "Remove the regulated item and use a compliant disposal or specialist service instead.",
   },
 ] as const;
@@ -67,8 +67,8 @@ const PROHIBITED_ITEM_RULES = [
 const OFF_PLATFORM_PAYMENT_RULES = [
   {
     pattern: /\b(payid|bank transfer|direct deposit|cash extra|cash only|pay outside)\b/i,
-    message: "Payments must stay in moverrr for your protection. Remove cash, bank transfer, or side-payment requests.",
-    hint: "moverrr only supports the listed add-ons or an admin-reviewed exception.",
+    message: "Payments must stay in MoveMate for your protection. Remove cash, bank transfer, or side-payment requests.",
+    hint: "MoveMate only supports the listed add-ons or an admin-reviewed exception.",
   },
 ] as const;
 

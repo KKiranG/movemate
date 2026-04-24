@@ -72,3 +72,10 @@ These vars unlock integrations without being required for local UI work:
 
 - `RUN_SUPABASE_INTEGRATION` enables the integration tests that talk to a real Supabase stack when set to `1`
 - Keep local developer values in `.env.local`; use hosted environment settings for preview and production
+- Missing Stripe, Supabase, Maps, Resend, Sentry, or push credentials should not block `npm run check`, `npm run test`, `npm run build`, or UI work that uses local/demo fallbacks. When a flow truly requires a live service, record the missing credential as residual risk instead of faking the integration.
+
+## Verification Commands
+
+- `npm run env:check` reports required and optional env gaps without failing local work.
+- `npm run env:check:production` fails when any key in `config/required-production-env.json` is missing.
+- `npm run scan:product-drift` catches known product/workflow drift phrases in docs, skills, app code, and Supabase functions.

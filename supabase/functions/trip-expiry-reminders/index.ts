@@ -39,10 +39,10 @@ Deno.serve(async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@moverrr.com.au",
+        from: Deno.env.get("RESEND_FROM_EMAIL") ?? "hello@movemate.app",
         to: [email],
         subject: `Listing expires soon: ${trip.origin_suburb} to ${trip.destination_suburb}`,
-        html: `<p>Your moverrr listing for <strong>${trip.origin_suburb} to ${trip.destination_suburb}</strong> expires within 48 hours.</p><p><a href="${siteUrl}/carrier/post?from=${encodeURIComponent(trip.origin_suburb)}&to=${encodeURIComponent(trip.destination_suburb)}">Repost this route</a></p>`,
+        html: `<p>Your MoveMate route for <strong>${trip.origin_suburb} to ${trip.destination_suburb}</strong> expires within 48 hours.</p><p><a href="${siteUrl}/carrier/post?from=${encodeURIComponent(trip.origin_suburb)}&to=${encodeURIComponent(trip.destination_suburb)}">Repost this route</a></p>`,
       }),
     });
 

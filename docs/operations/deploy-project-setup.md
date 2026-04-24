@@ -9,6 +9,7 @@ GitHub issues, pull requests, and merge history are authoritative for active wor
 - Keep `main` protected with required checks for `CI` and `Operations Docs Check`.
 - Use `npm run ops:labels` to seed repo labels when needed.
 - Use `npm run ops:sync-backlog` only to refresh the markdown snapshot after GitHub changes land.
+- Before making the repo private, use `docs/operations/private-repo-agent-access.md` to confirm agent access, CI, deploy integrations, and secret posture.
 
 ## Vercel project
 

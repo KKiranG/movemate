@@ -19,21 +19,23 @@ If this file ever appears to disagree with `AGENTS.md`, `AGENTS.md` wins — fix
 
 ---
 
-## Approved Workflow Layer — gstack
+## Optional Workflow Tooling — gstack
 
-gstack is the approved workflow layer for Claude in this repo. It is also installed globally for Codex on this Mac.
+gstack is available as optional Claude/Codex workflow tooling on this Mac. It can help with planning, review, QA, and ship loops, but it is not product authority and it is not required for MoveMate work.
 
 - Global paths:
   - Claude: `~/.claude/skills/gstack`
   - Codex: `~/.codex/skills/gstack*`
 - Keep gstack as a global install. Do not vendor its skill trees into the MoveMate repo root.
+- If gstack is unavailable, stale, too heavy, or replaced by Hermes or another orchestrator, continue from `AGENTS.md`, `.claude/project-ops.md`, the linked GitHub issue, and the repo verification commands.
 
 ### Browser tooling
 
-- Use `/browse` from gstack for web browsing.
-- Do not use `mcp__claude-in-chrome__*` directly.
+- Prefer the browser tool that belongs to the current runtime.
+- In Claude sessions where gstack is active, `/browse` and `/open-gstack-browser` remain acceptable helpers.
+- In Codex, use the available Browser Use plugin or local verification tools instead of assuming gstack exists.
 
-### Approved gstack skills for this repo
+### Known gstack skills for this repo
 
 `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`,
 `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`,
@@ -43,7 +45,7 @@ gstack is the approved workflow layer for Claude in this repo. It is also instal
 `/plan-devex-review`, `/devex-review`, `/pair-agent`, `/careful`, `/freeze`,
 `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`.
 
-gstack governs workflow execution and browser tooling only. Product truth, pricing truth, and repo-operating truth come from `AGENTS.md` and the canonical docs it points to.
+These skills are conveniences only. Product truth, pricing truth, issue authority, lock groups, and repo-operating truth come from `AGENTS.md` and the canonical docs it points to.
 
 ---
 
@@ -99,15 +101,15 @@ Key routing rules:
 - Second opinion, codex review → invoke /codex
 - Safety mode, careful mode, lock it down → invoke /careful or /guard
 - Restrict edits to a directory → invoke /freeze or /unfreeze
-- Upgrade gstack → invoke /gstack-upgrade
+- Upgrade gstack, when the current session is using it → invoke /gstack-upgrade
 - Save progress, "save my work" → invoke /context-save
 - Resume, restore, "where was I" → invoke /context-restore
 - Security audit, OWASP, "is this secure" → invoke /cso
 - Make a PDF, document, publication → invoke /make-pdf
-- Launch real browser for QA → invoke /open-gstack-browser
+- Launch real browser for QA in a gstack-backed Claude session → invoke /open-gstack-browser
 - Import cookies for authenticated testing → invoke /setup-browser-cookies
 - Performance regression, page speed, benchmarks → invoke /benchmark
-- Review what gstack has learned → invoke /learn
+- Review what gstack has learned, when relevant → invoke /learn
 - Tune question sensitivity → invoke /plan-tune
 - Code quality dashboard → invoke /health
 

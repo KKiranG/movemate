@@ -6,7 +6,7 @@ import { PageIntro } from "@/components/layout/page-intro";
 
 export const metadata: Metadata = {
   title: "Reset your password",
-  description: "Send a moverrr password reset link or finish updating your password.",
+  description: "Send a MoveMate password reset link or finish updating your password.",
 };
 
 export default function ResetPasswordPage() {

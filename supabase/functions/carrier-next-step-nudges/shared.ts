@@ -146,7 +146,7 @@ function buildNudgeCopy(type: CarrierNudgeType, row: CarrierNextStepBookingRow) 
         summary:
           "A customer is waiting and this booking will expire within the next hour if you do not accept or decline it.",
         whatHappensNext:
-          "If it expires, moverrr cancels the request and releases capacity back to the trip automatically.",
+          "If it expires, MoveMate cancels the request and releases capacity back to the trip automatically.",
       };
     case "pickup_proof_stalled":
       return {
@@ -154,7 +154,7 @@ function buildNudgeCopy(type: CarrierNudgeType, row: CarrierNextStepBookingRow) 
         headline: "Pickup proof has not been captured yet",
         missingStep: "Pickup proof pack still missing",
         summary:
-          "This booking is confirmed for today or earlier, but pickup proof has not been recorded inside moverrr.",
+          "This booking is confirmed for today or earlier, but pickup proof has not been recorded inside MoveMate.",
         whatHappensNext:
           "Payout stays held and the booking cannot move cleanly through the next operational step until pickup proof is captured.",
       };
@@ -166,7 +166,7 @@ function buildNudgeCopy(type: CarrierNudgeType, row: CarrierNextStepBookingRow) 
         summary:
           "This booking is already picked up or in transit, but delivery proof has not been recorded for more than two hours.",
         whatHappensNext:
-          "Keep the handoff trail inside moverrr so payout and any issue review remain legible if the run goes sideways.",
+          "Keep the handoff trail inside MoveMate so payout and any issue review remain legible if the run goes sideways.",
       };
     case "payout_setup_blocked":
       return {
@@ -174,7 +174,7 @@ function buildNudgeCopy(type: CarrierNudgeType, row: CarrierNextStepBookingRow) 
         headline: "Payout setup is blocking release",
         missingStep: "Stripe payout onboarding still incomplete",
         summary:
-          "Money is otherwise moving toward release for this booking, but moverrr cannot pay out while your payout setup is incomplete.",
+          "Money is otherwise moving toward release for this booking, but MoveMate cannot pay out while your payout setup is incomplete.",
         whatHappensNext:
           "Eligible funds remain held until Stripe onboarding is finished, even if proof and customer confirmation are already in place.",
       };

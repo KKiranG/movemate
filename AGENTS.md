@@ -161,7 +161,7 @@ Only one build agent may own one lock group at a time unless the issue is explic
 - Builders touching shared pricing, booking-state, or matching code without `Touches shared logic: yes` and coordinator approval.
 - Long-running background agents that rewrite product truth.
 
-Workflow layers that provide parallelism scaffolding (gstack, Hermes-style orchestrators, or similar) are welcome but must respect this contract.
+Workflow layers that provide parallelism scaffolding (gstack, Hermes-style orchestrators, Codex/Claude subagents, Jules, or similar) are optional adapters. They are welcome only when they respect this contract and can be replaced without changing product truth or task authority.
 
 ---
 
@@ -186,6 +186,7 @@ Every build-ready issue must define:
 - `Invariants to preserve`
 - `Verification`
 - `Rollout / fallback`
+- `Rollback risk`
 
 Template: [.claude/issue-shaping-template.md](/Users/kiranghimire/Documents/moverrr/.claude/issue-shaping-template.md).
 
@@ -218,6 +219,19 @@ If verification was blocked by environment, state the exact blocker in the PR un
 
 ---
 
+## Agent Quality Principles
+
+Every agent must manage uncertainty explicitly and keep changes proportional to the goal.
+
+- **Think before coding:** state material assumptions, surface conflicting interpretations, and push back when a request would violate product truth or create avoidable risk.
+- **Simplicity first:** prefer the smallest durable solution that satisfies the issue; avoid speculative abstractions, option flags, and framework-shaped rewrites for one-off needs.
+- **Surgical changes:** touch only files required by the work unit; clean up unused code introduced by your own change, but do not casually rewrite adjacent code or remove unfamiliar comments.
+- **Goal-driven execution:** define verifiable success before implementation, run the relevant checks, and keep looping until the evidence matches the stated outcome or the blocker is explicit.
+
+If a simpler product-aligned version is better than the literal instruction, implement the better version and record the reasoning in the PR or issue.
+
+---
+
 ## Escalation
 
 Escalate only when the work truly needs a founder decision:
@@ -232,12 +246,13 @@ Do not escalate routine engineering judgment, doc cleanup, or obvious stale word
 
 ---
 
-## Workflow Layer
+## Workflow Layers
 
-gstack is the approved workflow layer for Claude and Codex in this repo. Other tool-specific workflow layers (for example, an Antigravity-specific skill pack, or a future Hermes orchestrator) are also welcome as long as they respect this contract.
+MoveMate's operating system is tool-neutral. gstack, Hermes-style orchestrators, Codex/Claude subagents, Jules, Gemini/Antigravity, and future workflow layers may help with planning, delegation, QA, review, or shipping, but they are adapters over the repo contract, not the contract itself.
 
-- Tool overlays list the exact approved skills and invocation conventions per tool.
-- Workflow layers never overrule product truth, pricing truth, or repo invariants declared here.
+- Tool overlays may list optional skills, commands, and routing conventions for their runtime.
+- No workflow layer may overrule product truth, pricing truth, repo invariants, issue authority, lock groups, or verification rules declared here.
+- Agents should be able to swap workflow layers without rewriting issues, PR templates, product docs, or lock-group policy.
 - Do not vendor external workflow libraries into the repo root. Keep them as global installs or external local references.
 
 ---

@@ -35,6 +35,9 @@
 ## Founder decision needed
 - yes / no
 
+## Decision memory links
+- `.claude/agent-memory/product-decisions.md` entry, `.claude/DECISION-LOG.md` entry, GitHub issue, or `none`
+
 ## Acceptance criteria
 - [ ]
 - [ ]
@@ -50,6 +53,8 @@
 - blocked by env:
 
 ## Rollout / fallback
+
+## Rollback risk
 
 ## Review notes
 - mandatory stronger review surfaces:

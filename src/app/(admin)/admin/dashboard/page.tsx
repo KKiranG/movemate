@@ -65,7 +65,7 @@ export default async function AdminDashboardPage() {
       <PageIntro
         eyebrow="Admin operations"
         title="Manual-first operations control"
-        description="Early moverrr needs a human override for verification, disputes, and booking exceptions."
+        description="Early MoveMate needs a human override for verification, disputes, and booking exceptions."
       />
 
       <p className="text-sm text-text-secondary">

@@ -6,6 +6,8 @@ This is the canonical repo operating-system doc for live work, concurrency, revi
 
 MoveMate should be executable by shaped issues and bounded reviewers, not by repeated prompting or markdown guesswork. The work unit must carry enough structure that smaller builders can act safely and reviewers can adjudicate without re-deriving product truth every time.
 
+The workflow layer is replaceable. gstack, Hermes, Codex/Claude subagents, Jules, Gemini/Antigravity, or future tools may execute this operating model, but none of them own product truth, issue authority, lock groups, or verification policy.
+
 ## Authority Mirror
 
 Authority order matches [AUTHORITY.md](/Users/kiranghimire/Documents/moverrr/AUTHORITY.md):
@@ -84,6 +86,7 @@ Every build-ready issue must define:
 - `Invariants to preserve`
 - `Verification`
 - `Rollout / fallback`
+- `Rollback risk`
 
 ## Issue Lifecycle
 
@@ -113,9 +116,51 @@ Resolution-only states:
 - Only one builder owns a lock group at a time unless the issue explicitly says parallel-safe and the file surfaces do not collide.
 - If the issue grows into two independent work units, split it before implementation continues.
 
+## Worker Handoff Packet
+
+Use this shape when a coordinator delegates implementation to another model or tool:
+
+- `Intent`
+- `Why it matters`
+- `Exact scope`
+- `Likely files / surfaces`
+- `Non-goals`
+- `Product invariants`
+- `Lock Group`
+- `Touches shared logic`
+- `Safe for parallelism`
+- `Validation commands`
+- `Expected output`
+- `Stop conditions`
+
+Subagents and external tools are workers, not product authority. They should return concise evidence-backed summaries and list any files they changed.
+
+## Scout / Audit Packet
+
+Use this shape for read-heavy discovery that should not mutate code:
+
+- `Question to answer`
+- `Surfaces inspected`
+- `Evidence found`
+- `Contradictions or risks`
+- `Existing issues / PRs that already cover it`
+- `Recommended action`
+- `New issue needed: yes / no`
+
+Scouts may inspect across lock groups, but should not edit across them.
+
 ## Review Pipeline
 
-### Pass 1 — Mechanical screening
+### Daily Review Loop
+
+Run this at the start of a serious autonomous work session or daily review lane:
+
+1. List open PRs and issues marked `state:pr-open`, `state:needs-review`, `state:blocked`, and `state:needs-founder-decision`.
+2. Run mechanical screening before any product judgment.
+3. Classify each item as `merge-candidate`, `needs-revision`, `duplicate`, `blocked`, `needs-founder-decision`, or `reject`.
+4. Send only true product/business tradeoffs to founder review; do not ask the founder to inspect raw diffs by default.
+
+### Pass 1 — Mechanical Screening
 
 Check:
 
@@ -176,13 +221,20 @@ The founder should not be asked to inspect raw diffs by default.
 
 Use this exact shape when escalation is unavoidable:
 
-- `Decision`
-- `Why now`
-- `Options`
-- `Recommended default`
+- `Issue / PR`
+- `What changed`
+- `Why it matters`
+- `Product invariant affected`
+- `Options` (usually 2-3)
+- `Recommendation`
+- `Trade-off`
+- `Files affected`
+- `Validation evidence`
+- `Exact founder decision needed`
 - `Risk if we wait`
 - `Risk if we choose wrong`
-- `Affected issue / PR`
+
+After the decision is made, distill durable product or operating truth into `.claude/agent-memory/product-decisions.md` and update the canonical source that governs behavior. Do not preserve raw chat as the only record of a founder decision.
 
 ## Review Packet Storage
 

@@ -29,8 +29,9 @@
  *   - Touches Shared Logic    (single-select: yes, no)
  *   - Founder Decision Needed (single-select: yes, no)
  *   - Verification Status     (single-select: pending, partial, complete, blocked)
- *   - Current State           (single-select: inbox, shaping, ready, in-progress,
- *                              pr-open, needs-review, needs-founder-decision, blocked, done)
+ *   - Current State           (single-select: inbox, shaping, ready, claimed,
+ *                              in-progress, pr-open, needs-review, needs-founder-decision,
+ *                              blocked, duplicate, rejected, deferred, done)
  *
  * Views: GitHub's API does not expose a createProjectV2View mutation.
  *   Create the 9 views manually in the GitHub UI after running this script.
@@ -136,11 +137,15 @@ const singleSelectFields: Record<string, string[]> = {
     "inbox",
     "shaping",
     "ready",
+    "claimed",
     "in-progress",
     "pr-open",
     "needs-review",
     "needs-founder-decision",
     "blocked",
+    "duplicate",
+    "rejected",
+    "deferred",
     "done",
   ],
 };
@@ -255,11 +260,13 @@ Manual next steps (GitHub's API has no createProjectV2View mutation):
      - Inbox                  Current State = inbox
      - Shaping                Current State = shaping
      - Ready                  Current State = ready
+     - Claimed                Current State = claimed
      - In Progress            Current State = in-progress
      - PR Open                Current State = pr-open
      - Needs Review           Current State = needs-review
      - Needs Founder Decision Current State = needs-founder-decision
      - Blocked                Current State = blocked
+     - Deferred / Duplicate   Current State = deferred OR duplicate
      - Done                   Current State = done
   2. Sort "Ready" view by Priority p0 → p4
   3. Set "Needs Founder Decision" as the escalation view the founder checks first

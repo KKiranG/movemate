@@ -28,7 +28,7 @@ function getDisplayName(params: {
   contactName?: string | null;
   email?: string | null;
 }) {
-  return params.businessName?.trim() || params.contactName?.trim() || params.email?.trim() || "moverrr carrier";
+  return params.businessName?.trim() || params.contactName?.trim() || params.email?.trim() || "MoveMate carrier";
 }
 
 export async function getCarrierStripeStateByUserId(userId: string) {
@@ -77,7 +77,7 @@ export async function ensureCarrierStripeAccount(params: {
     },
     business_profile: {
       name: getDisplayName(params),
-      product_description: "Spare-capacity carrier using moverrr to post real Sydney trips.",
+      product_description: "Spare-capacity carrier using MoveMate to post real Sydney trips.",
       url: getAppUrl(),
     },
   });

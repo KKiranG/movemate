@@ -195,7 +195,7 @@ function RouteRequestCard({ routeRequest }: { routeRequest: UnmatchedRequest }) 
       ? "A new viable match was found for the same move request."
       : routeRequest.status === "expired" || routeRequest.status === "cancelled"
         ? "This recovery path closed without a new fit."
-        : "moverrr is still watching this route after a request failed to convert.";
+        : "MoveMate is still watching this route after a request failed to convert.";
 
   return (
     <Card className="p-4">
@@ -343,7 +343,7 @@ export function AlertsManager({
         <div className="grid gap-4">
           <div>
             <p className="section-label">Founder-sourced matches</p>
-            <h2 className="mt-1 text-lg text-text">Manual recovery routed back into moverrr</h2>
+            <h2 className="mt-1 text-lg text-text">Manual recovery routed back into MoveMate</h2>
           </div>
           {conciergeOffers.map((offer) => (
             <ConciergeOfferCard key={offer.id} offer={offer} />
@@ -389,7 +389,7 @@ export function AlertsManager({
       {alerts.length === 0 && routeRequests.length === 0 && conciergeOffers.length === 0 ? (
         <Card className="p-4">
           <p className="subtle-text">
-            No alerts yet. Turn on a route alert from search when moverrr does
+            No alerts yet. Turn on a route alert from search when MoveMate does
             not find the right fit.
           </p>
         </Card>

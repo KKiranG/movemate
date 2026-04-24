@@ -241,13 +241,13 @@ export async function ensureRecoveryAlertForMoveRequest(params: {
       subject: `Route alert active: ${params.moveRequest.route.pickupSuburb} to ${params.moveRequest.route.dropoffSuburb}`,
       title: "We saved your route for recovery alerts",
       intro:
-        "That request did not convert into a booking, so moverrr is now keeping the move intent alive as a route alert.",
+        "That request did not convert into a booking, so MoveMate is now keeping the move intent alive as a route alert.",
       routeLabel: `${params.moveRequest.route.pickupSuburb} to ${params.moveRequest.route.dropoffSuburb}`,
       ctaPath: "/alerts",
       ctaLabel: "Open alerts",
       bodyLines: [
         "You do not need to re-enter the whole move just to stay in the queue for matching spare-capacity supply.",
-        "If a better fit appears later, moverrr can route you back into the same customer journey from alerts.",
+        "If a better fit appears later, MoveMate can route you back into the same customer journey from alerts.",
       ],
     });
   }
@@ -323,7 +323,7 @@ export async function markRecoveryAlertMatched(moveRequestId: string) {
           subject: `Recovered route match available: ${row.pickup_suburb} to ${row.dropoff_suburb}`,
           title: "A new match is ready for the same move request",
           intro:
-            "moverrr found a viable route for the same move need, so you can reopen that request instead of starting from scratch.",
+            "MoveMate found a viable route for the same move need, so you can reopen that request instead of starting from scratch.",
           routeLabel: `${row.pickup_suburb} to ${row.dropoff_suburb}`,
           ctaPath: buildRouteAlertSearchHref({
             pickupSuburb: row.pickup_suburb,

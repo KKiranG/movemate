@@ -10,7 +10,7 @@ import { hasSupabaseEnv } from "@/lib/env";
 export const metadata: Metadata = {
   title: "Carrier signup",
   description:
-    "Create a moverrr carrier account, complete onboarding, and start posting real spare-capacity trips.",
+    "Create a MoveMate carrier account, complete onboarding, and start posting real spare-capacity trips.",
 };
 
 const steps = [
@@ -26,8 +26,8 @@ export default function CarrierSignupPage() {
     <main id="main-content" className="page-shell">
       <PageIntro
         eyebrow="Carrier signup"
-        title="Start as a moverrr carrier"
-        description="moverrr is for carriers already making Sydney runs who want to fill spare room, not chase quote requests."
+        title="Start as a MoveMate carrier"
+        description="MoveMate is for carriers already making Sydney runs who want to fill spare room, not chase quote requests."
       />
 
       {showDevBanner ? (

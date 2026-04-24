@@ -232,7 +232,7 @@ export async function resolveDispute(params: {
           html: buildBookingEmail({
             eyebrow: "Dispute update",
             title: `Dispute status: ${params.status}`,
-            intro: "The dispute status changed in moverrr and the latest ops note is below.",
+            intro: "The dispute status changed in MoveMate and the latest ops note is below.",
             bookingReference: bookingParties?.booking_reference ?? data.booking_id,
             routeLabel: "Open the booking detail for the current proof and status record.",
             ctaPath: `/bookings/${data.booking_id}`,

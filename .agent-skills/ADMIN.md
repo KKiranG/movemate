@@ -2,7 +2,7 @@
 
 ## Why admin exists
 
-Admin is not a nice-to-have in moverrr.
+Admin is not a nice-to-have in MoveMate.
 It is the trust and exception-handling layer that makes an early marketplace survivable.
 
 Admin exists to:

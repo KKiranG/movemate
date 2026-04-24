@@ -1,7 +1,7 @@
 ---
 name: admin-queue-review
 description: Review the current admin queue and return decisions on disputes, verification, payouts, stuck bookings, and urgent follow-ups.
-when_to_use: Use for daily or weekly ops review on moverrr's manual-first admin surfaces.
+when_to_use: Use for daily or weekly ops review on MoveMate's manual-first admin surfaces.
 background: true
 ---
 

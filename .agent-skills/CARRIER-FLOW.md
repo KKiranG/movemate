@@ -60,7 +60,7 @@ The carrier home is not a static dashboard. It adapts to the carrier's lifecycle
 1. Route (start + end, optional up to 2 waypoints, optional return trip toggle)
 2. Schedule (date, time window, optional "regular run" toggle → weekly / fortnightly / specific days; auto-generates up to 4 weeks ahead)
 3. Vehicle & Capacity (select vehicle, available space descriptor, accepted item categories, item constraints)
-4. Detour & Pricing (max detour tolerance in km; base price per accepted category/tier; optional stairs and helper surcharge rates; optional per-km detour rate)
+4. Detour & Pricing (max detour tolerance in km for eligibility only; base price per accepted category/tier; fixed stairs and helper add-ons)
 5. Review & Publish (or save as draft)
 
 **Supply quality requirements to publish:**

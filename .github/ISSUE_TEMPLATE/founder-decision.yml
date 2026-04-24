@@ -3,7 +3,7 @@ description: Capture a founder-level tradeoff or one-way-door decision before im
 title: "[Founder Decision]: "
 labels:
   - "type:founder-decision"
-  - "status:needs-founder"
+  - "state:needs-founder-decision"
 body:
   - type: markdown
     attributes:
@@ -90,11 +90,18 @@ body:
         - state:deferred
     validations:
       required: true
-  - type: input
+  - type: dropdown
     id: lock_group
     attributes:
       label: Lock group
-      placeholder: none
+      options:
+        - system-hygiene
+        - matching-pricing-state
+        - customer-booking-lifecycle
+        - customer-acquisition
+        - carrier-activation-posting
+        - carrier-operations
+        - admin-operator
     validations:
       required: true
   - type: dropdown
@@ -164,10 +171,29 @@ body:
       placeholder: none
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: safe_parallelism
     attributes:
       label: Safe parallelism
+      options:
+        - "yes"
+        - "no"
+    validations:
+      required: true
+  - type: dropdown
+    id: touches_shared_logic
+    attributes:
+      label: Touches shared logic
+      description: Choose yes if the decision affects pricing, matching, booking state, schema, auth, payment, or payout logic.
+      options:
+        - "no"
+        - "yes"
+    validations:
+      required: true
+  - type: textarea
+    id: parallelism_notes
+    attributes:
+      label: Parallelism notes
       placeholder: Other work can proceed outside this decision boundary.
     validations:
       required: true

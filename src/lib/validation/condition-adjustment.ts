@@ -20,7 +20,7 @@ export const conditionAdjustmentCreateSchema = z.object({
         CONDITION_ADJUSTMENT_AMOUNTS.includes(
           value as (typeof CONDITION_ADJUSTMENT_AMOUNTS)[number],
         ),
-      "Choose one of moverrr's fixed adjustment amounts.",
+      "Choose one of MoveMate's fixed adjustment amounts.",
     ),
   note: z.string().trim().max(280).optional(),
 });

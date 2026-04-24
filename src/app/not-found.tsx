@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Page not found",
-  description: "The page you were looking for does not exist on moverrr.",
+  description: "The page you were looking for does not exist on MoveMate.",
 };
 
 export default function NotFound() {

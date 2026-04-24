@@ -53,7 +53,7 @@ export default function ActivityPage() {
         {visibleItems.length === 0 ? (
           <EmptyStateCard
             title="Your moves will appear here"
-            description="Start a new move request and moverrr will keep the status trail in one place."
+            description="Start a new move request and MoveMate will keep the status trail in one place."
             ctaHref="/move/new"
             ctaLabel="Start a move"
           />

@@ -587,7 +587,7 @@ export function BookingForm({
           <p className="mt-2 text-sm text-text-secondary">
             {successState.requestMode === "single"
               ? "The carrier can now review the route, access, and photo-backed fit details."
-              : "moverrr sent this move request to up to three matching carriers and will stop the rest once one accepts."}
+              : "MoveMate sent this move request to up to three matching carriers and will stop the rest once one accepts."}
           </p>
         </div>
         <div className="rounded-xl border border-success/20 bg-background px-4 py-3">

@@ -409,7 +409,7 @@ async function expireStaleBookingRequests() {
           ctaPath: `/bookings/${bookingRequest.id}`,
           ctaLabel: "Open request detail",
           bodyLines: [
-            "moverrr will carry the route into recovery alerts when the move still needs supply.",
+            "MoveMate will carry the route into recovery alerts when the move still needs supply.",
             "You do not need to restart the request from scratch just because one window closed.",
           ],
         });
@@ -520,7 +520,7 @@ async function revokeSiblingBookingRequests(params: {
           ctaLabel: "Open requests",
           bodyLines: [
             "No action is required on this request now.",
-            "moverrr revoked the sibling requests so the customer does not stay double-booked.",
+            "MoveMate revoked the sibling requests so the customer does not stay double-booked.",
           ],
         });
       }
@@ -1065,7 +1065,7 @@ export async function cancelBookingRequestByCustomer(
           ctaLabel: "Open requests",
           bodyLines: [
             "No acceptance action is needed now.",
-            "moverrr closed the open request group cleanly so capacity is not held against a withdrawn move.",
+            "MoveMate closed the open request group cleanly so capacity is not held against a withdrawn move.",
           ],
         });
       }
@@ -1166,7 +1166,7 @@ export async function createRequestToBook(userId: string, input: BookingRequestC
       subject: `New request to review: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
       title: "A customer requested space on your trip",
       intro:
-        "Review the route, fit, and access details in moverrr and decide inside the bounded response window.",
+        "Review the route, fit, and access details in MoveMate and decide inside the bounded response window.",
       routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
       itemLabel: moveRequest.item.description,
       statusLabel: "Pending",
@@ -1174,7 +1174,7 @@ export async function createRequestToBook(userId: string, input: BookingRequestC
       ctaLabel: "Open requests",
       bodyLines: [
         "Use Accept, Decline, or one factual clarification round only.",
-        "Keep the full decision trail in moverrr so support and payout logic stay clean later.",
+        "Keep the full decision trail in MoveMate so support and payout logic stay clean later.",
       ],
     });
   }
@@ -1294,7 +1294,7 @@ export async function createFastMatchBookingRequests(
         subject: `Fast Match request: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
         title: "Fast Match sent this move request to you",
         intro:
-          "The customer asked moverrr to reach a few fitting carriers at once. If you accept first, the rest of the group closes automatically.",
+          "The customer asked MoveMate to reach a few fitting carriers at once. If you accept first, the rest of the group closes automatically.",
         routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
         itemLabel: moveRequest.item.description,
         statusLabel: "Pending",
@@ -1436,7 +1436,7 @@ export async function applyCarrierBookingRequestAction(
         subject: `Request declined: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
         title: "This carrier declined the request",
         intro:
-          "The request did not convert with this carrier, but moverrr can carry the move into the next recovery step.",
+          "The request did not convert with this carrier, but MoveMate can carry the move into the next recovery step.",
         routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
         itemLabel: moveRequest.item.description,
         statusLabel: "Declined",
@@ -1572,7 +1572,7 @@ export async function applyCarrierBookingRequestAction(
       subject: `Request accepted: ${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
       title: "A carrier accepted your request",
       intro:
-        "The request is now a live booking in moverrr, so proof, payment, and fulfilment updates move into the booking record.",
+        "The request is now a live booking in MoveMate, so proof, payment, and fulfilment updates move into the booking record.",
       routeLabel: `${moveRequest.route.pickupSuburb} to ${moveRequest.route.dropoffSuburb}`,
       itemLabel: moveRequest.item.description,
       statusLabel: "Accepted",

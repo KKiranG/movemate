@@ -610,7 +610,7 @@ export async function createBookingForCustomer(
     html: buildBookingEmail({
       eyebrow: "Booking received",
       title: "Your booking is waiting on carrier confirmation",
-      intro: "The route is reserved in moverrr while the carrier confirms it inside the pending response window.",
+      intro: "The route is reserved in MoveMate while the carrier confirms it inside the pending response window.",
       bookingReference: booking.bookingReference,
       routeLabel: `${listing.origin_suburb} to ${listing.destination_suburb}`,
       tripLabel: `${listing.trip_date} · ${listing.time_window}`,
@@ -620,8 +620,8 @@ export async function createBookingForCustomer(
       bulletItems: [
         "Keep access notes and contact numbers handy.",
         "Make sure the item is ready inside the agreed pickup window.",
-        "Payment stays in moverrr until proof and completion logic are satisfied.",
-        "If anyone asks for cash, bank transfer, or off-platform extras, stop and report it in moverrr.",
+        "Payment stays in MoveMate until proof and completion logic are satisfied.",
+        "If anyone asks for cash, bank transfer, or off-platform extras, stop and report it in MoveMate.",
       ],
     }),
   });
@@ -641,7 +641,7 @@ export async function createBookingForCustomer(
       html: buildBookingEmail({
         eyebrow: "New booking request",
         title: "A customer requested space on your trip",
-        intro: "Review the booking in moverrr and confirm or decline it before the pending hold expires.",
+        intro: "Review the booking in MoveMate and confirm or decline it before the pending hold expires.",
         bookingReference: booking.bookingReference,
         routeLabel: `${listing.origin_suburb} to ${listing.destination_suburb}`,
         tripLabel: `${listing.trip_date} · ${listing.time_window}`,
@@ -649,7 +649,7 @@ export async function createBookingForCustomer(
         ctaPath: `/carrier/trips/${booking.listingId}?focus=${booking.id}#booking-${booking.id}`,
         ctaLabel: "Review booking",
         bulletItems: [
-          "Keep payment and extra charges inside moverrr.",
+          "Keep payment and extra charges inside MoveMate.",
           "Pickup and delivery proof will be required before payout release.",
           "Important booking replies should still land quickly while the request is pending.",
         ],
@@ -1106,7 +1106,7 @@ export async function updateBookingStatusForActor(params: {
                         : `Booking status: ${params.nextStatus.replaceAll("_", " ")}`,
               intro:
                 params.nextStatus === "confirmed"
-                  ? "The booking is confirmed and the route is locked in moverrr."
+                  ? "The booking is confirmed and the route is locked in MoveMate."
                   : params.nextStatus === "delivered" && target.audience === "customer"
                     ? "Review the handoff, then confirm receipt or raise a dispute if anything is wrong."
                     : params.nextStatus === "completed"
@@ -1127,15 +1127,15 @@ export async function updateBookingStatusForActor(params: {
                   ? getConfirmedBookingChecklist()
                   : params.nextStatus === "delivered" && target.audience === "customer"
                     ? [
-                        "Confirm receipt in moverrr once the handoff is complete.",
+                        "Confirm receipt in MoveMate once the handoff is complete.",
                         "Raise a dispute in-platform if the item, condition, or handoff was not correct.",
                       ]
                     : params.nextStatus === "cancelled"
                       ? [
                           data.payment_status === "refunded"
-                            ? "Any captured payment is being returned through moverrr."
-                            : "Any uncaptured payment hold is being voided inside moverrr.",
-                          "No extra payment should move outside moverrr for this booking.",
+                            ? "Any captured payment is being returned through MoveMate."
+                            : "Any uncaptured payment hold is being voided inside MoveMate.",
+                          "No extra payment should move outside MoveMate for this booking.",
                         ]
                       : [],
             }),
@@ -1570,7 +1570,7 @@ export async function expirePendingBookings(params?: {
                 eyebrow: "Pending booking expired",
                 title: "The pending response window has closed",
                 intro:
-                  "This booking expired before it was confirmed, so moverrr released the capacity back to the trip.",
+                  "This booking expired before it was confirmed, so MoveMate released the capacity back to the trip.",
                 bookingReference: booking.bookingReference,
                 routeLabel: `${booking.pickupSuburb ?? "Pickup"} to ${booking.dropoffSuburb ?? "Dropoff"}`,
                 priceLabel: formatCurrencyLabel(booking.pricing.totalPriceCents),
@@ -1578,7 +1578,7 @@ export async function expirePendingBookings(params?: {
                 ctaLabel: "Open booking detail",
                 bodyLines: [
                   "The authorization hold should no longer progress as an active booking.",
-                  "If you still need a route, search again and save the corridor so moverrr can alert you when supply appears.",
+                  "If you still need a route, search again and save the corridor so MoveMate can alert you when supply appears.",
                 ],
               }),
             }),
@@ -1857,9 +1857,9 @@ export function buildCarrierPayoutHolds(
           stage: booking.status === "completed" ? "Completed" : "Delivered",
           missingStep: "Finish payout setup",
           explanation:
-            "The job can keep moving through proof and confirmation, but moverrr cannot release funds to your bank until payout onboarding is complete.",
+            "The job can keep moving through proof and confirmation, but MoveMate cannot release funds to your bank until payout onboarding is complete.",
           nextAction:
-            "Open payouts, finish Stripe onboarding, and then moverrr can release eligible funds after confirmation and capture clear.",
+            "Open payouts, finish Stripe onboarding, and then MoveMate can release eligible funds after confirmation and capture clear.",
           ctaHref: "/carrier/payouts",
           ctaLabel: "Finish payout setup",
           priority: setupHoldPriority,
@@ -1884,9 +1884,9 @@ export function buildCarrierPayoutHolds(
             stage: "Confirmed",
             missingStep: "Pickup proof pack still missing",
             explanation:
-              "Funds stay held while the run is still ahead of pickup. moverrr needs pickup proof before this booking can progress toward release.",
+              "Funds stay held while the run is still ahead of pickup. MoveMate needs pickup proof before this booking can progress toward release.",
             nextAction:
-              "Open the trip on pickup day, upload pickup proof, and keep any exceptions recorded inside moverrr.",
+              "Open the trip on pickup day, upload pickup proof, and keep any exceptions recorded inside MoveMate.",
             ctaHref: `/carrier/trips/${booking.listingId}?focus=${booking.id}#booking-${booking.id}`,
             ctaLabel: "Open booking",
             priority: 4,
@@ -1922,9 +1922,9 @@ export function buildCarrierPayoutHolds(
             stage: "Delivered",
             missingStep: "Waiting for customer receipt confirmation",
             explanation:
-              "Delivery is recorded, but moverrr keeps funds held until the customer confirms receipt or a dispute is raised and resolved.",
+              "Delivery is recorded, but MoveMate keeps funds held until the customer confirms receipt or a dispute is raised and resolved.",
             nextAction:
-              "Review the booking, nudge the customer to confirm in-platform, and keep any payment follow-up inside moverrr.",
+              "Review the booking, nudge the customer to confirm in-platform, and keep any payment follow-up inside MoveMate.",
             ctaHref: `/carrier/trips/${booking.listingId}?focus=${booking.id}#booking-${booking.id}`,
             ctaLabel: "Review booking",
             priority: 1,
@@ -1941,7 +1941,7 @@ export function buildCarrierPayoutHolds(
             stage: "Completed",
             missingStep: "Manual capture review required",
             explanation:
-              "Completion is recorded, but Stripe capture failed. Ops needs to review the payment state before moverrr can release payout.",
+              "Completion is recorded, but Stripe capture failed. Ops needs to review the payment state before MoveMate can release payout.",
             nextAction:
               "Open payouts and flag this booking for ops review so capture can be retried or resolved manually.",
             ctaHref: "/carrier/payouts",

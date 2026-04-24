@@ -105,7 +105,7 @@ export function StatusUpdateActions({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           }),
-        () => reject(new Error("Allow location access so moverrr can timestamp and verify proof.")),
+        () => reject(new Error("Allow location access so MoveMate can timestamp and verify proof.")),
         {
           enableHighAccuracy: true,
           timeout: 10_000,
@@ -547,7 +547,7 @@ export function StatusUpdateActions({
       </div>
       <p className="text-xs text-text-secondary">
         If access is blocked, the item mismatches the booking, or someone pushes payment
-        off-platform, capture evidence right away and keep the report inside moverrr.
+        off-platform, capture evidence right away and keep the report inside MoveMate.
       </p>
       {error ? <p className="text-sm text-error">{error}</p> : null}
     </div>

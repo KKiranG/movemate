@@ -28,7 +28,7 @@ export default function InboxPage() {
           <p className="eyebrow">Updates</p>
           <h1 className="heading">Booking updates, not noisy chat</h1>
           <p className="body text-[var(--text-secondary)]">
-            moverrr keeps coordination structured so you can follow the move without message chaos.
+            MoveMate keeps coordination structured so you can follow the move without message chaos.
           </p>
         </div>
 

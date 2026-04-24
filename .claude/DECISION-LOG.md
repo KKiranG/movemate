@@ -10,7 +10,7 @@ Format: `[DATE] — Decision — Rationale — Status`
 
 **[2025-Q4] — Need-first, match-ranked model over browse-first catalogue**
 Carriers post real spare capacity. Customers declare a specific move need via a short wizard. The system matches and returns a confidence-ranked shortlist. Customers do not browse an open inventory of trips.
-Rationale: Browse-first turns moverrr into a trip catalogue; customers cannot self-serve matching complex item+route+timing constraints.
+Rationale: Browse-first turns MoveMate into a trip catalogue; customers cannot self-serve matching complex item+route+timing constraints.
 Status: Settled. Governs all UI, matching, and copy decisions.
 
 **[2025-Q4] — No carrier bidding**
@@ -35,13 +35,17 @@ Status: Settled. Enforced via CLAUDE.md invariant.
 **[2025-Q4] — Commission applies to `basePriceCents` only**
 The 15% platform commission is calculated on the base fare only, never on stairs fees or helper fees.
 Rationale: Customers should not be charged a commission on optional services they chose to add. Carrier quote equity.
-Status: Settled for current code. The governing blueprint describes 15% of full subtotal — this is an **unresolved conflict** that needs a founder decision before any code change.
-See: MVP-BOUNDARY.md § Pricing Formula Ambiguity.
+Status: Settled. The governing blueprint and `src/lib/pricing/breakdown.ts` now agree.
 
-**[2025-Q4] — Manual payment capture by admin**
-Stripe payment intents are authorised at booking creation but not captured until admin manually triggers capture. Capture happens after delivery confirmation.
-Rationale: Human review before money moves. Disputes can be raised between delivery and capture.
-Status: Settled. Admin capture route: `POST /api/admin/bookings/[id]/capture`.
+**[2026-04-24] — Detour is matching eligibility, not customer pricing**
+MoveMate does not charge customers for carrier detour kilometres or minutes. Detour tolerance is set by the carrier as an accept/decline and route-fit input.
+Rationale: MoveMate monetises spare capacity on trips already happening; carriers decide whether a nearby job is worth accepting, and customers should not be put into an Uber-style incremental kilometre model.
+Status: Settled. See `.claude/agent-memory/product-decisions.md`.
+
+**[2026-04-24] — Capture on driver acceptance, payout release after proof/confirmation**
+Stripe payment intents are authorised when the customer submits a request, captured when the driver accepts, then held through delivery confirmation or the proof-backed auto-release window.
+Rationale: The customer must have a real payment hold before the carrier commits; capture on acceptance prevents unpaid accepted work while still separating carrier payout from customer capture.
+Status: Settled product truth. Runtime code still has drift captured in GitHub issue `#72`.
 
 **[2025-Q4] — Payout held until delivery confirmed**
 Carrier payout is not released until the customer confirms receipt (or a timeout passes). Disputes pause the payout hold.
@@ -87,8 +91,8 @@ Rationale: Resend availability is not a booking invariant. Email is a side effec
 Status: Settled. Enforced via CLAUDE.md invariant.
 
 **[2025-Q4] — Mobile-first web app, not native iOS app**
-moverrr is a mobile-first web application. All iOS-specific UX rules (44px targets, HEIC, safe-area, capture=environment) apply to the web app.
-Note: Earlier docs described moverrr as "an iOS native app." This was corrected during the 2025-Q4 doc realignment. The product is and has always been a web app.
+MoveMate is a mobile-first web application. All iOS-specific UX rules (44px targets, HEIC, safe-area, capture=environment) apply to the web app.
+Note: Earlier docs described the product as "an iOS native app." This was corrected during the 2025-Q4 doc realignment. The product is and has always been a web app.
 Status: Settled.
 
 ---

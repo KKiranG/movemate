@@ -204,8 +204,8 @@ async function notifyCounterparty(params: {
       title: params.subject,
       intro:
         params.emailType === "review_created"
-          ? "A new review was submitted on this completed moverrr booking."
-          : "A dispute was opened on this moverrr booking and needs attention in-platform.",
+          ? "A new review was submitted on this completed MoveMate booking."
+          : "A dispute was opened on this MoveMate booking and needs attention in-platform.",
       bookingReference:
         (booking as { booking_reference?: string } | null)?.booking_reference ?? params.bookingId,
       routeLabel: "Open the booking detail for the latest proof, status, and timeline.",
@@ -372,7 +372,7 @@ export async function createReviewForBooking(userId: string, bookingId: string, 
     recipientRole: context.actorRole === "customer" ? "carrier" : "customer",
     emailType: "review_created",
     subject: "New booking review submitted",
-    bodyLines: ["A review has been submitted for your completed moverrr booking."],
+    bodyLines: ["A review has been submitted for your completed MoveMate booking."],
   });
 
   return toReview(data as ReviewRow);
@@ -451,7 +451,7 @@ export async function createDisputeForBooking(
     emailType: "dispute_raised",
     subject: "A booking dispute has been raised",
     bodyLines: [
-      "A dispute has been opened on one of your moverrr bookings.",
+      "A dispute has been opened on one of your MoveMate bookings.",
       "Check the booking timeline and proof details before replying.",
     ],
   });

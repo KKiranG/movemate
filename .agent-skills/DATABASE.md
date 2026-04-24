@@ -25,7 +25,7 @@ Key fields: `customer_id`, `pickup` (lat/lng + address + suburb), `dropoff`, `it
 ### `offers`
 A computed match linking a Trip to a MoveRequest. Created by the matching pipeline.
 
-Key fields: `trip_id`, `move_request_id`, `computed_match_score`, `match_class` (direct / near_pickup / near_dropoff / minor_detour / nearby_date / partial_route / needs_approval), `match_explanation` (string), `detour_estimate_km`, `detour_estimate_min`, `fit_confidence` (likely_fits / review_photos / needs_approval), `computed_price_total`, `price_breakdown{base, add_ons{}, detour_adj, platform_fee, gst}`, `created_at`
+Key fields: `trip_id`, `move_request_id`, `computed_match_score`, `match_class` (direct / near_pickup / near_dropoff / minor_detour / nearby_date / partial_route / needs_approval), `match_explanation` (string), `detour_estimate_km`, `detour_estimate_min`, `fit_confidence` (likely_fits / review_photos / needs_approval), `computed_price_total`, `price_breakdown{base, add_ons{}, platform_fee, gst}`, `created_at`
 
 ### `booking_requests`
 The customer's request to a specific carrier (Request-to-Book) or a group of carriers (Fast Match).

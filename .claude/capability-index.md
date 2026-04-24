@@ -45,6 +45,9 @@ Read these before starting any non-trivial task:
 | `.claude/CODEBASE-MAP.md` | Where is the file that owns X? What routes exist? What are the migrations? |
 | `.claude/MVP-BOUNDARY.md` | Is this feature in scope for the current product cycle? |
 | `.claude/DECISION-LOG.md` | Is this architectural question already settled? |
+| `.claude/worker-handoff-template.md` | What exact packet should a coordinator give a worker agent? |
+| `.claude/scout-audit-template.md` | How should a read-heavy scout report evidence without mutating code? |
+| `.claude/founder-decision-packet-template.md` | What packet should reach the founder when a real decision is needed? |
 
 ## Skills And Workflows
 

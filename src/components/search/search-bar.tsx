@@ -221,7 +221,7 @@ export function SearchBar({
       id="search-form"
       onSubmit={handleSubmit}
       className="surface-card flex flex-col gap-3 p-4"
-      aria-label="Tell moverrr what needs moving"
+      aria-label="Tell MoveMate what needs moving"
     >
       <div className="grid gap-3 rounded-2xl border border-border/80 bg-black/[0.02] p-3 dark:bg-white/[0.03]">
         <div className="flex items-center justify-between gap-3">

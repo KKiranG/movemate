@@ -1,6 +1,6 @@
 ---
 name: ios-touch-audit
-description: Audit and tighten moverrr UI changes so they actually work for iPhone-first usage, especially in carrier and proof-heavy flows.
+description: Audit and tighten MoveMate UI changes so they actually work for iPhone-first usage, especially in carrier and proof-heavy flows.
 when_to_use: Use when editing carrier, customer, or admin UI; changing forms or buttons; touching proof/photo uploads; or doing polish on mobile layouts. Examples: "improve the dashboard UI", "fix the trip wizard", "clean up the booking page", "make mobile better", or "audit touch targets".
 paths:
   - src/app/**

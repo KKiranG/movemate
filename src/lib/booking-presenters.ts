@@ -44,7 +44,7 @@ export function getBookingPaymentStateSummary(booking: Booking) {
       title: "Updated total needs a fresh card authorization",
       description:
         booking.paymentFailureReason ??
-        "The customer accepted a structured condition adjustment, so moverrr needs a fresh authorization for the updated booking total before pickup can continue.",
+        "The customer accepted a structured condition adjustment, so MoveMate needs a fresh authorization for the updated booking total before pickup can continue.",
       retryable: true,
     };
   }
@@ -77,7 +77,7 @@ export function getBookingPaymentStateSummary(booking: Booking) {
         badge: BOOKING_PAYMENT_LABELS.authorized,
         tone: "warning" as const,
         title: "Release pending while proof and the dispute window close",
-        description: `moverrr is holding the authorized amount while proof is reviewed and the ${DELIVERY_AUTO_RELEASE_HOURS}-hour dispute window runs.`,
+        description: `MoveMate is holding the authorized amount while proof is reviewed and the ${DELIVERY_AUTO_RELEASE_HOURS}-hour dispute window runs.`,
         retryable: false,
       };
   }
@@ -88,7 +88,7 @@ export function getBookingPaymentStateSummary(booking: Booking) {
       tone: "success" as const,
       title: "Authorization hold is active",
       description:
-        "The card hold is active. moverrr only finalizes the charge after delivery proof and the release path are complete.",
+        "The card hold is active. MoveMate only finalizes the charge after delivery proof and the release path are complete.",
       retryable: false,
     };
   }
@@ -99,7 +99,7 @@ export function getBookingPaymentStateSummary(booking: Booking) {
         badge: BOOKING_PAYMENT_LABELS.captured,
         tone: "success" as const,
         title: "Paid after the release window closed",
-        description: "The job is complete, the release window closed, and moverrr finalized the booking payment.",
+        description: "The job is complete, the release window closed, and MoveMate finalized the booking payment.",
         retryable: false,
       };
     }
@@ -107,7 +107,7 @@ export function getBookingPaymentStateSummary(booking: Booking) {
     return {
       badge: BOOKING_PAYMENT_LABELS.captured,
       tone: "success" as const,
-      title: "Paid through moverrr",
+      title: "Paid through MoveMate",
       description: "The booking charge is finalized and attached to the proof and payout trail.",
       retryable: false,
     };
@@ -130,7 +130,7 @@ export function getBookingPaymentStateSummary(booking: Booking) {
       title: "Manual payment review required",
       description:
         booking.paymentFailureReason ??
-        "The release path hit a capture problem, so moverrr is holding payout until ops reviews it.",
+        "The release path hit a capture problem, so MoveMate is holding payout until ops reviews it.",
       retryable: false,
     };
   }

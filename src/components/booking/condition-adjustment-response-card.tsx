@@ -11,11 +11,11 @@ import type { ConditionAdjustment } from "@/types/condition-adjustment";
 
 function getStatusCopy(adjustment: ConditionAdjustment) {
   if (adjustment.status === "pending") {
-    return "One structured response only: accept the controlled amount or reject it and let moverrr close the booking under the misdescription policy.";
+    return "One structured response only: accept the controlled amount or reject it and let MoveMate close the booking under the misdescription policy.";
   }
 
   if (adjustment.status === "accepted") {
-    return "The updated total is now attached to the booking. If payment recovery is required, moverrr will show it on this page.";
+    return "The updated total is now attached to the booking. If payment recovery is required, MoveMate will show it on this page.";
   }
 
   if (adjustment.status === "rejected") {

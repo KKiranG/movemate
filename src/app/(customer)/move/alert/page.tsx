@@ -1,9 +1,27 @@
-import Link from "next/link";
-
+import { AlertNetworkClient } from "@/app/(customer)/move/alert/alert-network-client";
 import { TopAppBar } from "@/components/spec/chrome";
-import { Button } from "@/components/ui/button";
+import { requirePageSessionUser } from "@/lib/auth";
+import { getMoveRequestByIdForCustomer } from "@/lib/data/move-requests";
+import { getCustomerProfileForUser } from "@/lib/data/profiles";
 
-export default function AlertNetworkPage() {
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export default async function AlertNetworkPage({
+  searchParams,
+}: {
+  searchParams?: { moveRequestId?: string };
+}) {
+  const requestedMoveRequestId = searchParams?.moveRequestId;
+  const user = requestedMoveRequestId && UUID_PATTERN.test(requestedMoveRequestId)
+    ? await requirePageSessionUser()
+    : null;
+  const customer = user ? await getCustomerProfileForUser(user.id) : null;
+  const moveRequest =
+    customer && requestedMoveRequestId
+      ? await getMoveRequestByIdForCustomer(customer.id, requestedMoveRequestId)
+      : null;
+
   return (
     <main>
       <TopAppBar title="Alert the Network" backHref="/move/new/results" />
@@ -15,36 +33,20 @@ export default function AlertNetworkPage() {
             We’ll alert verified drivers on similar corridors and tell you the moment someone posts your route.
           </p>
         </div>
-
-        <div className="surface-1 space-y-3">
-          <p className="title">What happens next</p>
-          <p className="caption">1. We alert drivers now.</p>
-          <p className="caption">2. You get push and email updates.</p>
-          <p className="caption">3. If the route stays quiet, the team can step in manually.</p>
-        </div>
-
-        <div className="surface-1">
-          <p className="caption">Sofa · Newtown → Burwood · this week</p>
-          <Link
-            href="/move/new/route"
-            className="mt-3 inline-flex min-h-[44px] min-w-[44px] items-center rounded-[var(--radius-pill)] border border-[var(--border-subtle)] px-3 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
-          >
-            Edit this move
-          </Link>
-        </div>
-
-        <label className="flex min-h-[54px] min-w-[44px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated-1)] px-4">
-          <input type="checkbox" className="h-4 w-4" />
-          <span className="caption">Also broaden my dates by ±3 days</span>
-        </label>
-        <label className="flex min-h-[54px] min-w-[44px] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated-1)] px-4">
-          <input type="checkbox" defaultChecked className="h-4 w-4" />
-          <span className="caption">Notify me via email too</span>
-        </label>
-
-        <Button asChild className="w-full">
-          <Link href="/activity">Alert the Network</Link>
-        </Button>
+        <AlertNetworkClient
+          moveRequestId={requestedMoveRequestId}
+          moveRequest={
+            moveRequest
+              ? {
+                  id: moveRequest.id,
+                  itemDescription: moveRequest.item.description,
+                  pickupSuburb: moveRequest.route.pickupSuburb,
+                  dropoffSuburb: moveRequest.route.dropoffSuburb,
+                  preferredDate: moveRequest.route.preferredDate,
+                }
+              : null
+          }
+        />
       </section>
     </main>
   );

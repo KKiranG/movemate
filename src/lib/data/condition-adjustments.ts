@@ -243,7 +243,7 @@ export async function createConditionAdjustmentForCarrier(params: {
 
   if (existing) {
     throw new AppError(
-      "moverrr allows only one condition adjustment round per booking.",
+      "MoveMate allows only one condition adjustment round per booking.",
       409,
       "condition_adjustment_already_exists",
     );
@@ -296,7 +296,7 @@ export async function createConditionAdjustmentForCarrier(params: {
         eyebrow: "Condition adjustment",
         title: "The carrier reported a material mismatch at pickup",
         intro:
-          "moverrr has opened one structured adjustment round. Review the reason and respond inside the booking record.",
+          "MoveMate has opened one structured adjustment round. Review the reason and respond inside the booking record.",
         bookingReference: booking.bookingReference,
         routeLabel: `${booking.pickupSuburb ?? "Pickup"} to ${booking.dropoffSuburb ?? "Drop-off"}`,
         ctaPath: `/bookings/${booking.id}`,
@@ -464,7 +464,7 @@ export async function respondToConditionAdjustment(params: {
               eyebrow: "Condition adjustment",
               title: "The customer accepted the structured adjustment",
               intro:
-                "moverrr updated the booking total and now needs the updated payment authorization before pickup can continue.",
+                "MoveMate updated the booking total and now needs the updated payment authorization before pickup can continue.",
               bookingReference: booking.bookingReference,
               routeLabel: `${booking.pickupSuburb ?? "Pickup"} to ${booking.dropoffSuburb ?? "Drop-off"}`,
               ctaPath: `/bookings/${booking.id}`,
@@ -541,7 +541,7 @@ export async function respondToConditionAdjustment(params: {
             eyebrow: "Condition adjustment",
             title: "The structured adjustment was rejected",
             intro:
-              "moverrr cancelled the booking under the misdescription policy so the issue stays on-platform and auditable.",
+              "MoveMate cancelled the booking under the misdescription policy so the issue stays on-platform and auditable.",
             bookingReference: booking.bookingReference,
             routeLabel: `${booking.pickupSuburb ?? "Pickup"} to ${booking.dropoffSuburb ?? "Drop-off"}`,
             ctaPath: `/bookings/${booking.id}`,

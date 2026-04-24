@@ -17,7 +17,7 @@ const steps: {
   {
     status: "confirmed",
     label: "Accepted",
-    description: "Carrier accepted and your move is now active in moverrr",
+    description: "Carrier accepted and your move is now active in MoveMate",
   },
   {
     status: "picked_up",

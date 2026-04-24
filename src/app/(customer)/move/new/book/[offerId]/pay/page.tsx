@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 
 import { TopAppBar } from "@/components/spec/chrome";
 import { Button } from "@/components/ui/button";
@@ -14,22 +15,22 @@ export default function BookPayPage({ params }: { params: { offerId: string } })
         </p>
 
         <div className="surface-1 space-y-3">
-          <p className="title">Continue to submit request</p>
-          <Button className="w-full">Continue with Apple</Button>
-          <Button className="w-full" variant="secondary">
-            Continue with Google
-          </Button>
-          <Button asChild className="w-full" variant="secondary">
-            <Link href="/auth/login">Use phone code</Link>
-          </Button>
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 text-[var(--text-primary)]" />
+            <div>
+              <p className="title">Payment authorisation required</p>
+              <p className="caption">
+                Secure card authorisation is temporarily unavailable, so this request cannot be submitted yet.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="surface-1">
-          <p className="caption">[Stripe Payment Element placeholder]</p>
-        </div>
-
-        <Button asChild className="w-full">
-          <Link href={`/move/new/book/${params.offerId}/submitted`}>Submit request</Link>
+        <Button className="w-full" disabled>
+          Submit request
+        </Button>
+        <Button asChild className="w-full" variant="secondary">
+          <Link href={`/move/new/book/${params.offerId}/price`}>Back to price</Link>
         </Button>
       </section>
     </main>

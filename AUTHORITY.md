@@ -1,6 +1,6 @@
 # MoveMate Authority Map
 
-This file is the meta-map. It tells any AI tool — Claude Code, Codex, Antigravity, Gemini/VS Code, Jules, and future entrants — which file holds universal truth, which files are tool-specific overlays, and which files are derived or reference-only.
+This file is the meta-map. It tells any AI tool — Claude Code, Codex, Antigravity, Gemini/VS Code, Jules, Hermes-style orchestrators, and future entrants — which file holds universal truth, which files are tool-specific overlays, and which files are derived or reference-only.
 
 The universal contract itself is [AGENTS.md](/Users/kiranghimire/Documents/moverrr/AGENTS.md). This file tells you how to read it.
 
@@ -38,7 +38,7 @@ MoveMate is designed to be worked on by multiple AI tools in parallel. Different
 
 ### Rules of the overlay
 
-- An overlay may add tool-specific workflow (approved skills, routing rules, hook paths, session-start patterns).
+- An overlay may add tool-specific workflow (optional skills, routing rules, hook paths, session-start patterns).
 - An overlay may not override a universal invariant declared in `AGENTS.md`.
 - If an overlay disagrees with `AGENTS.md`, the overlay is stale and must be corrected in the same task.
 - Adding a new tool is a one-file task: create `NEWTOOL.md`, list it here, do not rewrite `AGENTS.md` unless a universal invariant actually changed.
@@ -46,7 +46,7 @@ MoveMate is designed to be worked on by multiple AI tools in parallel. Different
 ### Indexing hygiene
 
 - Antigravity indexing is controlled by `.antigravityignore` at the repo root.
-- Do not vendor global tooling, worktree copies, or machine-specific agent workspace material into the repo root. Keep imported libraries as global installs or external local references.
+- Do not vendor global tooling, worktree copies, generated local snapshots, or machine-specific agent workspace material into the repo root. Keep imported libraries as global installs or external local references.
 
 ---
 
@@ -107,7 +107,7 @@ These paths may contain useful patterns, but they do not overrule MoveMate runti
 - `docs/product/**`
 - `docs/reference/decisions.md` — point-in-time decision checkpoint (full settled log: `.claude/DECISION-LOG.md`)
 - `docs/reference/experiment-ledger.md` — experiment schema template
-- `docs/engineering/repo-structure.md` — generated directory snapshot (not authority)
+- `docs/engineering/**`, when present — generated engineering snapshots only (not authority)
 
 ### Archive rules
 
@@ -118,4 +118,4 @@ These paths may contain useful patterns, but they do not overrule MoveMate runti
 
 The governing product source of truth is `movemate-product-blueprint.md`. The legacy Moverrr blueprint has been deleted.
 
-Imported workflow libraries such as gstack and OpenClaw should live as global installs or external local references, not as repo-root source trees inside MoveMate.
+Imported workflow libraries such as gstack, Hermes adapters, and OpenClaw should live as global installs or external local references, not as repo-root source trees inside MoveMate.

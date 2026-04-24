@@ -172,7 +172,7 @@ export const inboxThreads = [
   },
   {
     id: "system-payments",
-    title: "Moverrr system",
+    title: "MoveMate system",
     preview: "Payment hold confirmed for your request.",
     timestamp: "1h",
     unread: false,

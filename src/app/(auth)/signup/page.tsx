@@ -20,7 +20,7 @@ const roles = [
 
 export const metadata: Metadata = {
   title: "Create an account",
-  description: "Create a moverrr account to book spare capacity or post your next carrier run.",
+  description: "Create a MoveMate account to book spare capacity or post your next carrier run.",
 };
 
 export default function SignupPage() {

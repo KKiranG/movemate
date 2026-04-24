@@ -79,7 +79,7 @@ export function ConciergeOfferForm({
       <div>
         <p className="text-sm font-medium text-text">Create concierge offer</p>
         <p className="mt-1 text-sm text-text-secondary">
-          Send a founder-sourced match tied to this route request so the customer can continue through moverrr instead of leaving the platform.
+          Send a founder-sourced match tied to this route request so the customer can continue through MoveMate instead of leaving the platform.
         </p>
       </div>
 

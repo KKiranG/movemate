@@ -83,12 +83,19 @@ body:
         - state:deferred
     validations:
       required: true
-  - type: input
+  - type: dropdown
     id: lock_group
     attributes:
       label: Lock group
-      description: Shared area that should not be edited in parallel. Use `none` if not needed.
-      placeholder: github-sync
+      description: Shared area that should not be edited in parallel.
+      options:
+        - customer-acquisition
+        - customer-booking-lifecycle
+        - carrier-activation-posting
+        - carrier-operations
+        - matching-pricing-state
+        - admin-operator
+        - system-hygiene
     validations:
       required: true
   - type: dropdown
@@ -158,10 +165,29 @@ body:
       placeholder: none
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: safe_parallelism
     attributes:
       label: Safe parallelism
+      options:
+        - "no"
+        - "yes"
+    validations:
+      required: true
+  - type: dropdown
+    id: touches_shared_logic
+    attributes:
+      label: Touches shared logic
+      description: Choose yes for pricing, matching, booking state, schema, shared presenters, auth, or payment/payout logic.
+      options:
+        - "no"
+        - "yes"
+    validations:
+      required: true
+  - type: textarea
+    id: parallelism_notes
+    attributes:
+      label: Parallelism notes
       placeholder: App teams can keep shipping on feature code, but avoid the digest generator until this lands.
     validations:
       required: true
@@ -191,5 +217,12 @@ body:
         - Reproduce on current main.
         - Apply fix.
         - Re-run sync and verify the closed issue shows its linked PRs.
+    validations:
+      required: true
+  - type: textarea
+    id: rollback_risk
+    attributes:
+      label: Rollback risk
+      placeholder: Low. Revert the PR; no migration or user-facing state transition changes.
     validations:
       required: true

@@ -66,12 +66,11 @@ Stop immediately and run `founder-scope-check` if a task or request drifts towar
 
 ---
 
-## Pricing Formula Ambiguity (Pending Founder Decision)
+## Pricing Formula Boundary
 
-The existing code charges 15% commission on `basePriceCents` only (not stairs/helper add-ons).
-The governing blueprint describes 15% of the full subtotal including add-ons.
+The code and governing blueprint now agree: the 15% platform commission applies to `basePriceCents` only, not stairs, helper, structured adjustment, parking, or detour.
 
-**No code change should be made to pricing without an explicit founder confirmation of which formula is correct.** Until that confirmation is received, the existing code behavior is canonical.
+Do not re-open the older full-subtotal commission ambiguity unless the founder explicitly changes pricing economics.
 
 ---
 

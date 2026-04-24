@@ -229,7 +229,7 @@ a trip detail page):
 ```
 
 Flag as P3 items if:
-- `title` is just the brand name on every page ("moverrr" everywhere → "Search Trips · moverrr")
+- `title` is just the brand name on every page ("MoveMate" everywhere → "Search Trips · MoveMate")
 - `canonical` missing on pages with query params (creates duplicate-content SEO risk)
 - `og:title` not page-specific (missed social sharing opportunity)
 - `viewport` missing `viewport-fit=cover` (required for iOS notch/Dynamic Island)

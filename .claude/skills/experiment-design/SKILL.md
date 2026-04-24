@@ -1,6 +1,6 @@
 ---
 name: experiment-design
-description: Turn vague improvement ideas into bounded moverrr experiments with baseline, one change, metric, and keep/discard rule.
+description: Turn vague improvement ideas into bounded MoveMate experiments with baseline, one change, metric, and keep/discard rule.
 when_to_use: Use when a task is exploratory, optimization-heavy, or not yet justified as a permanent product change.
 invocation: manual
 ---

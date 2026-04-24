@@ -10,7 +10,7 @@ import { hasSupabaseEnv } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Log in",
-  description: "Log in to manage bookings, alerts, or carrier work on moverrr.",
+  description: "Log in to manage bookings, alerts, or carrier work on MoveMate.",
 };
 
 export default function LoginPage() {

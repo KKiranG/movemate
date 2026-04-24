@@ -58,17 +58,19 @@ npm run ops:labels
 npm run ops:sync-backlog
 ```
 
-## gstack
+## Workflow Tooling
 
-gstack is part of the approved workflow layer for this repo.
+MoveMate's repo operating system is tool-neutral. Use the workflow tooling available in your runtime, but do not make product or task authority depend on that tool.
+
+gstack is available as optional helper tooling on this machine:
 
 - Claude global install path: `~/.claude/skills/gstack`
 - Codex global install path: `~/.codex/skills/gstack*`
 - Claude repo hook: `.claude/hooks/check-gstack.sh`
-- Use `/browse` from gstack for web browsing in Claude.
-- Keep gstack as a global or external dependency. Do not vendor its skill trees into the MoveMate repo root.
 
-gstack helps with planning, review, QA, and ship loops. MoveMate product truth and repo-operating truth still come from the canonical docs in this repo.
+gstack, Hermes-style orchestration, Codex/Claude subagents, Jules, Gemini/Antigravity, and future tools may help with planning, review, QA, and ship loops. MoveMate product truth, issue authority, lock groups, and verification rules still come from the canonical docs in this repo.
+
+Keep workflow libraries as global or external dependencies. Do not vendor their skill trees into the MoveMate repo root.
 
 ## Naming Policy
 

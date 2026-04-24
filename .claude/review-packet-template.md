@@ -53,6 +53,13 @@
 - issue split needed: yes / no
 - follow-up captured for drift: yes / no / N/A
 
+## Agent quality scan
+- assumptions surfaced where material: yes / no / N/A
+- simpler approach considered: yes / no / N/A
+- no speculative abstraction or unused flexibility added: yes / no
+- unrelated code/comments left alone: yes / no
+- every changed line traces to the issue, invariant, or verification need: yes / no / partial
+
 ## Risk scan
 - user risk:
 - operational risk:

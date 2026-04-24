@@ -38,13 +38,13 @@ export function Wordmark({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 text-[18px] font-semibold tracking-[-0.04em]",
+        "inline-flex items-center gap-2 text-[18px] font-semibold",
         className,
       )}
       style={{ color }}
     >
       {showMark ? <BrandMark className="h-5 w-5" color={color ?? "currentColor"} /> : null}
-      <span>moverrr</span>
+      <span>MoveMate</span>
     </div>
   );
 }

@@ -54,7 +54,7 @@ Use this file as the discoverable index of repeatable repo workflows.
 - `spec`
   Interview-first feature spec that produces `SPEC.md` before implementation starts.
 - `review-pr`
-  Structured PR review against moverrr invariants, trust copy, iOS contract, and verification evidence.
+  Structured PR review against MoveMate invariants, trust copy, iOS contract, and verification evidence.
 - `session-start`
   Session kickoff that loads top backlog item, recent git state, and relevant memory before coding.
 
@@ -77,3 +77,10 @@ Naming: `docs/<slug>`, `research/<slug>`, `feature/<slug>`, `verify/<slug>`, `fi
   Affects deployment confidence or production trust.
 - destructive
   Changes git, data, or environment state and requires extra caution.
+
+## Packet Templates
+
+- `.claude/worker-handoff-template.md` — bounded implementation handoff for smaller agents or external tools.
+- `.claude/scout-audit-template.md` — read-only investigation packet.
+- `.claude/review-packet-template.md` — PR review and frontier adjudication packet.
+- `.claude/founder-decision-packet-template.md` — founder escalation packet for true product/business decisions.

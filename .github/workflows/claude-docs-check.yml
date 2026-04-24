@@ -14,6 +14,7 @@ on:
       - ".claude/capability-index.md"
       - ".claude/command-catalog.md"
       - ".claude/project-ops.md"
+      - ".claude/agent-memory/**"
       - ".claude/rules/**"
       - ".claude/skills/**"
       - ".claude/lock-groups.md"
@@ -24,6 +25,8 @@ on:
       - "docs/operations/**"
       - "next.config.js"
       - "package.json"
+      - "scripts/scan-product-drift.mjs"
+      - "scripts/validate-env.mjs"
       - "src/app/api/admin/route.ts"
       - "src/app/api/cron/**"
       - "src/app/api/health/route.ts"
@@ -43,6 +46,7 @@ on:
       - ".claude/capability-index.md"
       - ".claude/command-catalog.md"
       - ".claude/project-ops.md"
+      - ".claude/agent-memory/**"
       - ".claude/rules/**"
       - ".claude/skills/**"
       - ".claude/lock-groups.md"
@@ -53,6 +57,8 @@ on:
       - "docs/operations/**"
       - "next.config.js"
       - "package.json"
+      - "scripts/scan-product-drift.mjs"
+      - "scripts/validate-env.mjs"
       - "src/app/api/admin/route.ts"
       - "src/app/api/cron/**"
       - "src/app/api/health/route.ts"
@@ -94,10 +100,18 @@ jobs:
             ".agent-skills/VERIFICATION.md",
             ".claude/project-ops.md",
             ".claude/lock-groups.md",
+            ".claude/worker-handoff-template.md",
+            ".claude/scout-audit-template.md",
+            ".claude/founder-decision-packet-template.md",
+            ".claude/agent-memory/README.md",
+            ".claude/agent-memory/product-decisions.md",
+            "scripts/scan-product-drift.mjs",
+            "scripts/validate-env.mjs",
             ".env.example",
             ".github/workflows/ci.yml",
             "config/required-production-env.json",
             "docs/operations/environment-model.md",
+            "docs/operations/private-repo-agent-access.md",
             "docs/operations/smoke-tests.md",
             "docs/operations/deploy-project-setup.md",
             "docs/operations/completed.md",
@@ -181,6 +195,7 @@ jobs:
                 "MoveMate — Universal Agent Contract",
                 "This file is the universal contract for every AI tool working in this repo",
                 "GitHub is the live work system. Markdown is derived.",
+                "Agent Quality Principles",
                 "Derived snapshots stay derived. `docs/operations/**` is never a claimable queue.",
               ],
             },
@@ -189,7 +204,8 @@ jobs:
               snippets: [
                 "Claude Code Overlay",
                 "Universal truth lives in [AGENTS.md]",
-                "gstack is the approved workflow layer for Claude in this repo.",
+                "gstack is available as optional Claude/Codex workflow tooling on this Mac.",
+                "If gstack is unavailable, stale, too heavy, or replaced by Hermes or another orchestrator",
                 "Use the `/session-start` skill at the top of a fresh session.",
               ],
             },
@@ -241,9 +257,57 @@ jobs:
               file: ".claude/project-ops.md",
               snippets: [
                 "MoveMate Project Ops",
+                "The workflow layer is replaceable.",
+                "Worker Handoff Packet",
+                "Scout / Audit Packet",
+                "Daily Review Loop",
+                ".claude/agent-memory/product-decisions.md",
                 "GitHub is authoritative for live state.",
                 "project fields for queue metadata when GitHub project scopes are available",
                 "The founder should not be asked to inspect raw diffs by default.",
+              ],
+            },
+            {
+              file: ".claude/worker-handoff-template.md",
+              snippets: [
+                "Worker Handoff Packet",
+                "Lock Group",
+                "Touches shared logic",
+                "Stop conditions",
+              ],
+            },
+            {
+              file: ".claude/scout-audit-template.md",
+              snippets: [
+                "Scout / Audit Packet",
+                "Surfaces inspected",
+                "Existing issues / PRs that already cover it",
+                "New issue needed",
+              ],
+            },
+            {
+              file: ".claude/founder-decision-packet-template.md",
+              snippets: [
+                "Founder Decision Packet",
+                "Product invariant affected",
+                "Exact founder decision needed",
+                "Risk if we choose wrong",
+              ],
+            },
+            {
+              file: ".claude/agent-memory/README.md",
+              snippets: [
+                "This directory stores committed project memory",
+                "Memory here is not a transcript.",
+                "Distill it into a short decision record.",
+              ],
+            },
+            {
+              file: ".claude/agent-memory/product-decisions.md",
+              snippets: [
+                "Product Decision Memory",
+                "Detour is eligibility, not customer pricing",
+                "Workflow layers are replaceable adapters",
               ],
             },
             {
@@ -273,10 +337,21 @@ jobs:
                 "Required build / deploy variables",
                 "Server-only secrets",
                 "Local-only toggles",
+                "`npm run env:check`",
                 "config/required-production-env.json",
                 "`CRON_SECRET`",
                 "`SMOKE_BOOTSTRAP_SECRET`",
                 "`RUN_SUPABASE_INTEGRATION`",
+              ],
+            },
+            {
+              file: "docs/operations/private-repo-agent-access.md",
+              snippets: [
+                "Private Repo And Agent Access Packet",
+                "This packet prepares MoveMate for a future private GitHub repo.",
+                "gh auth refresh -s project",
+                "Never commit:",
+                "Private migration checklist",
               ],
             },
             {
@@ -318,6 +393,22 @@ jobs:
               snippets: [
                 "Derived artifact only.",
                 "GitHub",
+              ],
+            },
+            {
+              file: "scripts/scan-product-drift.mjs",
+              snippets: [
+                "gstack is the approved workflow layer",
+                "Manual payment capture by admin",
+                "docs/engineering/**",
+              ],
+            },
+            {
+              file: "scripts/validate-env.mjs",
+              snippets: [
+                "MoveMate environment check",
+                "config/required-production-env.json",
+                "Production env contract satisfied.",
               ],
             },
           ];

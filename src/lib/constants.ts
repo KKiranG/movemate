@@ -275,7 +275,7 @@ export const DISPUTE_CATEGORY_GUIDANCE = {
 export const PROHIBITED_ITEM_POLICY_LINES = [
   "Dangerous goods, hazardous chemicals, contaminated waste, and regulated disposal jobs are out of scope.",
   "Asbestos, asbestos sheeting, and similar regulated waste need a licensed disposal path, not a spare-capacity trip.",
-  "If the item needs specialist removal or disposal compliance, do not try to force it through moverrr.",
+  "If the item needs specialist removal or disposal compliance, do not try to force it through MoveMate.",
 ] as const;
 
 export const MANUAL_HANDLING_POLICY_LINES = [

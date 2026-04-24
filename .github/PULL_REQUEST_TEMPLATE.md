@@ -6,6 +6,8 @@ Lane:
 Lock group:
 State on linked issue:
 Invariants touched:
+Touches shared logic: yes / no
+Safe for parallelism: yes / no
 Reviewer packet summary:
 Founder decision needed:
 Issue scope match: yes / no / partial
@@ -22,6 +24,7 @@ Scope drift captured in follow-up issue: yes / no / N/A
 - Risk:
 - Affected surfaces:
 - Founder decision:
+- Rollback risk:
 - Must-fix blockers called out:
 - Queueable follow-ups linked:
 

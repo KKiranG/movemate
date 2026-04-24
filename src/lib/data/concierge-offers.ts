@@ -237,7 +237,7 @@ async function createOfferForConciergeSend(params: {
     match_class: "needs_approval",
     fit_confidence: "needs_approval",
     match_explanation:
-      "Founder concierge matched this route to a carrier already running the corridor. Review the fit and send the normal booking request inside moverrr.",
+      "Founder concierge matched this route to a carrier already running the corridor. Review the fit and send the normal booking request inside MoveMate.",
     ranking_score: 50,
     pickup_distance_km: null,
     dropoff_distance_km: null,
@@ -457,12 +457,12 @@ export async function sendConciergeOffer(params: {
       subject: `Founder match available: ${unmatchedRequest.pickup_suburb} to ${unmatchedRequest.dropoff_suburb}`,
       title: "A founder-sourced match is ready to review",
       intro:
-        "moverrr found a manual corridor match for this move need. If it still fits, send it into the normal booking-request flow from inside the product.",
+        "MoveMate found a manual corridor match for this move need. If it still fits, send it into the normal booking-request flow from inside the product.",
       routeLabel: `${unmatchedRequest.pickup_suburb} to ${unmatchedRequest.dropoff_suburb}`,
       ctaPath: "/alerts",
       ctaLabel: "Open alerts",
       bodyLines: [
-        "This does not bypass moverrr. You still review the route and send the normal request inside the marketplace flow.",
+        "This does not bypass MoveMate. You still review the route and send the normal request inside the marketplace flow.",
       ],
     });
   }

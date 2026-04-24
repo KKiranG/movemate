@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 export default function CustomerSignupPage() {
   return (
     <main className="screen flex min-h-screen flex-col justify-center gap-4">
-      <p className="eyebrow">MOVERRR</p>
+      <p className="eyebrow">MOVEMATE</p>
       <h1 className="heading">Create your account</h1>
       <Button className="w-full">Continue with Apple</Button>
       <Button className="w-full" variant="secondary">

@@ -31,7 +31,7 @@ export function SiteFooter() {
             Terms of Service
           </Link>
           <a
-            href="mailto:hello@moverrr.com.au"
+            href="mailto:hello@movemate.app"
             className="inline-flex min-h-[44px] items-center rounded-lg px-2 active:bg-black/[0.04] dark:active:bg-white/[0.08]"
           >
             Contact
