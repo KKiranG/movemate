@@ -39,7 +39,7 @@ export default function HomePage() {
         <Wordmark />
         <Link
           href="/auth/login"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg-elevated-2)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated-3)] active:opacity-70"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--bg-elevated-2)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated-3)] active:opacity-70"
           aria-label="Account"
         >
           <User size={18} strokeWidth={1.8} />
@@ -124,7 +124,7 @@ export default function HomePage() {
           Have spare space in your van?{" "}
           <Link
             href="/carrier"
-            className="font-[500] text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-[3px] hover:no-underline"
+            className="inline-flex min-h-[44px] items-center font-[500] text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-[3px] hover:no-underline"
           >
             Drive with MoveMate
           </Link>

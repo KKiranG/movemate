@@ -54,7 +54,7 @@ export default function RootLayout({
           <AppClientEffects />
           <a
             href="#main-content"
-            className="sr-only rounded bg-[var(--bg-elevated-1)] px-4 py-2 text-sm font-medium text-text focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+            className="sr-only rounded bg-[var(--bg-elevated-1)] px-4 py-2 text-sm font-medium text-text focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:min-h-[44px] focus:min-w-[44px] focus:inline-flex focus:items-center"
           >
             Skip to main content
           </a>
