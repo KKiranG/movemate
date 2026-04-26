@@ -1,3 +1,4 @@
+// Compatibility alias — prefer /api/alerts/[id] for new work.
 import { NextResponse } from "next/server";
 import { z } from "zod";
 

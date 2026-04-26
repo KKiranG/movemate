@@ -1,3 +1,4 @@
+// Compatibility alias — prefer /api/alerts for new work. This path retained for any legacy clients.
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

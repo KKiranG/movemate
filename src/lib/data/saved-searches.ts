@@ -1,3 +1,6 @@
+// Compatibility alias layer — DB table "saved_searches" is the physical store for RouteAlerts.
+// Do not add new product features here. All new alert logic goes in src/lib/data/alerts.ts.
+// Schema rename to "route_alerts" tracked as a separate migration issue.
 import { z } from "zod";
 
 import { hasSupabaseEnv } from "@/lib/env";
