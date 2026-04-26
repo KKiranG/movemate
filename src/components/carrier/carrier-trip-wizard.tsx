@@ -76,6 +76,7 @@ export function CarrierTripWizard({
   initialDestination = null,
   initialSpaceSize = "M",
   initialPriceDollars,
+  initialMinimumPriceDollars,
   initialDetourRadiusKm,
   initialTripDate,
   initialTimeWindow = "flexible",
@@ -97,6 +98,7 @@ export function CarrierTripWizard({
   initialDestination?: AddressValue | null;
   initialSpaceSize?: "S" | "M" | "L" | "XL";
   initialPriceDollars?: string;
+  initialMinimumPriceDollars?: string;
   initialDetourRadiusKm?: string;
   initialTripDate?: string;
   initialTimeWindow?: "morning" | "afternoon" | "evening" | "flexible";
@@ -169,6 +171,7 @@ export function CarrierTripWizard({
   const [priceDollars, setPriceDollars] = useState(
     initialPriceDollars ?? Math.round(pricingSuggestion.midCents / 100).toString(),
   );
+  const [minimumPriceDollars, setMinimumPriceDollars] = useState(initialMinimumPriceDollars ?? "");
   const publishIssues = useMemo(
     () =>
       getTripPublishReadiness({
@@ -420,6 +423,7 @@ export function CarrierTripWizard({
           availableVolumeM3: Number(availableVolumeM3),
           availableWeightKg: Number(availableWeightKg),
           priceCents: Math.round(Number(priceDollars) * 100),
+          minimumBasePriceCents: minimumPriceDollars ? Math.round(Number(minimumPriceDollars) * 100) : 0,
           suggestedPriceCents: priceGuidance?.medianCents ?? pricingSuggestion.midCents,
           accepts,
           stairsOk,
@@ -892,6 +896,26 @@ export function CarrierTripWizard({
               placeholder="Price in dollars"
               required
             />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">
+              Minimum price floor{" "}
+              <span className="font-normal text-text-secondary">(optional)</span>
+            </span>
+            <Input
+              name="minimumPriceDollars"
+              type="number"
+              step="1"
+              min="0"
+              value={minimumPriceDollars}
+              onChange={(event) => setMinimumPriceDollars(event.target.value)}
+              placeholder="e.g. 80 — won't accept jobs below this"
+            />
+            {minimumPriceDollars && Number(minimumPriceDollars) > Number(priceDollars) && (
+              <p className="text-xs text-warning">
+                Floor is above the base price — the base price will be raised to match.
+              </p>
+            )}
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
             {itemPresets.map((preset) => (
