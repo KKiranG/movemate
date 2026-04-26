@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
+
 import { AlertNetworkClient } from "@/app/(customer)/move/alert/alert-network-client";
 import { TopAppBar } from "@/components/spec/chrome";
 import { requirePageSessionUser } from "@/lib/auth";
 import { getMoveRequestByIdForCustomer } from "@/lib/data/move-requests";
 import { getCustomerProfileForUser } from "@/lib/data/profiles";
+
+export const metadata: Metadata = {
+  title: "Alert the Network",
+  description: "No match yet? We'll alert verified drivers on similar corridors and notify you the moment someone posts your route.",
+  alternates: { canonical: "/move/alert" },
+};
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
