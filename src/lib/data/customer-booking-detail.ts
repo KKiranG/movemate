@@ -6,7 +6,7 @@ import {
 } from "@/lib/data/booking-requests";
 import { listBookingDisputesForUser } from "@/lib/data/feedback";
 import { getMoveRequestByIdForCustomer } from "@/lib/data/move-requests";
-import { getOfferByIdForAdmin } from "@/lib/data/offers";
+import { getOfferById } from "@/lib/data/offers";
 import { requireCustomerProfileForUser } from "@/lib/data/profiles";
 import { getTripById } from "@/lib/data/trips";
 import type { Booking } from "@/types/booking";
@@ -69,7 +69,7 @@ export async function getCustomerBookingRequestDetailById(
 
   const [moveRequest, offer, trip, timeline, groupSummary] = await Promise.all([
     getMoveRequestByIdForCustomer(customer.id, bookingRequest.moveRequestId),
-    getOfferByIdForAdmin(bookingRequest.offerId),
+    getOfferById(bookingRequest.offerId),
     getTripById(bookingRequest.listingId),
     listCustomerRequestTimeline(userId, bookingRequest.id),
     bookingRequest.requestGroupId

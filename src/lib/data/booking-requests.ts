@@ -20,7 +20,7 @@ import { sendRequestLifecycleEmail } from "@/lib/notifications";
 import {
   deriveOffersForMoveRequest,
   ensureOfferForMoveRequestSelection,
-  getOfferByIdForAdmin,
+  getOfferById,
   getOfferByIdForMoveRequest,
   updateOfferStatus,
 } from "@/lib/data/offers";
@@ -950,7 +950,7 @@ export async function listCustomerRequestCards(userId: string) {
     requests.map(async (bookingRequest) => {
       const [moveRequest, offer, trip, recoveryAlert] = await Promise.all([
         getMoveRequestByIdForCustomer(customer.id, bookingRequest.moveRequestId),
-        getOfferByIdForAdmin(bookingRequest.offerId),
+        getOfferById(bookingRequest.offerId),
         getTripById(bookingRequest.listingId),
         getUnmatchedRequestByMoveRequestId(bookingRequest.moveRequestId),
       ]);
@@ -1624,7 +1624,7 @@ export async function applyCarrierBookingRequestAction(
   });
 
   const moveRequest = await getMoveRequestByIdForAdmin(bookingRequest.moveRequestId);
-  const offer = await getOfferByIdForAdmin(bookingRequest.offerId);
+  const offer = await getOfferById(bookingRequest.offerId);
 
   if (!moveRequest || !offer) {
     await releaseBookingRequestAcceptanceClaim({

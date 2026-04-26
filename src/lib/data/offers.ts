@@ -89,6 +89,28 @@ export async function getOfferByIdForAdmin(offerId: string) {
   return data ? toOffer(data as OfferRow) : null;
 }
 
+// Actor-scoped offer read for customer and carrier flows.
+// RLS policies offers_customer_select_own and offers_carrier_select_own
+// grant access without admin client.
+export async function getOfferById(offerId: string) {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("offers")
+    .select("*")
+    .eq("id", offerId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(error.message, 500, "offer_lookup_failed");
+  }
+
+  return data ? toOffer(data as OfferRow) : null;
+}
+
 export async function getOfferByListingForMoveRequest(moveRequestId: string, listingId: string) {
   if (!hasSupabaseEnv()) {
     return null;
