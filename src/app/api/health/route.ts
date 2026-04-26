@@ -12,7 +12,7 @@ export async function GET() {
   const envStatus: "ok" | "degraded" = missingEnv.length === 0 ? "ok" : "degraded";
   let supabaseStatus: "ok" | "degraded" = "degraded";
   let stripeStatus: "ok" | "degraded" = "degraded";
-  let redisStatus: "ok" | "degraded" = "degraded";
+  let redisStatus: "ok" | "degraded" | "not_configured" = "not_configured";
   const timestamp = new Date().toISOString();
 
   if (hasSupabaseEnv()) {

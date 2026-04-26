@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
+    const formData = (await request.formData()) as unknown as globalThis.FormData;
     const file = formData.get("file");
     const bucket = formData.get("bucket");
 

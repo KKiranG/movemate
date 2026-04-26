@@ -6,6 +6,48 @@ import path from "node:path";
 const modeArg = process.argv.find((arg) => arg.startsWith("--mode="));
 const mode = modeArg?.slice("--mode=".length) ?? "local";
 const root = process.cwd();
+
+function loadEnvFile(fileName) {
+  const filePath = path.join(root, fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return false;
+  }
+
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const equalsIndex = trimmed.indexOf("=");
+
+    if (equalsIndex === -1) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, equalsIndex).trim();
+    let value = trimmed.slice(equalsIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+
+  return true;
+}
+
+const loadedEnvFile = loadEnvFile(".env.local") || loadEnvFile(".env");
 const requiredProductionEnv = JSON.parse(
   fs.readFileSync(path.join(root, "config/required-production-env.json"), "utf8"),
 );
@@ -27,6 +69,11 @@ const missingRequired = requiredProductionEnv.filter((key) => !configured(key));
 const missingOptional = optionalIntegrationEnv.filter((key) => !configured(key));
 
 console.log(`MoveMate environment check (${mode})`);
+console.log(
+  loadedEnvFile
+    ? "Loaded local env from .env.local/.env"
+    : "No .env.local or .env file loaded",
+);
 
 if (missingRequired.length === 0) {
   console.log("Required production secrets: configured");
