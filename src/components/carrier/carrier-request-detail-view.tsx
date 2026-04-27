@@ -120,7 +120,7 @@ export function CarrierRequestDetailView({
               <div className="mt-3 grid gap-2 text-sm text-text-secondary">
                 <p>Base route price: {formatCurrency(offer.pricing.basePriceCents)}</p>
                 <p>Stairs add-on: {formatCurrency(offer.pricing.stairsFeeCents)}</p>
-                <p>Helper add-on: {formatCurrency(offer.pricing.helperFeeCents)}</p>
+                <p>Second mover add-on: {formatCurrency(offer.pricing.secondMoverFeeCents)}</p>
                 <p>Platform fee: {formatCurrency(offer.pricing.platformFeeCents)}</p>
                 <p>GST: {formatCurrency(offer.pricing.gstCents)}</p>
               </div>

@@ -73,6 +73,11 @@ export interface TripTemplate {
   stairsExtraCents: number;
   helperExtraCents: number;
   helperAvailable: boolean;
+  handlingPolicy: "solo_only" | "solo_customer_help" | "two_movers";
+  stairsLowCents: number;
+  stairsMediumCents: number;
+  stairsHighCents: number;
+  secondMoverExtraCents: number;
   accepts: string[];
   timeWindow: "morning" | "afternoon" | "evening" | "flexible";
   notes?: string | null;

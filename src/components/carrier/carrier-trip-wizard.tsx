@@ -89,6 +89,11 @@ export function CarrierTripWizard({
   initialStairsExtraDollars = "0",
   initialHelperAvailable = false,
   initialHelperExtraDollars = "0",
+  initialHandlingPolicy = "solo_only" as "solo_only" | "solo_customer_help" | "two_movers",
+  initialStairsLowDollars = "0",
+  initialStairsMediumDollars = "0",
+  initialStairsHighDollars = "0",
+  initialSecondMoverExtraDollars = "0",
   initialVehicleId,
   vehicles = [],
   canPost = true,
@@ -111,6 +116,11 @@ export function CarrierTripWizard({
   initialStairsExtraDollars?: string;
   initialHelperAvailable?: boolean;
   initialHelperExtraDollars?: string;
+  initialHandlingPolicy?: "solo_only" | "solo_customer_help" | "two_movers";
+  initialStairsLowDollars?: string;
+  initialStairsMediumDollars?: string;
+  initialStairsHighDollars?: string;
+  initialSecondMoverExtraDollars?: string;
   initialVehicleId?: string;
   vehicles?: TripDraftVehicleOption[];
   canPost?: boolean;
@@ -142,6 +152,13 @@ export function CarrierTripWizard({
   const [stairsExtraDollars, setStairsExtraDollars] = useState(initialStairsExtraDollars);
   const [helperAvailable, setHelperAvailable] = useState(initialHelperAvailable);
   const [helperExtraDollars, setHelperExtraDollars] = useState(initialHelperExtraDollars);
+  const [handlingPolicy, setHandlingPolicy] = useState<"solo_only" | "solo_customer_help" | "two_movers">(
+    initialHandlingPolicy,
+  );
+  const [stairsLowDollars, setStairsLowDollars] = useState(initialStairsLowDollars);
+  const [stairsMediumDollars, setStairsMediumDollars] = useState(initialStairsMediumDollars);
+  const [stairsHighDollars, setStairsHighDollars] = useState(initialStairsHighDollars);
+  const [secondMoverExtraDollars, setSecondMoverExtraDollars] = useState(initialSecondMoverExtraDollars);
   const [publishState, setPublishState] = useState<"draft" | "active">("active");
   const [selectedVehicleId, setSelectedVehicleId] = useState(
     initialVehicleId ?? vehicles[0]?.id ?? "",
@@ -428,8 +445,13 @@ export function CarrierTripWizard({
           accepts,
           stairsOk,
           stairsExtraCents: Math.round(Number(stairsExtraDollars || 0) * 100),
-          helperAvailable,
+          helperAvailable: handlingPolicy === "solo_customer_help",
           helperExtraCents: Math.round(Number(helperExtraDollars || 0) * 100),
+          handlingPolicy,
+          stairsLowCents: Math.round(Number(stairsLowDollars || 0) * 100),
+          stairsMediumCents: Math.round(Number(stairsMediumDollars || 0) * 100),
+          stairsHighCents: Math.round(Number(stairsHighDollars || 0) * 100),
+          secondMoverExtraCents: Math.round(Number(secondMoverExtraDollars || 0) * 100),
           isReturnTrip,
           status: publishState,
           specialNotes,
@@ -986,9 +1008,42 @@ export function CarrierTripWizard({
               </p>
             </div>
           ) : null}
-          <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-text">Movers on this trip</span>
+            <select
+              name="handlingPolicy"
+              className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+              value={handlingPolicy}
+              onChange={(event) =>
+                setHandlingPolicy(
+                  event.target.value as "solo_only" | "solo_customer_help" | "two_movers",
+                )
+              }
+            >
+              <option value="solo_only">Solo mover only</option>
+              <option value="solo_customer_help">Solo mover, customer help accepted</option>
+              <option value="two_movers">Two movers on this trip</option>
+            </select>
+          </label>
+          {handlingPolicy === "two_movers" ? (
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Stairs support</span>
+              <span className="text-sm font-medium text-text">Second mover add-on (AUD)</span>
+              <p className="text-xs text-text-secondary">
+                Charged only when the job requires two movers and you supply both.
+              </p>
+              <Input
+                name="secondMoverExtraDollars"
+                type="number"
+                step="1"
+                min="0"
+                value={secondMoverExtraDollars}
+                onChange={(event) => setSecondMoverExtraDollars(event.target.value)}
+              />
+            </label>
+          ) : null}
+          <div className="grid gap-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-text">Stairs</span>
               <select
                 name="stairsOk"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
@@ -996,43 +1051,46 @@ export function CarrierTripWizard({
                 onChange={(event) => setStairsOk(event.target.value === "yes")}
               >
                 <option value="no">No stairs support</option>
-                <option value="yes">Stairs OK</option>
+                <option value="yes">Stairs accepted</option>
               </select>
             </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Stairs surcharge (AUD)</span>
-              <Input
-                name="stairsExtraDollars"
-                type="number"
-                step="1"
-                value={stairsExtraDollars}
-                onChange={(event) => setStairsExtraDollars(event.target.value)}
-              />
-            </label>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Helper support</span>
-              <select
-                name="helperAvailable"
-                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-                value={helperAvailable ? "yes" : "no"}
-                onChange={(event) => setHelperAvailable(event.target.value === "yes")}
-              >
-                <option value="no">No helper</option>
-                <option value="yes">Helper available</option>
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-medium text-text">Helper surcharge (AUD)</span>
-              <Input
-                name="helperExtraDollars"
-                type="number"
-                step="1"
-                value={helperExtraDollars}
-                onChange={(event) => setHelperExtraDollars(event.target.value)}
-              />
-            </label>
+            {stairsOk ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium text-text-secondary">Low (1 flight) AUD</span>
+                  <Input
+                    name="stairsLowDollars"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={stairsLowDollars}
+                    onChange={(event) => setStairsLowDollars(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium text-text-secondary">Medium (2 flights) AUD</span>
+                  <Input
+                    name="stairsMediumDollars"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={stairsMediumDollars}
+                    onChange={(event) => setStairsMediumDollars(event.target.value)}
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium text-text-secondary">High (3+ flights) AUD</span>
+                  <Input
+                    name="stairsHighDollars"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={stairsHighDollars}
+                    onChange={(event) => setStairsHighDollars(event.target.value)}
+                  />
+                </label>
+              </div>
+            ) : null}
           </div>
           <label className="grid gap-2">
             <span className="text-sm font-medium text-text">Publish state</span>

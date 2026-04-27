@@ -56,20 +56,22 @@ export function PriceBreakdown({
             <dt>
               <span className="text-text">Stairs add-on</span>
               <span className="mt-1 block text-xs text-text-secondary">
-                Only charged if you confirm stair access is needed.
+                Only charged if stair access is confirmed at pickup or drop-off.
               </span>
             </dt>
             <dd className="text-text">{formatCurrency(pricing.stairsFeeCents)}</dd>
           </div>
-          <div className="flex items-center justify-between gap-4">
-            <dt>
-              <span className="text-text">Helper add-on</span>
-              <span className="mt-1 block text-xs text-text-secondary">
-                Optional extra pair of hands when the carrier offers it.
-              </span>
-            </dt>
-            <dd className="text-text">{formatCurrency(pricing.helperFeeCents)}</dd>
-          </div>
+          {pricing.secondMoverFeeCents > 0 ? (
+            <div className="flex items-center justify-between gap-4">
+              <dt>
+                <span className="text-text">Second mover add-on</span>
+                <span className="mt-1 block text-xs text-text-secondary">
+                  Charged only when the carrier supplies two movers and the job requires both.
+                </span>
+              </dt>
+              <dd className="text-text">{formatCurrency(pricing.secondMoverFeeCents)}</dd>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between gap-4">
             <dt>
               <span className="text-text">Platform fee</span>
@@ -102,7 +104,7 @@ export function PriceBreakdown({
           </p>
         ) : null}
         <p className="text-xs text-text-secondary">
-          The platform fee comes from the base route price only, never from stairs or helper add-ons.
+          The platform fee comes from the base route price only, never from stairs or second mover add-ons.
         </p>
         {!needsStairs && stairsExtraCents > 0 ? (
           <p className="text-sm text-text-secondary">
@@ -111,7 +113,7 @@ export function PriceBreakdown({
         ) : null}
         {!needsHelper && helperExtraCents > 0 ? (
           <p className="text-sm text-text-secondary">
-            Available: helper ({formatCurrency(helperExtraCents)}).
+            Available: second mover ({formatCurrency(helperExtraCents)}).
           </p>
         ) : null}
       </div>

@@ -13,9 +13,9 @@ import type { OfferFitConfidence } from "@/types/move-request";
 import type { Trip, TripSearchResult } from "@/types/trip";
 
 const FIT_CONFIDENCE_LABELS: Record<OfferFitConfidence, string | null> = {
-  likely_fits: null,
-  review_photos: "Photos help here",
-  needs_approval: "Carrier confirms fit",
+  likely_fits: "Good fit",
+  review_photos: "Photos help",
+  needs_approval: "Fit check needed",
 };
 
 interface TripCardProps {

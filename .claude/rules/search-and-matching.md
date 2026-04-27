@@ -21,7 +21,7 @@ The results surface is a product-shaping surface in MoveMate. It is a ranked ans
 ## What To Optimize
 
 - route fit (every result explains the match, not just lists the row)
-- match explanation clarity ("Direct route match" / "Near your pickup (~3 km)")
+- match explanation clarity ("Going your way" / "Close to your pickup" / "Nearby route match")
 - trust legibility (verified badge, trip count, star rating if ≥3)
 - total all-in price on every card (including platform fee and GST)
 - timing clarity
@@ -41,7 +41,7 @@ The results surface is a product-shaping surface in MoveMate. It is a ranked ans
 - total all-in price (base + add-ons + platform fee + GST) shown prominently
 - "Why this matches" explanation line on every card
 - fit-confidence label: "Likely fits" / "Review photos" / "Needs approval"
-- route-fit label: "Direct route" / "Near your pickup (~X km)" / etc.
+- route-fit label: "Going your way" / "Close to your pickup" / "Close to your drop-off" / "Nearby route match" / "May need carrier approval" — never "Direct route" or km estimates
 - timing confidence visible before tap
 - trust signals: "Verified" badge + star rating (if ≥3) + trip count
 

@@ -189,33 +189,33 @@ export function getTripRouteFitLabel(
     | Pick<TripSearchResult, "route" | "breakdown" | "matchScore">,
 ) {
   if (!("breakdown" in trip)) {
-    return "Direct route";
+    return "Going your way";
   }
 
   const pickupDistanceKm = trip.breakdown.pickupDistanceKm ?? null;
   const dropoffDistanceKm = trip.breakdown.dropoffDistanceKm ?? null;
 
   if (typeof pickupDistanceKm !== "number" || typeof dropoffDistanceKm !== "number") {
-    return "Direct route";
+    return "Going your way";
   }
 
   if (trip.matchScore < 50) {
-    return "Needs approval";
+    return "May need carrier approval";
   }
 
   if (pickupDistanceKm <= 2 && dropoffDistanceKm <= 2) {
-    return "Direct route";
+    return "Going your way";
   }
 
   if (pickupDistanceKm > 2 && dropoffDistanceKm <= 2) {
-    return `Near your pickup (~${pickupDistanceKm.toFixed(1)} km)`;
+    return "Close to your pickup";
   }
 
   if (pickupDistanceKm <= 2 && dropoffDistanceKm > 2) {
-    return `Near your drop-off (~${dropoffDistanceKm.toFixed(1)} km)`;
+    return "Close to your drop-off";
   }
 
-  return "Partial route";
+  return "Nearby route match";
 }
 
 export function getTripFitSummary(

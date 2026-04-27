@@ -46,6 +46,11 @@ export async function createMoveRequest(customerId: string, params: MoveRequestI
     preferred_time_window: parsed.data.preferredTimeWindow ?? null,
     needs_stairs: parsed.data.needsStairs,
     needs_helper: parsed.data.needsHelper,
+    customer_mover_preference: parsed.data.customerMoverPreference ?? "one_mover",
+    stairs_level_pickup: parsed.data.stairsLevelPickup ?? "none",
+    stairs_level_dropoff: parsed.data.stairsLevelDropoff ?? "none",
+    lift_available_pickup: parsed.data.liftAvailablePickup ?? false,
+    lift_available_dropoff: parsed.data.liftAvailableDropoff ?? false,
     special_instructions: parsed.data.specialInstructions ?? null,
     expires_at: parsed.data.expiresAt ?? null,
   };

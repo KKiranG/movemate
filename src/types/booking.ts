@@ -17,10 +17,14 @@ export type BookingStatus =
   | "cancelled"
   | "disputed";
 
+export type MoverPreference = "one_mover" | "customer_help" | "two_movers";
+export type StairsLevel = "none" | "low" | "medium" | "high";
+
 export interface BookingPriceBreakdown {
   basePriceCents: number;
   stairsFeeCents: number;
   helperFeeCents: number;
+  secondMoverFeeCents: number;
   adjustmentFeeCents: number;
   platformFeeCents: number;
   gstCents: number;
@@ -152,6 +156,11 @@ export interface Booking {
   dropoffAccessNotes?: string | null;
   needsStairs: boolean;
   needsHelper: boolean;
+  customerMoverPreference: MoverPreference;
+  stairsLevelPickup: StairsLevel;
+  stairsLevelDropoff: StairsLevel;
+  liftAvailablePickup: boolean;
+  liftAvailableDropoff: boolean;
   status: BookingStatus;
   pricing: BookingPriceBreakdown;
   paymentStatus?: BookingPaymentStatus;

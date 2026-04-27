@@ -64,6 +64,11 @@ export interface MoveRequest {
   route: MoveRequestRoute;
   needsStairs: boolean;
   needsHelper: boolean;
+  customerMoverPreference: "one_mover" | "customer_help" | "two_movers";
+  stairsLevelPickup: "none" | "low" | "medium" | "high";
+  stairsLevelDropoff: "none" | "low" | "medium" | "high";
+  liftAvailablePickup: boolean;
+  liftAvailableDropoff: boolean;
   specialInstructions?: string | null;
   expiresAt?: string | null;
   createdAt: string;

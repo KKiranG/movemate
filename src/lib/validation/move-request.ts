@@ -65,6 +65,11 @@ export const moveRequestSchema = z.object({
   preferredTimeWindow: z.enum(["morning", "afternoon", "evening", "flexible"]).optional(),
   needsStairs: z.boolean().default(false),
   needsHelper: z.boolean().default(false),
+  customerMoverPreference: z.enum(["one_mover", "customer_help", "two_movers"]).default("one_mover"),
+  stairsLevelPickup: z.enum(["none", "low", "medium", "high"]).default("none"),
+  stairsLevelDropoff: z.enum(["none", "low", "medium", "high"]).default("none"),
+  liftAvailablePickup: z.boolean().default(false),
+  liftAvailableDropoff: z.boolean().default(false),
   specialInstructions: optionalSanitizedString(280),
   status: z
     .enum(["draft", "submitted", "matched", "booking_requested", "booked", "expired", "cancelled"])
