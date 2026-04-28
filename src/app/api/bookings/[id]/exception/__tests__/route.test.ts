@@ -48,7 +48,7 @@ test("exception route requires an authenticated session", async () => {
           photoUrls: [],
         }),
       }) as never,
-      { params: { id: "booking-1" } },
+      { params: Promise.resolve({ id: "booking-1" }) },
     );
 
     assert.equal(response.status, 401);

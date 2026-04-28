@@ -196,7 +196,7 @@ export function getBookingPriceSummaryRows(booking: Booking) {
   const rows = [
     { label: "Base route price", valueCents: booking.pricing.basePriceCents },
     { label: "Stairs add-on", valueCents: booking.pricing.stairsFeeCents },
-    { label: "Helper add-on", valueCents: booking.pricing.helperFeeCents },
+    { label: "Second mover add-on", valueCents: booking.pricing.secondMoverFeeCents },
   ];
 
   if (booking.pricing.adjustmentFeeCents > 0) {

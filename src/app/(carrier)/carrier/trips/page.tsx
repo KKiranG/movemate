@@ -50,11 +50,12 @@ function TripSection({
   );
 }
 
-export default async function CarrierTripsPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function CarrierTripsPage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const user = await requirePageSessionUser();
   const trips = await listCarrierTrips(user.id);
   const posted = searchParams?.posted === "1";

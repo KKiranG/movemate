@@ -9,10 +9,8 @@ const reviewResponseSchema = z.object({
   response: z.string().trim().min(1).max(1000),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     const payload = reviewResponseSchema.parse(await request.json());

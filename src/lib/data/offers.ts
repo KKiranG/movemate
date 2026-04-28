@@ -138,6 +138,16 @@ function getDerivedOfferPricing(moveRequest: MoveRequest, trip: TripSearchResult
   return calculateBookingBreakdown({
     basePriceCents,
     minimumBasePriceCents: trip.minimumBasePriceCents,
+    carrierHandlingPolicy: trip.rules.handlingPolicy,
+    customerMoverPreference: moveRequest.customerMoverPreference,
+    stairsLevelPickup: moveRequest.stairsLevelPickup,
+    stairsLevelDropoff: moveRequest.stairsLevelDropoff,
+    liftAvailablePickup: moveRequest.liftAvailablePickup,
+    liftAvailableDropoff: moveRequest.liftAvailableDropoff,
+    stairsLowCents: trip.rules.stairsLowCents,
+    stairsMediumCents: trip.rules.stairsMediumCents,
+    stairsHighCents: trip.rules.stairsHighCents,
+    secondMoverExtraCents: trip.rules.secondMoverExtraCents,
     needsStairs: moveRequest.needsStairs && trip.rules.stairsOk,
     stairsExtraCents: trip.rules.stairsExtraCents,
     needsHelper: moveRequest.needsHelper && trip.rules.helperAvailable,
@@ -182,21 +192,30 @@ function getDerivedFitConfidence(trip: TripSearchResult): OfferFitConfidence {
 }
 
 function buildDerivedMatchExplanation(moveRequest: MoveRequest, trip: TripSearchResult) {
-  const pickupDistanceKm = trip.breakdown.pickupDistanceKm ?? 0;
-  const dropoffDistanceKm = trip.breakdown.dropoffDistanceKm ?? 0;
   const routeSummary = `${trip.route.originSuburb} to ${trip.route.destinationSuburb}`;
-  const helperSummary = moveRequest.needsHelper && trip.rules.helperAvailable
-    ? " helper available"
-    : moveRequest.needsHelper
-      ? " helper needs manual confirmation"
-      : "";
-  const stairsSummary = moveRequest.needsStairs && !trip.rules.stairsOk
-    ? " Stairs need manual confirmation."
-    : moveRequest.needsStairs && trip.rules.stairsOk
-      ? " Carrier accepts stairs."
-      : "";
 
-  return `Already heading ${routeSummary}. Pickup is about ${pickupDistanceKm.toFixed(1)} km from route and dropoff is about ${dropoffDistanceKm.toFixed(1)} km from route.${helperSummary}${stairsSummary}`.trim();
+  const moverNote =
+    moveRequest.customerMoverPreference === "two_movers" &&
+    trip.rules.handlingPolicy === "two_movers"
+      ? " Two movers available."
+      : moveRequest.customerMoverPreference === "two_movers" &&
+          trip.rules.handlingPolicy !== "two_movers"
+        ? " Two movers may need confirmation."
+        : moveRequest.customerMoverPreference === "customer_help" &&
+            trip.rules.handlingPolicy === "solo_customer_help"
+          ? " Customer help accepted."
+          : "";
+
+  const stairsNote =
+    (moveRequest.stairsLevelPickup !== "none" || moveRequest.stairsLevelDropoff !== "none") &&
+    !trip.rules.stairsOk
+      ? " Stairs need manual confirmation."
+      : (moveRequest.stairsLevelPickup !== "none" || moveRequest.stairsLevelDropoff !== "none") &&
+          trip.rules.stairsOk
+        ? " Carrier accepts stairs."
+        : "";
+
+  return `Already heading ${routeSummary}.${moverNote}${stairsNote}`.trim();
 }
 
 export async function deriveOffersForMoveRequest(moveRequest: MoveRequest) {
@@ -279,6 +298,7 @@ export async function ensureOfferForMoveRequestSelection(params: {
     base_price_cents: derivedOffer.pricing.basePriceCents,
     stairs_fee_cents: derivedOffer.pricing.stairsFeeCents,
     helper_fee_cents: derivedOffer.pricing.helperFeeCents,
+    second_mover_fee_cents: derivedOffer.pricing.secondMoverFeeCents,
     booking_fee_cents: derivedOffer.pricing.bookingFeeCents,
     platform_fee_cents: derivedOffer.pricing.platformFeeCents,
     gst_cents: derivedOffer.pricing.gstCents,

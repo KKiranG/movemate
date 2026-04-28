@@ -4,10 +4,8 @@ import { requireSessionUser } from "@/lib/auth";
 import { confirmTripFreshnessCheckinForCarrier } from "@/lib/data/trips";
 import { toErrorResponse } from "@/lib/errors";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { tripId: string } },
-) {
+export async function GET(request: Request, props: { params: Promise<{ tripId: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     const url = new URL(request.url);

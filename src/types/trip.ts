@@ -51,12 +51,19 @@ export interface TripRoute {
   label: string;
 }
 
+export type HandlingPolicy = "solo_only" | "solo_customer_help" | "two_movers";
+
 export interface TripRules {
   accepts: ItemCategory[];
   stairsOk: boolean;
   stairsExtraCents: number;
   helperAvailable: boolean;
   helperExtraCents: number;
+  handlingPolicy: HandlingPolicy;
+  stairsLowCents: number;
+  stairsMediumCents: number;
+  stairsHighCents: number;
+  secondMoverExtraCents: number;
   specialNotes?: string;
 }
 

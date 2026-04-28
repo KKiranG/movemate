@@ -12,10 +12,8 @@ const updateCarrierNotesSchema = z.object({
   internalTags: z.array(carrierInternalTagSchema).max(8).optional().nullable(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAdminUser();
     const payload = updateCarrierNotesSchema.parse(await request.json());

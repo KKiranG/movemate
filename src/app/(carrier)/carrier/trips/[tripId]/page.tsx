@@ -33,13 +33,14 @@ function buildRouteMapHref(
   return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originSuburb)}&destination=${encodeURIComponent(destinationSuburb)}`;
 }
 
-export default async function CarrierTripDetailShellPage({
-  params,
-  searchParams,
-}: {
-  params: { tripId: string };
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function CarrierTripDetailShellPage(
+  props: {
+    params: Promise<{ tripId: string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const user = await requirePageSessionUser();
   const trip = await getTripById(params.tripId);
 

@@ -10,10 +10,8 @@ const freshnessPatchSchema = z.object({
   reason: z.string().trim().min(12).max(280),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAdminUser();
     const payload = freshnessPatchSchema.parse(await request.json());

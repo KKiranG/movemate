@@ -9,10 +9,8 @@ const confirmReceiptSchema = z.object({
   confirmation: z.literal("received").optional(),
 });
 
-export async function POST(
-  _request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     confirmReceiptSchema.parse(await _request.json().catch(() => ({})));

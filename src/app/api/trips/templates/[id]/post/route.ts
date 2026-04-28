@@ -13,10 +13,8 @@ const createTripFromTemplateSchema = z.object({
   minimumBasePriceCents: z.number().int().min(0).optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     const carrier = await getCarrierByUserId(user.id);

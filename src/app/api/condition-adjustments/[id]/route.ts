@@ -5,10 +5,8 @@ import { respondToConditionAdjustment } from "@/lib/data/condition-adjustments";
 import { toErrorResponse } from "@/lib/errors";
 import { conditionAdjustmentResponseSchema } from "@/lib/validation/condition-adjustment";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     const payload = conditionAdjustmentResponseSchema.parse(await request.json());

@@ -52,11 +52,12 @@ function getTypeLabel(bookingRequest: BookingRequest) {
   return bookingRequest.requestGroupId ? "Fast Match" : "Request to Book";
 }
 
-export default async function CarrierRequestDetailPage({
-  params,
-}: {
-  params: { requestId: string };
-}) {
+export default async function CarrierRequestDetailPage(
+  props: {
+    params: Promise<{ requestId: string }>;
+  }
+) {
+  const params = await props.params;
   const user = await requirePageSessionUser();
   const carrier = await getCarrierByUserId(user.id);
 

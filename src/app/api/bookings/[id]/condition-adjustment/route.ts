@@ -5,10 +5,8 @@ import { createConditionAdjustmentForCarrier } from "@/lib/data/condition-adjust
 import { toErrorResponse } from "@/lib/errors";
 import { conditionAdjustmentCreateSchema } from "@/lib/validation/condition-adjustment";
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     const payload = conditionAdjustmentCreateSchema.parse(await request.json());

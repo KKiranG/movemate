@@ -11,10 +11,8 @@ const resolveDisputeSchema = z.object({
   bookingStatus: z.enum(["completed", "cancelled"]).optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireAdminUser();
     const payload = resolveDisputeSchema.parse(await request.json());

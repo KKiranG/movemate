@@ -20,6 +20,11 @@ export interface MoveRequestDraft {
   dropoffAccessNotes: string;
   needsStairs: boolean;
   needsHelper: boolean;
+  customerMoverPreference: "one_mover" | "customer_help" | "two_movers";
+  stairsLevelPickup: "none" | "low" | "medium" | "high";
+  stairsLevelDropoff: "none" | "low" | "medium" | "high";
+  liftAvailablePickup: boolean;
+  liftAvailableDropoff: boolean;
   specialInstructions: string;
   persistedMoveRequestId: string | null;
   persistedFingerprint: string | null;
@@ -40,6 +45,11 @@ const DEFAULT_MOVE_REQUEST_DRAFT: MoveRequestDraft = {
   dropoffAccessNotes: "",
   needsStairs: false,
   needsHelper: false,
+  customerMoverPreference: "one_mover" as const,
+  stairsLevelPickup: "none" as const,
+  stairsLevelDropoff: "none" as const,
+  liftAvailablePickup: false,
+  liftAvailableDropoff: false,
   specialInstructions: "",
   persistedMoveRequestId: null,
   persistedFingerprint: null,
@@ -144,6 +154,34 @@ export function normaliseMoveRequestDraft(value: unknown) {
       typeof candidate.specialInstructions === "string"
         ? candidate.specialInstructions
         : base.specialInstructions,
+    customerMoverPreference:
+      candidate.customerMoverPreference === "one_mover" ||
+      candidate.customerMoverPreference === "customer_help" ||
+      candidate.customerMoverPreference === "two_movers"
+        ? candidate.customerMoverPreference
+        : base.customerMoverPreference,
+    stairsLevelPickup:
+      candidate.stairsLevelPickup === "none" ||
+      candidate.stairsLevelPickup === "low" ||
+      candidate.stairsLevelPickup === "medium" ||
+      candidate.stairsLevelPickup === "high"
+        ? candidate.stairsLevelPickup
+        : base.stairsLevelPickup,
+    stairsLevelDropoff:
+      candidate.stairsLevelDropoff === "none" ||
+      candidate.stairsLevelDropoff === "low" ||
+      candidate.stairsLevelDropoff === "medium" ||
+      candidate.stairsLevelDropoff === "high"
+        ? candidate.stairsLevelDropoff
+        : base.stairsLevelDropoff,
+    liftAvailablePickup:
+      typeof candidate.liftAvailablePickup === "boolean"
+        ? candidate.liftAvailablePickup
+        : base.liftAvailablePickup,
+    liftAvailableDropoff:
+      typeof candidate.liftAvailableDropoff === "boolean"
+        ? candidate.liftAvailableDropoff
+        : base.liftAvailableDropoff,
     persistedMoveRequestId:
       typeof candidate.persistedMoveRequestId === "string"
         ? candidate.persistedMoveRequestId
@@ -239,6 +277,11 @@ export function toMoveRequestInputFromDraft(draft: MoveRequestDraft): MoveReques
     preferredTimeWindow: draft.preferredTimeWindow,
     needsStairs: draft.needsStairs,
     needsHelper: draft.needsHelper,
+    customerMoverPreference: draft.customerMoverPreference,
+    stairsLevelPickup: draft.stairsLevelPickup,
+    stairsLevelDropoff: draft.stairsLevelDropoff,
+    liftAvailablePickup: draft.liftAvailablePickup,
+    liftAvailableDropoff: draft.liftAvailableDropoff,
     specialInstructions: draft.specialInstructions.trim() || undefined,
   } satisfies MoveRequestInput;
 }
@@ -296,6 +339,11 @@ export function draftFromMoveRequest(moveRequest: MoveRequest) {
     dropoffAccessNotes: moveRequest.route.dropoffAccessNotes ?? "",
     needsStairs: moveRequest.needsStairs,
     needsHelper: moveRequest.needsHelper,
+    customerMoverPreference: moveRequest.customerMoverPreference ?? "one_mover",
+    stairsLevelPickup: moveRequest.stairsLevelPickup ?? "none",
+    stairsLevelDropoff: moveRequest.stairsLevelDropoff ?? "none",
+    liftAvailablePickup: moveRequest.liftAvailablePickup ?? false,
+    liftAvailableDropoff: moveRequest.liftAvailableDropoff ?? false,
     specialInstructions: moveRequest.specialInstructions ?? "",
     persistedMoveRequestId: moveRequest.id,
     persistedFingerprint: null,

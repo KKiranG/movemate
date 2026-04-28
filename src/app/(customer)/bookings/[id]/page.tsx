@@ -15,11 +15,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function BookingLiveViewPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function BookingLiveViewPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const user = await requirePageSessionUser();
   const [bookingDetail, requestDetail] = await Promise.all([
     getCustomerBookingDetailById(user.id, params.id),

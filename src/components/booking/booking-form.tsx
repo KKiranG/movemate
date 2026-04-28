@@ -114,6 +114,21 @@ export function BookingForm({
   );
   const [needsStairs, setNeedsStairs] = useState(existingMoveRequest?.needsStairs ?? false);
   const [needsHelper, setNeedsHelper] = useState(existingMoveRequest?.needsHelper ?? false);
+  const [customerMoverPreference, setCustomerMoverPreference] = useState<
+    "one_mover" | "customer_help" | "two_movers"
+  >(existingMoveRequest?.customerMoverPreference ?? "one_mover");
+  const [stairsLevelPickup, setStairsLevelPickup] = useState<"none" | "low" | "medium" | "high">(
+    existingMoveRequest?.stairsLevelPickup ?? "none",
+  );
+  const [stairsLevelDropoff, setStairsLevelDropoff] = useState<"none" | "low" | "medium" | "high">(
+    existingMoveRequest?.stairsLevelDropoff ?? "none",
+  );
+  const [liftAvailablePickup, setLiftAvailablePickup] = useState(
+    existingMoveRequest?.liftAvailablePickup ?? false,
+  );
+  const [liftAvailableDropoff, setLiftAvailableDropoff] = useState(
+    existingMoveRequest?.liftAvailableDropoff ?? false,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStage, setSubmissionStage] = useState<
@@ -123,11 +138,22 @@ export function BookingForm({
   const [activeStage, setActiveStage] = useState<FormStage>("address");
   const draftKey = useMemo(() => `moverrr:request-draft:${trip.id}`, [trip.id]);
   const moveRequestIdRef = useRef<string | null>(existingMoveRequest?.id ?? null);
-  const stairsUnsupported = needsStairs && !trip.rules.stairsOk;
+  const newModelNeedsStairs = stairsLevelPickup !== "none" || stairsLevelDropoff !== "none";
+  const stairsUnsupported = (needsStairs || newModelNeedsStairs) && !trip.rules.stairsOk;
   const isAddressResolved = Boolean(pickup && dropoff);
   const pricing = calculateBookingBreakdown({
     basePriceCents: trip.priceCents,
     minimumBasePriceCents: trip.minimumBasePriceCents,
+    carrierHandlingPolicy: trip.rules.handlingPolicy,
+    customerMoverPreference,
+    stairsLevelPickup,
+    stairsLevelDropoff,
+    liftAvailablePickup,
+    liftAvailableDropoff,
+    stairsLowCents: trip.rules.stairsLowCents,
+    stairsMediumCents: trip.rules.stairsMediumCents,
+    stairsHighCents: trip.rules.stairsHighCents,
+    secondMoverExtraCents: trip.rules.secondMoverExtraCents,
     needsStairs,
     stairsExtraCents: trip.rules.stairsExtraCents,
     needsHelper,
@@ -393,8 +419,13 @@ export function BookingForm({
         dropoffAccessNotes: dropoffAccessNotes.trim() || undefined,
         preferredDate: trip.tripDate,
         preferredTimeWindow: trip.timeWindow,
-        needsStairs,
-        needsHelper,
+        needsStairs: needsStairs || newModelNeedsStairs,
+        needsHelper: customerMoverPreference !== "one_mover",
+        customerMoverPreference,
+        stairsLevelPickup,
+        stairsLevelDropoff,
+        liftAvailablePickup,
+        liftAvailableDropoff,
         specialInstructions: specialInstructions.trim() || undefined,
       }),
     });
@@ -1012,43 +1043,124 @@ export function BookingForm({
 
       {activeStage === "price" ? (
         <fieldset disabled={isSubmitting} className="grid gap-4">
+          <div className="grid gap-2">
+            <span className="text-sm font-medium text-text">How many hands are needed?</span>
+            <div className="grid gap-2">
+              {(
+                [
+                  {
+                    value: "one_mover",
+                    label: "One mover is enough",
+                    description: "The item is manageable and access is simple.",
+                  },
+                  {
+                    value: "customer_help",
+                    label: "I can help lift",
+                    description: "I’ll be there to give a hand.",
+                  },
+                  {
+                    value: "two_movers",
+                    label: "Please send two movers",
+                    description: "Best for heavy items, stairs, or no lifting help.",
+                  },
+                ] as const
+              ).map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${
+                    customerMoverPreference === option.value
+                      ? "border-accent bg-accent/5"
+                      : "border-border bg-surface hover:border-accent/30"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="customerMoverPreference"
+                    value={option.value}
+                    checked={customerMoverPreference === option.value}
+                    onChange={() => setCustomerMoverPreference(option.value)}
+                    className="mt-0.5 shrink-0 accent-accent"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-text">{option.label}</p>
+                    <p className="text-xs text-text-secondary">{option.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            {customerMoverPreference === "one_mover" && helperWarning ? (
+              <p className="text-xs text-warning">
+                Quick check: one mover works best when the item is manageable and help is ready. If
+                access is harder on the day, the driver may need to adjust or decline.
+              </p>
+            ) : null}
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-text">Stairs?</span>
+              <span className="text-sm font-medium text-text">Stairs at pickup?</span>
               <select
-                name="needsStairs"
+                name="stairsLevelPickup"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-                value={needsStairs ? "yes" : "no"}
-                onChange={(event) => setNeedsStairs(event.target.value === "yes")}
+                value={stairsLevelPickup}
+                onChange={(event) =>
+                  setStairsLevelPickup(event.target.value as "none" | "low" | "medium" | "high")
+                }
+              >
+                <option value="none">None</option>
+                <option value="low">Low (1 flight)</option>
+                <option value="medium">Medium (2 flights)</option>
+                <option value="high">High (3+ flights)</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-text">Stairs at drop-off?</span>
+              <select
+                name="stairsLevelDropoff"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+                value={stairsLevelDropoff}
+                onChange={(event) =>
+                  setStairsLevelDropoff(event.target.value as "none" | "low" | "medium" | "high")
+                }
+              >
+                <option value="none">None</option>
+                <option value="low">Low (1 flight)</option>
+                <option value="medium">Medium (2 flights)</option>
+                <option value="high">High (3+ flights)</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-text">Lift available at pickup?</span>
+              <select
+                name="liftAvailablePickup"
+                className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+                value={liftAvailablePickup ? "yes" : "no"}
+                onChange={(event) => setLiftAvailablePickup(event.target.value === "yes")}
               >
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
               </select>
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-text">Need a helper?</span>
+              <span className="text-sm font-medium text-text">Lift available at drop-off?</span>
               <select
-                name="needsHelper"
+                name="liftAvailableDropoff"
                 className="h-11 rounded-xl border border-border bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-                value={needsHelper ? "yes" : "no"}
-                onChange={(event) => setNeedsHelper(event.target.value === "yes")}
+                value={liftAvailableDropoff ? "yes" : "no"}
+                onChange={(event) => setLiftAvailableDropoff(event.target.value === "yes")}
               >
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
               </select>
-              {helperWarning ? (
-                <span className="text-xs text-warning">{helperWarning.hint}</span>
-              ) : (
-                <span className="text-xs text-text-secondary">
-                  Use this when the item is bulky, awkward, or not safe for one-person handling.
-                </span>
-              )}
             </label>
           </div>
 
           {stairsUnsupported ? (
             <div className="rounded-xl border border-warning/20 bg-warning/10 p-3 text-sm text-text">
-              This carrier does not offer stairs support. Choose &quot;No&quot; for stairs or find a different trip before continuing.
+              This carrier does not offer stairs support. Select &quot;None&quot; for stairs or find a different trip before continuing.
             </div>
           ) : null}
 
@@ -1063,10 +1175,12 @@ export function BookingForm({
                 <span>Stairs add-on</span>
                 <span className="text-text">{formatCurrency(pricing.stairsFeeCents)}</span>
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <span>Helper add-on</span>
-                <span className="text-text">{formatCurrency(pricing.helperFeeCents)}</span>
-              </div>
+              {pricing.secondMoverFeeCents > 0 ? (
+                <div className="flex items-center justify-between gap-4">
+                  <span>Second mover add-on</span>
+                  <span className="text-text">{formatCurrency(pricing.secondMoverFeeCents)}</span>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between gap-4">
                 <span>Platform fee</span>
                 <span className="text-text">{formatCurrency(pricing.platformFeeCents)}</span>

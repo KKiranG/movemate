@@ -25,10 +25,8 @@ const bookingExceptionSchema = z.object({
   photoUrls: z.array(z.string().min(1)).default([]),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const payload = bookingExceptionSchema.parse(await request.json());
     const user = await requireSessionUser();

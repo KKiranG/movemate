@@ -16,7 +16,7 @@ const adminConciergeOfferActionSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const body = await request.json();
@@ -26,7 +26,7 @@ export async function PATCH(
       const payload = adminConciergeOfferActionSchema.parse(body);
       const conciergeOffer = await cancelConciergeOffer({
         adminUserId: user.id,
-        conciergeOfferId: context.params.id,
+        conciergeOfferId: (await context.params).id,
         reason: payload.reason,
       });
 
@@ -37,7 +37,7 @@ export async function PATCH(
     const payload = customerConciergeOfferActionSchema.parse(body);
     const result = await respondToConciergeOffer({
       userId: user.id,
-      conciergeOfferId: context.params.id,
+      conciergeOfferId: (await context.params).id,
       action: payload.action,
     });
 

@@ -382,6 +382,7 @@ export async function respondToConditionAdjustment(params: {
       stairsExtraCents: booking.pricing.stairsFeeCents,
       needsHelper: booking.pricing.helperFeeCents > 0,
       helperExtraCents: booking.pricing.helperFeeCents,
+      secondMoverFeeCents: booking.pricing.secondMoverFeeCents,
       adjustmentFeeCents: active.amountCents,
     });
 

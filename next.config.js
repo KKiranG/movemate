@@ -1,4 +1,5 @@
 const requiredProductionEnv = require("./config/required-production-env.json");
+const path = require("node:path");
 const { withSentryConfig } = require("@sentry/nextjs");
 
 function shouldValidateBuildEnv() {
@@ -62,6 +63,7 @@ const nextConfig = {
   eslint: {
     dirs: ["src"],
   },
+  outputFileTracingRoot: path.join(__dirname),
   async headers() {
     if (process.env.NODE_ENV !== "production") {
       return [];

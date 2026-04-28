@@ -18,10 +18,8 @@ const savedSearchPatchSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } },
-) {
+export async function DELETE(_request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     await deleteSavedSearch(params.id, user.id);
@@ -33,10 +31,8 @@ export async function DELETE(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     const payload = savedSearchPatchSchema.parse(await request.json());

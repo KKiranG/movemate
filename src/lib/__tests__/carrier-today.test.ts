@@ -52,6 +52,11 @@ function createTrip(overrides: Partial<Trip> = {}): Trip {
         stairsExtraCents: 0,
         helperAvailable: true,
         helperExtraCents: 0,
+        handlingPolicy: "solo_customer_help" as const,
+        stairsLowCents: 0,
+        stairsMediumCents: 0,
+        stairsHighCents: 0,
+        secondMoverExtraCents: 0,
       },
   };
 }
@@ -79,12 +84,18 @@ function createBooking(overrides: Partial<Booking> = {}): Booking {
     dropoffAddress: overrides.dropoffAddress ?? "2 Dropoff St",
     needsStairs: overrides.needsStairs ?? false,
     needsHelper: overrides.needsHelper ?? false,
+    customerMoverPreference: overrides.customerMoverPreference ?? "one_mover",
+    stairsLevelPickup: overrides.stairsLevelPickup ?? "none",
+    stairsLevelDropoff: overrides.stairsLevelDropoff ?? "none",
+    liftAvailablePickup: overrides.liftAvailablePickup ?? false,
+    liftAvailableDropoff: overrides.liftAvailableDropoff ?? false,
     status: overrides.status ?? "pending",
     pricing:
       overrides.pricing ?? {
         basePriceCents: 10000,
         stairsFeeCents: 0,
         helperFeeCents: 0,
+        secondMoverFeeCents: 0,
         adjustmentFeeCents: 0,
         platformFeeCents: 1500,
         gstCents: 1150,

@@ -6,10 +6,8 @@ import { toErrorResponse, AppError } from "@/lib/errors";
 import { isOwnedStoragePath } from "@/lib/storage";
 import { disputeSchema } from "@/lib/validation/dispute";
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await requireSessionUser();
     const payload = disputeSchema.parse(await request.json());

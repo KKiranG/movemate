@@ -4,7 +4,8 @@ import { TopAppBar } from "@/components/spec/chrome";
 
 const quickReplies = ["I'm running late", "Where should I park?", "Can you call when you arrive?"];
 
-export default function InboxThreadPage({ params }: { params: { threadId: string } }) {
+export default async function InboxThreadPage(props: { params: Promise<{ threadId: string }> }) {
+  const params = await props.params;
   return (
     <main className="pb-24">
       <TopAppBar title="Thread" backHref="/inbox" />

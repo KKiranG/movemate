@@ -170,7 +170,7 @@ export function CustomerBookingRequestDetailView({
                   <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Item and access</p>
                   <p className="mt-2 text-sm text-text capitalize">{moveRequest.item.category}</p>
                   <p className="mt-1 text-sm text-text-secondary">
-                    Stairs: {moveRequest.needsStairs ? "Yes" : "No"} · Helper: {moveRequest.needsHelper ? "Yes" : "No"}
+                    Stairs pickup: {moveRequest.stairsLevelPickup} · Stairs drop-off: {moveRequest.stairsLevelDropoff} · Movers: {moveRequest.customerMoverPreference === "two_movers" ? "Two movers" : moveRequest.customerMoverPreference === "customer_help" ? "Customer helps" : "One mover"}
                   </p>
                   {moveRequest.route.pickupAccessNotes ? (
                     <p className="mt-2 text-sm text-text-secondary">

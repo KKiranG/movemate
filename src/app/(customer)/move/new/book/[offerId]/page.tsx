@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
 
-export default function BookOfferIndexPage({
-  params,
-  searchParams,
-}: {
-  params: { offerId: string };
-  searchParams?: {
-    moveRequestId?: string;
-  };
-}) {
+export default async function BookOfferIndexPage(
+  props: {
+    params: Promise<{ offerId: string }>;
+    searchParams?: Promise<{
+      moveRequestId?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const next = searchParams?.moveRequestId
     ? `?moveRequestId=${encodeURIComponent(searchParams.moveRequestId)}`
     : "";

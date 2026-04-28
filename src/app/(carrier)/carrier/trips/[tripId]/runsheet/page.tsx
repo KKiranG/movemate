@@ -8,11 +8,12 @@ import { requirePageSessionUser } from "@/lib/auth";
 import { listCarrierBookings } from "@/lib/data/bookings";
 import { getTripById } from "@/lib/data/trips";
 
-export default async function CarrierTripRunsheetPage({
-  params,
-}: {
-  params: { tripId: string };
-}) {
+export default async function CarrierTripRunsheetPage(
+  props: {
+    params: Promise<{ tripId: string }>;
+  }
+) {
+  const params = await props.params;
   const user = await requirePageSessionUser();
   const trip = await getTripById(params.tripId);
 

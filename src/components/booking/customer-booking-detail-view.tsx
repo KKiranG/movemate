@@ -192,7 +192,7 @@ export async function CustomerBookingDetailView({
                 <div className="rounded-xl border border-border p-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Access</p>
                   <p className="mt-2 text-sm text-text-secondary">
-                    Stairs: {booking.needsStairs ? "Yes" : "No"} · Helper: {booking.needsHelper ? "Yes" : "No"}
+                    Stairs pickup: {booking.stairsLevelPickup} · Stairs drop-off: {booking.stairsLevelDropoff} · Movers: {booking.customerMoverPreference === "two_movers" ? "Two movers" : booking.customerMoverPreference === "customer_help" ? "Customer helps" : "One mover"}
                   </p>
                   {booking.pickupAccessNotes ? (
                     <p className="mt-2 text-sm text-text-secondary">

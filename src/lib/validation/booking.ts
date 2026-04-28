@@ -167,7 +167,7 @@ export function getBookingTrustIssues(input: BookingTrustInput) {
       severity: "warning",
       message: "This looks like a bulky or one-person-risky item. Re-check whether a helper is needed.",
       hint: "Heavy, awkward, or bulky pieces usually need the helper toggle and clearer handling expectations.",
-        path: ["needsHelper", "itemWeightKg", "itemWeightBand", "itemSizeClass"],
+      path: ["needsHelper", "itemWeightKg", "itemWeightBand", "itemSizeClass"],
     });
   }
 
@@ -209,6 +209,11 @@ export const bookingSchema = z
     itemPhotoUrls: z.array(z.string().min(1)).default([]),
     needsStairs: z.boolean().default(false),
     needsHelper: z.boolean().default(false),
+    customerMoverPreference: z.enum(["one_mover", "customer_help", "two_movers"]).default("one_mover"),
+    stairsLevelPickup: z.enum(["none", "low", "medium", "high"]).default("none"),
+    stairsLevelDropoff: z.enum(["none", "low", "medium", "high"]).default("none"),
+    liftAvailablePickup: z.boolean().default(false),
+    liftAvailableDropoff: z.boolean().default(false),
     specialInstructions: optionalSanitizedString(280),
     pickupAddress: sanitizedString(8, 160),
     pickupSuburb: sanitizedString(2, 120),

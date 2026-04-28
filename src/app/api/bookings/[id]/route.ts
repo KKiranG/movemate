@@ -75,10 +75,8 @@ const bookingStatusPatchSchema = z.object({
   reason: z.string().trim().min(1).optional(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const payload = bookingStatusPatchSchema.parse(await request.json());
 

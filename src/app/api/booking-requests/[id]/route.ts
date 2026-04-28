@@ -17,11 +17,11 @@ import {
 
 export async function GET(
   _request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await requireSessionUser();
-    const bookingRequest = await getBookingRequestByIdForCustomer(user.id, context.params.id);
+    const bookingRequest = await getBookingRequestByIdForCustomer(user.id, (await context.params).id);
 
     if (!bookingRequest) {
       return NextResponse.json(
@@ -42,7 +42,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await requireSessionUser();
@@ -53,14 +53,14 @@ export async function PATCH(
         const payload = bookingRequestCustomerActionSchema.parse(body);
         const bookingRequest = await cancelBookingRequestByCustomer(
           user.id,
-          context.params.id,
+          (await context.params).id,
           payload,
         );
 
         await trackAnalyticsEvent({
           eventName: "booking_request_customer_cancelled",
           userId: user.id,
-          pathname: `/api/booking-requests/${context.params.id}`,
+          pathname: `/api/booking-requests/${(await context.params).id}`,
           dedupeKey: `booking_request_cancel:${bookingRequest.id}:${bookingRequest.updatedAt}`,
           metadata: {
             bookingRequestId: bookingRequest.id,
@@ -73,12 +73,12 @@ export async function PATCH(
       }
 
       const payload = bookingRequestActionSchema.parse(body);
-      const result = await applyCarrierBookingRequestAction(user.id, context.params.id, payload);
+      const result = await applyCarrierBookingRequestAction(user.id, (await context.params).id, payload);
 
       await trackAnalyticsEvent({
         eventName: "booking_request_action_applied",
         userId: user.id,
-        pathname: `/api/booking-requests/${context.params.id}`,
+        pathname: `/api/booking-requests/${(await context.params).id}`,
         dedupeKey: `booking_request_action:${result.bookingRequest.id}:${payload.action}:${result.bookingRequest.updatedAt}`,
         metadata: {
           bookingRequestId: result.bookingRequest.id,
@@ -94,14 +94,14 @@ export async function PATCH(
     const payload = bookingRequestCustomerResponseSchema.parse(body);
     const bookingRequest = await respondToBookingRequestClarification(
       user.id,
-      context.params.id,
+      (await context.params).id,
       payload,
     );
 
     await trackAnalyticsEvent({
       eventName: "booking_request_customer_response_submitted",
       userId: user.id,
-      pathname: `/api/booking-requests/${context.params.id}`,
+      pathname: `/api/booking-requests/${(await context.params).id}`,
       dedupeKey: `booking_request_customer_response:${bookingRequest.id}:${bookingRequest.updatedAt}`,
       metadata: {
         bookingRequestId: bookingRequest.id,

@@ -15,11 +15,12 @@ import { listConditionAdjustmentsForAdmin } from "@/lib/data/condition-adjustmen
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { getConditionAdjustmentReasonLabel } from "@/lib/validation/condition-adjustment";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string };
-}): Promise<Metadata> {
+export async function generateMetadata(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+): Promise<Metadata> {
+  const params = await props.params;
   const booking = await getAdminBookingById(params.id);
 
   if (!booking) {
@@ -31,11 +32,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function AdminBookingDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function AdminBookingDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   await requirePageAdminUser();
   const booking = await getAdminBookingById(params.id);
 

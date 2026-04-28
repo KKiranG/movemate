@@ -249,6 +249,11 @@ export function toTrip(record: ListingJoinedRecord): Trip {
       stairsExtraCents: record.stairs_extra_cents,
       helperAvailable: record.helper_available,
       helperExtraCents: record.helper_extra_cents,
+      handlingPolicy: record.handling_policy ?? "solo_only",
+      stairsLowCents: record.stairs_low_cents ?? 0,
+      stairsMediumCents: record.stairs_medium_cents ?? 0,
+      stairsHighCents: record.stairs_high_cents ?? 0,
+      secondMoverExtraCents: record.second_mover_extra_cents ?? 0,
       specialNotes: record.special_notes ?? undefined,
     },
   };
@@ -294,6 +299,7 @@ export function toBookingPriceBreakdown(
     basePriceCents: row.base_price_cents,
     stairsFeeCents: row.stairs_fee_cents,
     helperFeeCents: row.helper_fee_cents,
+    secondMoverFeeCents: "second_mover_fee_cents" in row && typeof row.second_mover_fee_cents === "number" ? row.second_mover_fee_cents : 0,
     adjustmentFeeCents:
       "adjustment_fee_cents" in row && typeof row.adjustment_fee_cents === "number"
         ? row.adjustment_fee_cents
@@ -357,6 +363,11 @@ export function toBooking(record: BookingJoinedRecord): Booking {
     dropoffAccessNotes: record.dropoff_access_notes,
     needsStairs: record.needs_stairs,
     needsHelper: record.needs_helper,
+    customerMoverPreference: record.customer_mover_preference ?? "one_mover",
+    stairsLevelPickup: record.stairs_level_pickup ?? "none",
+    stairsLevelDropoff: record.stairs_level_dropoff ?? "none",
+    liftAvailablePickup: record.lift_available_pickup ?? false,
+    liftAvailableDropoff: record.lift_available_dropoff ?? false,
     status: record.status,
     pricing: toBookingPriceBreakdown(record),
     paymentStatus: record.payment_status,
@@ -413,6 +424,11 @@ export function toMoveRequest(row: MoveRequestRow): MoveRequest {
     },
     needsStairs: row.needs_stairs,
     needsHelper: row.needs_helper,
+    customerMoverPreference: row.customer_mover_preference ?? "one_mover",
+    stairsLevelPickup: row.stairs_level_pickup ?? "none",
+    stairsLevelDropoff: row.stairs_level_dropoff ?? "none",
+    liftAvailablePickup: row.lift_available_pickup ?? false,
+    liftAvailableDropoff: row.lift_available_dropoff ?? false,
     specialInstructions: row.special_instructions,
     expiresAt: row.expires_at,
     createdAt: row.created_at,
@@ -446,6 +462,7 @@ export function toOffer(row: OfferRow): Offer {
       basePriceCents: row.base_price_cents,
       stairsFeeCents: row.stairs_fee_cents,
       helperFeeCents: row.helper_fee_cents,
+      secondMoverFeeCents: "second_mover_fee_cents" in row && typeof row.second_mover_fee_cents === "number" ? row.second_mover_fee_cents : 0,
       adjustmentFeeCents: 0,
       platformFeeCents:
         "platform_fee_cents" in row && typeof row.platform_fee_cents === "number"

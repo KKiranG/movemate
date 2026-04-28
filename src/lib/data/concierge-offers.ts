@@ -245,6 +245,7 @@ async function createOfferForConciergeSend(params: {
     base_price_cents: pricing.basePriceCents,
     stairs_fee_cents: pricing.stairsFeeCents,
     helper_fee_cents: pricing.helperFeeCents,
+    second_mover_fee_cents: pricing.secondMoverFeeCents,
     booking_fee_cents: pricing.bookingFeeCents ?? 0,
     platform_fee_cents: pricing.platformFeeCents,
     gst_cents: pricing.gstCents,

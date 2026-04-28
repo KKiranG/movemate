@@ -9,10 +9,8 @@ const captureRequestSchema = z.object({
   reason: z.string().trim().min(8),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const admin = await requireAdminUser();
     const payload = captureRequestSchema.parse(await request.json());

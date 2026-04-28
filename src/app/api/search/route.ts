@@ -17,6 +17,13 @@ import { sanitizeText } from "@/lib/utils";
 
 export const revalidate = 30;
 
+function getClientIp(request: NextRequest) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = request.headers.get("x-real-ip")?.trim();
+
+  return forwardedFor || realIp || "anonymous";
+}
+
 function buildSearchAnalyticsDedupeKey(
   request: NextRequest,
   params: {
@@ -29,7 +36,7 @@ function buildSearchAnalyticsDedupeKey(
 ) {
   const bucket = new Date().toISOString().slice(0, 16);
   const fingerprint = JSON.stringify({
-    ip: request.ip ?? "anonymous",
+    ip: getClientIp(request),
     from: params.from.trim().toLowerCase(),
     to: params.to.trim().toLowerCase(),
     when: params.when ?? null,
@@ -89,7 +96,7 @@ export async function GET(request: NextRequest) {
       | undefined;
 
     const rateLimit = await enforceRateLimit(
-      `search:${request.ip ?? "anonymous"}`,
+      `search:${getClientIp(request)}`,
       40,
       60_000,
     );

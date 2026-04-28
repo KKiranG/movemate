@@ -68,11 +68,12 @@ function buildAdminBookingsHref(params: {
   return query ? `/admin/bookings?${query}` : "/admin/bookings";
 }
 
-export default async function AdminBookingsPage({
-  searchParams,
-}: {
-  searchParams?: { q?: string; page?: string; paymentStatus?: string };
-}) {
+export default async function AdminBookingsPage(
+  props: {
+    searchParams?: Promise<{ q?: string; page?: string; paymentStatus?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   await requirePageAdminUser();
   const query = searchParams?.q?.trim() ?? "";
   const page = Math.max(1, Number(searchParams?.page ?? "1") || 1);
@@ -131,7 +132,6 @@ export default async function AdminBookingsPage({
         title="Monitor booking state changes"
         description="Operations can inspect all bookings, spot stuck states, and intervene when required."
       />
-
       <div className="grid gap-4">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {paymentFilterCards.map((card) => (

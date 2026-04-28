@@ -135,6 +135,7 @@ export async function bootstrapSmokeDataset(secret: string) {
           base_price_cents: booking.pricing.basePriceCents,
           stairs_fee_cents: booking.pricing.stairsFeeCents,
           helper_fee_cents: booking.pricing.helperFeeCents,
+          second_mover_fee_cents: booking.pricing.secondMoverFeeCents,
           booking_fee_cents: booking.pricing.bookingFeeCents,
           gst_cents: booking.pricing.gstCents,
           total_price_cents: booking.pricing.totalPriceCents,

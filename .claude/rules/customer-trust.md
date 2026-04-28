@@ -13,11 +13,12 @@ Customer trust comes from specific evidence, not vague reassurance.
 
 ## Show Early (on every result card)
 
-- "Why this matches" — deterministic explanation (e.g., "Direct route match on your requested day")
-- Fit-confidence label: "Likely fits" / "Review photos" / "Needs approval"
+- "Why this matches" — deterministic explanation (e.g., "Going your way on your requested day")
+- Fit-confidence label: "Good fit" / "Photos help" / "Fit check needed"
 - Total all-in price (base + add-ons + platform fee + GST) — no "starting from"
 - Carrier trust signals: "Verified" badge, star rating (if ≥3 ratings), trip count
-- Route-fit label ("Direct route" / "Near your pickup (~X km)")
+- Route-fit label — confidence-based only: "Going your way" / "Close to your pickup" / "Close to your drop-off" / "Nearby route match" / "May need carrier approval"
+- Never use "Direct route" or km estimates unless backed by road-detour calculation (not straight-line proximity)
 
 ## Show on Offer Detail Page
 

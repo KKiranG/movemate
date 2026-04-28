@@ -23,6 +23,10 @@ const requestAcceptanceClaimSql = fs.readFileSync(
   path.join(process.cwd(), "supabase/migrations/038_booking_request_acceptance_claims.sql"),
   "utf8",
 );
+const handlingPolicySql = fs.readFileSync(
+  path.join(process.cwd(), "supabase/migrations/039_handling_policy_and_stairs_tranches.sql"),
+  "utf8",
+);
 
 function getCreateBookingForCustomerSource() {
   const match = bookingsSource.match(
@@ -76,6 +80,17 @@ test("atomic booking SQL applies the listing minimum base price floor before fee
     minimumFloorSql,
     /v_carrier_payout_cents\s*:=\s*v_base_price_cents \+ v_stairs_fee_cents \+ v_helper_fee_cents;/i,
   );
+});
+
+test("handling policy SQL persists second mover fees and keeps commission on base only", () => {
+  assert.match(handlingPolicySql, /add column second_mover_fee_cents/i);
+  assert.match(handlingPolicySql, /p_customer_mover_preference mover_preference/i);
+  assert.match(handlingPolicySql, /v_second_mover_fee_cents := case/i);
+  assert.match(
+    handlingPolicySql,
+    /v_platform_fee_cents := round\(v_base_price_cents \* 0\.15\);/i,
+  );
+  assert.match(handlingPolicySql, /second_mover_fee_cents,/i);
 });
 
 test("booking request acceptance has a database-level Fast Match group guard", () => {

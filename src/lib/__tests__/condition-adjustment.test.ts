@@ -44,13 +44,15 @@ test("accepted condition adjustments increase payout and GST but not base commis
     stairsExtraCents: 0,
     needsHelper: true,
     helperExtraCents: 1_500,
+    secondMoverFeeCents: 2_000,
     adjustmentFeeCents: 3_000,
   });
 
   assert.equal(breakdown.adjustmentFeeCents, 3_000);
+  assert.equal(breakdown.secondMoverFeeCents, 2_000);
   assert.equal(breakdown.platformFeeCents, 1_800);
   assert.equal(breakdown.platformCommissionCents, 1_800);
-  assert.equal(breakdown.carrierPayoutCents, 16_500);
-  assert.equal(breakdown.gstCents, 1_830);
-  assert.equal(breakdown.totalPriceCents, 20_130);
+  assert.equal(breakdown.carrierPayoutCents, 18_500);
+  assert.equal(breakdown.gstCents, 2_030);
+  assert.equal(breakdown.totalPriceCents, 22_330);
 });
