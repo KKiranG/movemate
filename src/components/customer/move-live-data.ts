@@ -110,6 +110,44 @@ export async function createFastMatchRequest(moveRequestId: string) {
   }>(response);
 }
 
+export async function createRequestToBookFromOffer(params: {
+  moveRequestId: string;
+  offerId?: string | null;
+  listingId?: string | null;
+}) {
+  const response = await fetch("/api/booking-requests", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      moveRequestId: params.moveRequestId,
+      offerId: params.offerId ?? undefined,
+      listingId: params.listingId ?? undefined,
+    }),
+  });
+
+  return parseJsonResponse<{
+    bookingRequest: { id: string; moveRequestId: string; offerId?: string | null; listingId: string };
+  }>(response);
+}
+
+export async function createUnmatchedRequestFromMoveRequest(moveRequestId: string) {
+  const response = await fetch("/api/unmatched-requests/from-move-request", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      moveRequestId,
+    }),
+  });
+
+  return parseJsonResponse<{
+    unmatchedRequest: { id: string; moveRequestId: string };
+  }>(response);
+}
+
 export function getCustomerMoveRequestDetailHref(params: {
   offerId: string;
   moveRequestId?: string | null;

@@ -124,8 +124,8 @@ export default async function CarrierRequestDetailPage(
     <main id="main-content" className="screen">
       <PageIntro
         eyebrow="Request detail"
-        title="Review one request with full route context"
-        description="Fit, payout, clarification, and booking conversion all stay visible here so a single decision never loses its operational context."
+        title="Payout, fit, then decision"
+        description="This is the carrier Stitch decision surface: full context, one factual clarification path, and no quote-board behaviour."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="secondary">

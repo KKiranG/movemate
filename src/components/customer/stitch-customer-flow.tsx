@@ -37,7 +37,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   stitchAccountRows,
@@ -59,14 +59,34 @@ import {
   createDefaultCustomerFlowAccess,
   createDefaultCustomerFlowRoute,
   createDefaultCustomerFlowTiming,
-  getSelectedCustomerFlowItem,
+  getSelectedCustomerFlowItems,
+  presentCustomerFlowMatches,
+  presentLiveCustomerFlowMatches,
   validateCustomerFlowDraft,
   type CustomerFlowAccessDraft,
+  type CustomerFlowMatchCard,
   type CustomerFlowRouteDraft,
+  type CustomerFlowSelectedItem,
 } from "@/components/customer/stitch-flow-contracts";
+import {
+  createDefaultMoveRequestDraft,
+  readMoveRequestDraft,
+  writeMoveRequestDraft,
+  type MoveRequestDraft,
+} from "@/components/customer/move-request-draft";
+import {
+  createLiveMoveRequest,
+  createRequestToBookFromOffer,
+  createUnmatchedRequestFromMoveRequest,
+  fetchLiveOffersForMoveRequest,
+} from "@/components/customer/move-live-data";
+import { ManagePaymentMethodButton } from "@/components/customer/manage-payment-method-button";
+import { GoogleAutocompleteInput } from "@/components/shared/google-autocomplete-input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
+import type { CustomerPaymentProfile } from "@/lib/data/customer-payments";
+import type { ItemCategory, TimeWindow } from "@/types/trip";
 
 type FlowScreen =
   | "home"
@@ -89,6 +109,42 @@ type FlowScreen =
 
 type AccessState = CustomerFlowAccessDraft;
 type RouteState = CustomerFlowRouteDraft;
+
+type ItemDraftState = {
+  selectedVariantId: string;
+  quantity: number;
+  photoAttached: boolean;
+  photoPath: string | null;
+  photoPreviewUrl: string | null;
+  note: string;
+};
+
+type LiveSubmissionState =
+  | { status: "idle"; message: string | null }
+  | { status: "saving_draft" | "loading_matches" | "sending_request" | "creating_alert"; message: string }
+  | { status: "ready"; message: string; moveRequestId: string; liveOfferCount: number }
+  | { status: "booking_requested"; message: string; moveRequestId: string; bookingRequestId: string }
+  | { status: "alert_created"; message: string; moveRequestId?: string; unmatchedRequestId?: string }
+  | { status: "fallback"; message: string };
+
+type PersistedStitchDraft = {
+  route: RouteState;
+  selectedItemIds: string[];
+  itemState: Record<string, ItemDraftState>;
+  access: AccessState;
+  selectedTimingId: string;
+  selectedWindowId: string;
+  selectedMatchId: string;
+  openDays: boolean;
+  openWindow: boolean;
+  screen: FlowScreen;
+  persistedMoveRequestId: string | null;
+  persistedBookingRequestId: string | null;
+  selectedLiveOfferId?: string | null;
+  selectedLiveListingId?: string | null;
+};
+
+const STITCH_FLOW_STORAGE_KEY = "movemate:stitch-customer-flow-v2";
 
 const itemIconMap: Record<StitchItemCategory, LucideIcon> = {
   sofa: Sofa,
@@ -169,6 +225,139 @@ function getPriceForMatch(match: StitchDriverMatch) {
     stitchPriceBreakdowns.find((price) => price.id === match.priceBreakdownId) ??
     stitchPriceBreakdowns[0]
   );
+}
+
+function createInitialItemState(): Record<string, ItemDraftState> {
+  return Object.fromEntries(
+    stitchItems.map((item) => [
+      item.id,
+      {
+        selectedVariantId: item.selectedVariantId,
+        quantity: item.quantity,
+        photoAttached: false,
+        photoPath: null,
+        photoPreviewUrl: null,
+        note: "",
+      },
+    ]),
+  ) as Record<string, ItemDraftState>;
+}
+
+function safeParsePersistedStitchDraft(): PersistedStitchDraft | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = window.sessionStorage.getItem(STITCH_FLOW_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<PersistedStitchDraft>;
+    if (!parsed.route || !Array.isArray(parsed.selectedItemIds) || !parsed.itemState) return null;
+
+    return parsed as PersistedStitchDraft;
+  } catch {
+    window.sessionStorage.removeItem(STITCH_FLOW_STORAGE_KEY);
+    return null;
+  }
+}
+
+function coerceKnownItemIds(ids: string[]) {
+  const known = new Set(stitchItems.map((item) => item.id));
+  return ids.filter((id) => known.has(id));
+}
+
+function mapStitchCategoryToMoveRequestCategory(category: StitchItemCategory): ItemCategory {
+  if (category === "boxes") return "boxes";
+  if (category === "fridge" || category === "washer" || category === "appliance") return "appliance";
+  if (category === "tv") return "fragile";
+  if (category === "other") return "other";
+  return "furniture";
+}
+
+function mapVariantToSizeClass(variantLabel: string): MoveRequestDraft["itemSizeClass"] {
+  const lower = variantLabel.toLowerCase();
+  if (lower.includes("xl") || lower.includes("sectional") || lower.includes("king") || lower.includes("large")) return "XL";
+  if (lower.includes("queen") || lower.includes("3") || lower.includes("double")) return "L";
+  if (lower.includes("2") || lower.includes("standard") || lower.includes("single")) return "M";
+  return "S";
+}
+
+function mapTimingWindow(windowId: string): TimeWindow {
+  if (windowId.includes("morning")) return "morning";
+  if (windowId.includes("afternoon")) return "afternoon";
+  if (windowId.includes("evening")) return "evening";
+  return "flexible";
+}
+
+function accessLevel(stairs: number): MoveRequestDraft["stairsLevelPickup"] {
+  if (stairs <= 0) return "none";
+  if (stairs <= 1) return "low";
+  if (stairs <= 2) return "medium";
+  return "high";
+}
+
+function addressFromLabel(label: string, fallbackSuburb: string, fallbackPostcode: string) {
+  const suburbMatch = label.match(/([A-Za-z ]+)\s+NSW\s+(\d{4})/i);
+  const simpleSuburb = label.replace(/\s+NSW.*$/i, "").replace(/^\d+\s*/, "").trim();
+
+  return {
+    label: label.length >= 8 ? label : `${label}, NSW`,
+    suburb: suburbMatch?.[1]?.trim() || simpleSuburb || fallbackSuburb,
+    postcode: suburbMatch?.[2] || fallbackPostcode,
+    latitude: fallbackPostcode === "2010" ? -33.884 : -33.910,
+    longitude: fallbackPostcode === "2010" ? 151.213 : 151.155,
+  };
+}
+
+function buildLiveDraftFromStitch({
+  route,
+  selectedItems,
+  access,
+  timingId,
+  windowId,
+  persistedMoveRequestId,
+}: {
+  route: RouteState;
+  selectedItems: CustomerFlowSelectedItem[];
+  access: AccessState;
+  timingId: string;
+  windowId: string;
+  persistedMoveRequestId: string | null;
+}): MoveRequestDraft {
+  const primaryItem = selectedItems[0];
+  const itemSummary = selectedItems
+    .map((item) => `${item.variantLabel} x${item.quantity}`)
+    .join(", ");
+  const anyHelperRecommended = selectedItems.some((item) => item.helperRecommended);
+  const pickup = addressFromLabel(route.pickup, "Surry Hills", "2010");
+  const dropoff = addressFromLabel(route.dropoff, "Marrickville", "2204");
+  const today = new Date();
+  const optionIndex = Math.max(0, stitchTimingOptions.findIndex((option) => option.id === timingId));
+  today.setDate(today.getDate() + optionIndex);
+  const preferredDate = today.toISOString().slice(0, 10);
+
+  return {
+    ...createDefaultMoveRequestDraft(),
+    pickup,
+    dropoff,
+    itemDescription: itemSummary || primaryItem?.label || "Bulky item",
+    itemCategory: mapStitchCategoryToMoveRequestCategory(primaryItem?.category ?? "other"),
+    itemSizeClass: mapVariantToSizeClass(primaryItem?.variantLabel ?? ""),
+    itemWeightBand: anyHelperRecommended ? "50_to_100kg" : "20_to_50kg",
+    itemPhotoUrls: selectedItems.map((item) => item.photoPath).filter((path): path is string => Boolean(path)),
+    preferredDate,
+    preferredTimeWindow: mapTimingWindow(windowId),
+    pickupAccessNotes: `${access.pickup.addressLabel}. ${route.pickupNote}`.trim(),
+    dropoffAccessNotes: `${access.dropoff.addressLabel}. ${route.dropoffNote}`.trim(),
+    needsStairs: access.pickup.stairs > 0 || access.dropoff.stairs > 0,
+    needsHelper: anyHelperRecommended || !access.customerCanHelp,
+    customerMoverPreference: access.customerCanHelp ? "customer_help" : "two_movers",
+    stairsLevelPickup: accessLevel(access.pickup.stairs),
+    stairsLevelDropoff: accessLevel(access.dropoff.stairs),
+    liftAvailablePickup: access.pickup.liftAvailable,
+    liftAvailableDropoff: access.dropoff.liftAvailable,
+    specialInstructions: selectedItems.length > 1 ? `Multi-item move: ${itemSummary}` : primaryItem?.notes ?? "",
+    persistedMoveRequestId,
+  };
 }
 
 function Screen({
@@ -351,24 +540,26 @@ function EditableRouteCard({
           <div className="space-y-3">
             <label className="block">
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-secondary">Pickup</span>
-              <input
+              <GoogleAutocompleteInput
                 name="pickup"
-                aria-label="Pickup"
+                label="Pickup"
                 placeholder="Pickup suburb or address"
-                value={route.pickup}
-                onChange={(event) => onPatch({ pickup: event.target.value })}
-                className="mt-1 min-h-[48px] w-full rounded-[14px] border border-border bg-[var(--bg-elevated-2)] px-3 text-[15px] font-semibold text-text outline-none focus:border-[var(--accent)]"
+                defaultValue={route.pickup}
+                onRawChange={(pickup) => onPatch({ pickup })}
+                onResolved={(value) => onPatch({ pickup: value.label, pickupNote: `${value.suburb} ${value.postcode}`.trim() })}
+                inputClassName="mt-1 min-h-[48px] w-full rounded-[14px] border border-border bg-[var(--bg-elevated-2)] px-3 text-[15px] font-semibold text-text outline-none focus:border-[var(--accent)]"
               />
             </label>
             <label className="block">
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-secondary">Drop-off</span>
-              <input
+              <GoogleAutocompleteInput
                 name="dropoff"
-                aria-label="Drop-off"
+                label="Drop-off"
                 placeholder="Drop-off suburb or address"
-                value={route.dropoff}
-                onChange={(event) => onPatch({ dropoff: event.target.value })}
-                className="mt-1 min-h-[48px] w-full rounded-[14px] border border-border bg-[var(--bg-elevated-2)] px-3 text-[15px] font-semibold text-text outline-none focus:border-[var(--accent)]"
+                defaultValue={route.dropoff}
+                onRawChange={(dropoff) => onPatch({ dropoff })}
+                onResolved={(value) => onPatch({ dropoff: value.label, dropoffNote: `${value.suburb} ${value.postcode}`.trim() })}
+                inputClassName="mt-1 min-h-[48px] w-full rounded-[14px] border border-border bg-[var(--bg-elevated-2)] px-3 text-[15px] font-semibold text-text outline-none focus:border-[var(--accent)]"
               />
             </label>
           </div>
@@ -624,16 +815,22 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 
 function DriverCard({
   match,
+  price: overridePrice,
+  source = "mock",
+  matchExplanation,
   featured,
   onDetails,
   onRequest,
 }: {
   match: StitchDriverMatch;
+  price?: StitchPriceBreakdown;
+  source?: "mock" | "live";
+  matchExplanation?: string;
   featured?: boolean;
   onDetails: () => void;
   onRequest: () => void;
 }) {
-  const price = getPriceForMatch(match);
+  const price = overridePrice ?? getPriceForMatch(match);
 
   return (
     <Card className={cn("overflow-hidden", featured && "border-[var(--accent)]")}>
@@ -664,9 +861,17 @@ function DriverCard({
         </div>
 
         <div className="mt-4 rounded-[14px] bg-[var(--bg-elevated-2)] p-3">
-          <p className="text-[13px] font-semibold text-text">{match.accentLabel}</p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[13px] font-semibold text-text">{match.accentLabel}</p>
+            <span className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em]",
+              source === "live" ? "bg-[var(--success-subtle)] text-[var(--success)]" : "bg-[var(--warning-subtle)] text-[var(--warning)]",
+            )}>
+              {source === "live" ? "Live" : "Demo"}
+            </span>
+          </div>
           <p className="mt-1 text-[12px] leading-4 text-text-secondary">
-            Already travelling this corridor in your selected window.
+            {matchExplanation ?? "Already travelling this corridor in your selected window."}
           </p>
         </div>
 
@@ -817,54 +1022,94 @@ function Timeline({ mode = "request" }: { mode?: "request" | "tracking" | "deliv
   );
 }
 
-export function StitchCustomerFlow() {
-  const [screen, setScreen] = useState<FlowScreen>("home");
-  const [route, setRoute] = useState<RouteState>(() => createDefaultCustomerFlowRoute());
-  const [selectedItemId, setSelectedItemId] = useState(stitchItems[0]?.id ?? "");
-  const [itemState, setItemState] = useState(() =>
-    Object.fromEntries(
-      stitchItems.map((item) => [
-        item.id,
-        { selectedVariantId: item.selectedVariantId, quantity: item.quantity },
-      ]),
-    ) as Record<string, { selectedVariantId: string; quantity: number }>,
-  );
+export function StitchCustomerFlow({
+  isAuthenticated = false,
+  customerPaymentProfile = null,
+}: {
+  isAuthenticated?: boolean;
+  customerPaymentProfile?: CustomerPaymentProfile | null;
+}) {
+  const persistedDraftRef = useRef<PersistedStitchDraft | null>(null);
+  if (persistedDraftRef.current === null && typeof window !== "undefined") {
+    persistedDraftRef.current = safeParsePersistedStitchDraft();
+  }
+  const persistedDraft = persistedDraftRef.current;
+
+  const [screen, setScreen] = useState<FlowScreen>(() => persistedDraft?.screen ?? "home");
+  const [route, setRoute] = useState<RouteState>(() => persistedDraft?.route ?? createDefaultCustomerFlowRoute());
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>(() => {
+    const restored = coerceKnownItemIds(persistedDraft?.selectedItemIds ?? []);
+    return restored.length > 0 ? restored : [stitchItems[0]?.id ?? ""].filter(Boolean);
+  });
+  const [focusedItemId, setFocusedItemId] = useState(() => selectedItemIds[0] ?? stitchItems[0]?.id ?? "");
+  const [itemState, setItemState] = useState<Record<string, ItemDraftState>>(() => ({
+    ...createInitialItemState(),
+    ...(persistedDraft?.itemState ?? {}),
+  }));
   const [sheetItemId, setSheetItemId] = useState<string | null>(null);
-  const [access, setAccess] = useState<AccessState>(() => createDefaultCustomerFlowAccess());
+  const [access, setAccess] = useState<AccessState>(() => persistedDraft?.access ?? createDefaultCustomerFlowAccess());
   const defaultTiming = createDefaultCustomerFlowTiming();
-  const [selectedTimingId, setSelectedTimingId] = useState(defaultTiming.dateOptionId);
-  const [selectedWindowId, setSelectedWindowId] = useState(defaultTiming.windowOptionId);
-  const [selectedMatchId, setSelectedMatchId] = useState(stitchDriverMatches[0]?.id ?? "");
-  const [photoAdded, setPhotoAdded] = useState(false);
-  const [openDays, setOpenDays] = useState(true);
-  const [openWindow, setOpenWindow] = useState(false);
+  const [selectedTimingId, setSelectedTimingId] = useState(persistedDraft?.selectedTimingId ?? defaultTiming.dateOptionId);
+  const [selectedWindowId, setSelectedWindowId] = useState(persistedDraft?.selectedWindowId ?? defaultTiming.windowOptionId);
+  const [selectedMatchId, setSelectedMatchId] = useState(persistedDraft?.selectedMatchId ?? stitchDriverMatches[0]?.id ?? "");
+  const [selectedLiveOfferId, setSelectedLiveOfferId] = useState<string | null>(persistedDraft?.selectedLiveOfferId ?? null);
+  const [selectedLiveListingId, setSelectedLiveListingId] = useState<string | null>(persistedDraft?.selectedLiveListingId ?? null);
+  const [liveMatchCards, setLiveMatchCards] = useState<CustomerFlowMatchCard[]>([]);
+  const [openDays, setOpenDays] = useState(persistedDraft?.openDays ?? true);
+  const [openWindow, setOpenWindow] = useState(persistedDraft?.openWindow ?? false);
+  const [persistedMoveRequestId, setPersistedMoveRequestId] = useState<string | null>(persistedDraft?.persistedMoveRequestId ?? null);
+  const [persistedBookingRequestId, setPersistedBookingRequestId] = useState<string | null>(persistedDraft?.persistedBookingRequestId ?? null);
+  const [liveState, setLiveState] = useState<LiveSubmissionState>({ status: "idle", message: null });
 
   const selectedItem = useMemo(
-    () => stitchItems.find((item) => item.id === selectedItemId) ?? stitchItems[0],
-    [selectedItemId],
+    () => stitchItems.find((item) => item.id === focusedItemId) ?? stitchItems[0],
+    [focusedItemId],
   );
   const selectedItemDraft = selectedItem ? itemState[selectedItem.id] : undefined;
   const selectedVariant =
     selectedItem && selectedItemDraft
       ? selectedItem.variants.find((variant) => variant.id === selectedItemDraft.selectedVariantId) ?? getSelectedVariant(selectedItem)
       : undefined;
-  const selectedFlowItem =
-    selectedItem && selectedItemDraft
-      ? getSelectedCustomerFlowItem({
-          itemId: selectedItem.id,
-          variantId: selectedItemDraft.selectedVariantId,
-          quantity: selectedItemDraft.quantity,
-          photoAttached: photoAdded,
-        })
-      : null;
+  const selectedFlowItems = useMemo(
+    () =>
+      getSelectedCustomerFlowItems(
+        selectedItemIds
+          .map((itemId) => {
+            const draft = itemState[itemId];
+            if (!draft) return null;
+
+            return {
+              itemId,
+              variantId: draft.selectedVariantId,
+              quantity: draft.quantity,
+              photoAttached: draft.photoAttached,
+              photoPath: draft.photoPath,
+              photoPreviewUrl: draft.photoPreviewUrl,
+            };
+          })
+          .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
+      ),
+    [itemState, selectedItemIds],
+  );
   const sheetItem = stitchItems.find((item) => item.id === sheetItemId) ?? null;
   const sheetState = sheetItem ? itemState[sheetItem.id] : undefined;
-  const selectedMatch = stitchDriverMatches.find((match) => match.id === selectedMatchId) ?? stitchDriverMatches[0];
-  const selectedPrice = selectedMatch ? getPriceForMatch(selectedMatch) : stitchPriceBreakdowns[0];
-  const draftValidation = selectedFlowItem
+  const mockMatchCards = useMemo(() => presentCustomerFlowMatches(), []);
+  const activeMatchCards = liveMatchCards.length > 0 ? liveMatchCards : mockMatchCards;
+  const activeMatchSource = liveMatchCards.length > 0 ? "live" : "mock";
+  const selectedMatchCard = activeMatchCards.find((entry) => entry.match.id === selectedMatchId) ?? activeMatchCards[0];
+  const selectedMatch = selectedMatchCard?.match;
+  const selectedPrice = selectedMatchCard?.price ?? stitchPriceBreakdowns[0];
+  const paymentMethodReady =
+    !customerPaymentProfile?.stripeConfigured || Boolean(customerPaymentProfile.hasSavedPaymentMethod);
+  const selectedPaymentSummary = customerPaymentProfile?.hasSavedPaymentMethod
+    ? `${customerPaymentProfile.defaultPaymentMethod?.brand ?? "Card"} ending ${customerPaymentProfile.defaultPaymentMethod?.last4 ?? "****"}`
+    : customerPaymentProfile?.stripeConfigured
+      ? "Add a saved card before sending a live request."
+      : "Payment setup is not configured in this environment.";
+  const draftValidation = selectedFlowItems.length > 0
     ? validateCustomerFlowDraft({
         route,
-        selectedItem: selectedFlowItem,
+        selectedItems: selectedFlowItems,
         access,
         timing: {
           dateOptionId: selectedTimingId,
@@ -897,7 +1142,7 @@ export function StitchCustomerFlow() {
     goto("home");
   }
 
-  function patchItem(itemId: string, patch: Partial<{ selectedVariantId: string; quantity: number }>) {
+  function patchItem(itemId: string, patch: Partial<ItemDraftState>) {
     setItemState((previous) => ({
       ...previous,
       [itemId]: {
@@ -906,6 +1151,254 @@ export function StitchCustomerFlow() {
       },
     }));
   }
+
+  function toggleSelectedItem(itemId: string) {
+    setFocusedItemId(itemId);
+    setSelectedItemIds((previous) => {
+      if (previous.includes(itemId)) {
+        return previous.length > 1 ? previous.filter((id) => id !== itemId) : previous;
+      }
+
+      return [...previous, itemId];
+    });
+    setSheetItemId(itemId);
+  }
+
+  function selectMatch(card: CustomerFlowMatchCard) {
+    setSelectedMatchId(card.match.id);
+    setSelectedLiveOfferId(card.offerId ?? null);
+    setSelectedLiveListingId(card.listingId ?? null);
+  }
+
+  async function handlePhotoUpload(itemId: string, file: File | null) {
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    patchItem(itemId, { photoAttached: true, photoPreviewUrl: previewUrl });
+    const form = new FormData();
+    form.set("bucket", "item-photos");
+    form.set("file", file);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: form,
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | { path?: string; signedUrl?: string; error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Unable to upload the photo.");
+      }
+
+      patchItem(itemId, {
+        photoAttached: true,
+        photoPath: payload?.path ?? null,
+        photoPreviewUrl: payload?.signedUrl ?? previewUrl,
+      });
+      setLiveState({ status: "idle", message: "Photo uploaded for driver fit review." });
+    } catch (error) {
+      patchItem(itemId, { photoAttached: true, photoPath: null, photoPreviewUrl: previewUrl });
+      setLiveState({
+        status: "fallback",
+        message: error instanceof Error ? `${error.message} Keeping a local photo marker for now.` : "Photo kept locally for this draft.",
+      });
+    }
+  }
+
+  async function persistMoveRequestAndLoadMatches() {
+    if (!draftValidation.ok) {
+      setLiveState({ status: "fallback", message: draftValidation.errors.join(" ") });
+      return null;
+    }
+
+    if (!isAuthenticated) {
+      setLiveMatchCards([]);
+      setSelectedLiveOfferId(null);
+      setSelectedLiveListingId(null);
+      setLiveState({
+        status: "fallback",
+        message: "Sign in to save this move and load live route-compatible offers. Showing local demo matches for now.",
+      });
+      return null;
+    }
+
+    const liveDraft = buildLiveDraftFromStitch({
+      route,
+      selectedItems: selectedFlowItems,
+      access,
+      timingId: selectedTimingId,
+      windowId: selectedWindowId,
+      persistedMoveRequestId,
+    });
+
+    writeMoveRequestDraft(liveDraft);
+
+    try {
+      setLiveState({ status: "saving_draft", message: "Saving your move request..." });
+      const created = persistedMoveRequestId
+        ? { moveRequest: { id: persistedMoveRequestId }, nextDraft: liveDraft }
+        : await createLiveMoveRequest(liveDraft);
+      const moveRequestId = created.moveRequest.id;
+      setPersistedMoveRequestId(moveRequestId);
+      writeMoveRequestDraft({
+        ...liveDraft,
+        persistedMoveRequestId: moveRequestId,
+      });
+      setLiveState({ status: "loading_matches", message: "Loading live route-compatible offers..." });
+      const offers = await fetchLiveOffersForMoveRequest(moveRequestId);
+      const liveCards = presentLiveCustomerFlowMatches(offers.offers);
+      setLiveMatchCards(liveCards);
+      if (liveCards[0]) {
+        setSelectedMatchId(liveCards[0].match.id);
+        setSelectedLiveOfferId(liveCards[0].offerId ?? null);
+        setSelectedLiveListingId(liveCards[0].listingId ?? null);
+      } else {
+        setSelectedLiveOfferId(null);
+        setSelectedLiveListingId(null);
+      }
+      setLiveState({
+        status: "ready",
+        message: offers.offers.length > 0
+          ? `${offers.offers.length} live offer${offers.offers.length === 1 ? "" : "s"} loaded. These cards are backed by the matching API.`
+          : "No live offers yet. Showing local demo cards while keep-looking can create a recovery alert.",
+        moveRequestId,
+        liveOfferCount: offers.offers.length,
+      });
+
+      return { moveRequestId, liveOfferCount: offers.offers.length };
+    } catch (error) {
+      const fallbackDraft = readMoveRequestDraft();
+      setLiveState({
+        status: "fallback",
+        message: error instanceof Error
+          ? `${error.message} Saved locally and continuing in Stitch demo mode.`
+          : "Saved locally and continuing in Stitch demo mode.",
+      });
+      setLiveMatchCards([]);
+      setSelectedLiveOfferId(null);
+      setSelectedLiveListingId(null);
+      setPersistedMoveRequestId(fallbackDraft.persistedMoveRequestId);
+      return null;
+    }
+  }
+
+  async function handleFindMatches() {
+    void persistMoveRequestAndLoadMatches();
+    goto("matches");
+  }
+
+  async function handleSendRequest() {
+    setLiveState({ status: "sending_request", message: "Sending request-to-book through the live backend..." });
+    const persisted = persistedMoveRequestId
+      ? { moveRequestId: persistedMoveRequestId }
+      : await persistMoveRequestAndLoadMatches();
+    const moveRequestId = persisted?.moveRequestId;
+    const selectedOfferId = selectedMatchCard?.offerId ?? selectedLiveOfferId;
+    const selectedListingId = selectedMatchCard?.listingId ?? selectedLiveListingId;
+
+    if (!moveRequestId || (!selectedOfferId && !selectedListingId)) {
+      setLiveState({
+        status: "fallback",
+        message: "Request saved locally. This demo match is not a live offer yet, so payment/request submission stays simulated.",
+      });
+      goto("pending");
+      return;
+    }
+
+    try {
+      const result = await createRequestToBookFromOffer({
+        moveRequestId,
+        offerId: selectedOfferId,
+        listingId: selectedListingId,
+      });
+      setPersistedBookingRequestId(result.bookingRequest.id);
+      setLiveState({
+        status: "booking_requested",
+        message: "Request-to-book sent. Payment capture remains gated on carrier acceptance.",
+        moveRequestId,
+        bookingRequestId: result.bookingRequest.id,
+      });
+      goto("pending");
+    } catch (error) {
+      setLiveState({
+        status: "fallback",
+        message: error instanceof Error ? `${error.message} Continuing with the Stitch pending state.` : "Continuing with the Stitch pending state.",
+      });
+      goto("pending");
+    }
+  }
+
+  async function handleKeepLooking() {
+    setLiveState({ status: "creating_alert", message: "Creating a route recovery alert..." });
+    const persisted = persistedMoveRequestId
+      ? { moveRequestId: persistedMoveRequestId }
+      : await persistMoveRequestAndLoadMatches();
+
+    if (!persisted?.moveRequestId) {
+      setLiveState({
+        status: "fallback",
+        message: "Saved locally. Sign in and save the move to create the live route recovery alert.",
+      });
+      goto("home");
+      return;
+    }
+
+    try {
+      const result = await createUnmatchedRequestFromMoveRequest(persisted.moveRequestId);
+      setLiveState({
+        status: "alert_created",
+        message: "Route recovery alert created. We will notify you when a fit appears.",
+        moveRequestId: persisted.moveRequestId,
+        unmatchedRequestId: result.unmatchedRequest.id,
+      });
+    } catch (error) {
+      setLiveState({
+        status: "fallback",
+        message: error instanceof Error ? `${error.message} Your local draft is still saved.` : "Your local draft is still saved.",
+      });
+    }
+    goto("home");
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const payload: PersistedStitchDraft = {
+      route,
+      selectedItemIds,
+      itemState,
+      access,
+      selectedTimingId,
+      selectedWindowId,
+      selectedMatchId,
+      openDays,
+      openWindow,
+      screen,
+      persistedMoveRequestId,
+      persistedBookingRequestId,
+      selectedLiveOfferId,
+      selectedLiveListingId,
+    };
+
+    window.sessionStorage.setItem(STITCH_FLOW_STORAGE_KEY, JSON.stringify(payload));
+  }, [
+    access,
+    itemState,
+    openDays,
+    openWindow,
+    persistedBookingRequestId,
+    persistedMoveRequestId,
+    route,
+    screen,
+    selectedItemIds,
+    selectedLiveListingId,
+    selectedLiveOfferId,
+    selectedMatchId,
+    selectedTimingId,
+    selectedWindowId,
+  ]);
 
   const commonNav = <FlowNav screen={screen} onBack={goBack} onAccount={() => goto("account")} />;
 
@@ -954,7 +1447,8 @@ export function StitchCustomerFlow() {
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      setSelectedItemId(item.id);
+                      setFocusedItemId(item.id);
+                      setSelectedItemIds((previous) => previous.includes(item.id) ? previous : [...previous, item.id]);
                       goto("itemDetail");
                     }}
                     className="flex min-h-[86px] min-w-[76px] shrink-0 flex-col items-center justify-center gap-2 rounded-[20px] border border-border bg-surface px-3 hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
@@ -996,7 +1490,7 @@ export function StitchCustomerFlow() {
               What needs moving?
             </h1>
             <p className="mt-2 text-[14px] leading-5 text-text-secondary">
-              Pick the closest item. You can tune type and quantity before matching.
+              Add every item that needs moving. Drivers see the full payload before accepting.
             </p>
           </div>
 
@@ -1005,41 +1499,52 @@ export function StitchCustomerFlow() {
               <ItemTile
                 key={item.id}
                 item={item}
-                selected={item.id === selectedItemId}
-                onClick={() => {
-                  setSelectedItemId(item.id);
-                  setSheetItemId(item.id);
-                }}
+                selected={selectedItemIds.includes(item.id)}
+                onClick={() => toggleSelectedItem(item.id)}
               />
             ))}
           </div>
 
           <Card className="mt-5 p-4">
-            <p className="section-label">Selected</p>
-            <div className="mt-3 flex items-center gap-3">
-              {selectedItem ? (
-                <>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-[var(--bg-elevated-2)]">
-                    {(() => {
-                      const Icon = itemIconMap[selectedItem.category] ?? CircleHelp;
-                      return <Icon size={25} />;
-                    })()}
+            <p className="section-label">Selected · {selectedFlowItems.length}</p>
+            <div className="mt-3 space-y-2">
+              {selectedFlowItems.map((flowItem) => {
+                const Icon = itemIconMap[flowItem.category] ?? CircleHelp;
+                return (
+                  <div key={flowItem.itemId} className="flex items-center gap-3 rounded-[16px] bg-[var(--bg-elevated-2)] p-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-surface">
+                      <Icon size={23} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] font-semibold text-text">{flowItem.label}</p>
+                      <p className="mt-1 text-[12px] text-text-secondary">
+                        {flowItem.variantLabel} · Qty {flowItem.quantity} · {flowItem.photoStatus === "uploaded" ? "photo uploaded" : flowItem.photoStatus === "mock_attached" ? "photo attached" : "photo optional"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFocusedItemId(flowItem.itemId);
+                        setSheetItemId(flowItem.itemId);
+                      }}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border bg-surface active:bg-[var(--bg-elevated-3)]"
+                      aria-label={`Edit ${flowItem.label}`}
+                    >
+                      <Edit3 size={16} />
+                    </button>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[15px] font-semibold text-text">{selectedItem.label}</p>
-                    <p className="mt-1 text-[12px] text-text-secondary">
-                      {selectedVariant?.label} · Qty {selectedItemDraft?.quantity ?? 1}
-                    </p>
-                  </div>
-                </>
-              ) : null}
+                );
+              })}
             </div>
           </Card>
 
           <StickyAction>
-            <Button type="button" onClick={() => goto("itemDetail")} className="w-full">
+            <Button type="button" onClick={() => goto("itemDetail")} className="w-full" disabled={selectedFlowItems.length === 0}>
               Continue
             </Button>
+            <p className="mt-2 text-center text-xs leading-5 text-text-secondary">
+              {selectedFlowItems.length} item{selectedFlowItems.length === 1 ? "" : "s"} selected.
+            </p>
           </StickyAction>
 
           <VariantSheet
@@ -1108,17 +1613,41 @@ export function StitchCustomerFlow() {
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] font-semibold text-text">Add a clear item photo</p>
                 <p className="mt-1 text-[12.5px] leading-5 text-text-secondary">
-                  Mock prompt for now; later this becomes camera-first upload for fit and proof context.
+                  Camera-first upload feeds driver fit review. If you are offline, the draft keeps a local photo marker.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setPhotoAdded((value) => !value)}
-                  className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-surface px-4 text-[13px] font-semibold text-text hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
-                >
-                  {photoAdded ? <Check size={15} /> : <Camera size={15} />}
-                  {photoAdded ? "Photo attached" : "Add mock photo"}
-                </button>
+                {selectedItemDraft?.photoPreviewUrl ? (
+                  <div className="mt-3 overflow-hidden rounded-[16px] border border-border bg-[var(--bg-elevated-2)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedItemDraft.photoPreviewUrl} alt={`${selectedItem.label} preview`} className="h-32 w-full object-cover" />
+                  </div>
+                ) : null}
+                <label className="mt-3 inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-4 text-[13px] font-semibold text-text hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]">
+                  {selectedItemDraft?.photoAttached ? <Check size={15} /> : <Camera size={15} />}
+                  {selectedItemDraft?.photoPath ? "Photo uploaded" : selectedItemDraft?.photoAttached ? "Photo attached" : "Add photo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      void handlePhotoUpload(selectedItem.id, file);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
               </div>
+            </div>
+          </Card>
+          <Card className="mt-3 p-4">
+            <p className="section-label">Full move payload</p>
+            <div className="mt-3 space-y-2">
+              {selectedFlowItems.map((item) => (
+                <div key={item.itemId} className="flex items-center justify-between gap-3 text-[13px]">
+                  <span className="font-semibold text-text">{item.label}</span>
+                  <span className="text-right text-text-secondary">{item.variantLabel} · x{item.quantity}</span>
+                </div>
+              ))}
             </div>
           </Card>
           <StickyAction>
@@ -1267,8 +1796,13 @@ export function StitchCustomerFlow() {
           ) : null}
 
           <StickyAction note="We will show drivers already heading through this corridor.">
-            <Button type="button" onClick={() => goto("matches")} className="w-full" disabled={!draftValidation.ok}>
-              Find available drivers
+            <Button
+              type="button"
+              onClick={handleFindMatches}
+              className="w-full"
+              disabled={!draftValidation.ok || liveState.status === "saving_draft" || liveState.status === "loading_matches"}
+            >
+              {liveState.status === "saving_draft" || liveState.status === "loading_matches" ? "Saving request..." : "Find available drivers"}
             </Button>
           </StickyAction>
         </Screen>
@@ -1283,21 +1817,36 @@ export function StitchCustomerFlow() {
               <span className="text-text-secondary">Best fit first.</span>
             </h1>
             <p className="mt-2 text-[13.5px] leading-5 text-text-secondary">
-              {route.pickup} to {route.dropoff} · {selectedItem?.label ?? "bulky item"} · access checked.
+              {route.pickup} to {route.dropoff} · {selectedFlowItems.length} item{selectedFlowItems.length === 1 ? "" : "s"} · access checked.
+            </p>
+            <p className="mt-2 text-[12px] font-semibold text-text-secondary">
+              {activeMatchSource === "live"
+                ? "Live backend matches are replacing the demo cards."
+                : isAuthenticated
+                  ? "No live matches loaded yet; these are local fallback cards."
+                  : "Sign in to load live backend matches; these are local fallback cards."}
             </p>
           </div>
+          {liveState.message ? (
+            <Card className="mb-3 border-[var(--accent)]/20 bg-surface p-3">
+              <p className="text-[12.5px] font-semibold text-text">{liveState.message}</p>
+            </Card>
+          ) : null}
           <div className="space-y-3">
-            {stitchDriverMatches.map((match, index) => (
+            {activeMatchCards.map((card, index) => (
               <DriverCard
-                key={match.id}
-                match={match}
+                key={card.match.id}
+                match={card.match}
+                price={card.price}
+                source={card.source}
+                matchExplanation={card.matchExplanation}
                 featured={index === 0}
                 onDetails={() => {
-                  setSelectedMatchId(match.id);
+                  selectMatch(card);
                   goto("offer");
                 }}
                 onRequest={() => {
-                  setSelectedMatchId(match.id);
+                  selectMatch(card);
                   goto("confirm");
                 }}
               />
@@ -1347,8 +1896,14 @@ export function StitchCustomerFlow() {
           <Card className="mb-3 p-4">
             <p className="section-label">Why this driver fits</p>
             <p className="mt-3 text-[14px] leading-6 text-text">
-              {selectedMatch.driverName.split(" ")[0]} is already running a spare-capacity route through your corridor in the selected window. Your item, access, and timing all fit the posted vehicle and handling rules.
+              {selectedMatchCard?.matchExplanation ??
+                `${selectedMatch.driverName.split(" ")[0]} is already running a spare-capacity route through your corridor in the selected window. Your item, access, and timing all fit the posted vehicle and handling rules.`}
             </p>
+            <div className="mt-3">
+              <TrustChip tone={selectedMatchCard?.source === "live" ? "success" : "warning"}>
+                {selectedMatchCard?.source === "live" ? "Live offer" : "Local demo fallback"}
+              </TrustChip>
+            </div>
             <div className="mt-4 border-t border-border pt-4">
               <RouteRail
                 pickup={route.pickup}
@@ -1405,28 +1960,59 @@ export function StitchCustomerFlow() {
               <div className="mt-3">
                 <RouteRail
                   pickup={route.pickup}
-                  pickupNote={`${selectedVariant?.label ?? selectedItem?.label} · pickup access confirmed`}
+                  pickupNote={`${selectedFlowItems.length} item${selectedFlowItems.length === 1 ? "" : "s"} · pickup access confirmed`}
                   dropoff={route.dropoff}
                   dropoffNote="Drop-off access confirmed"
                 />
+              </div>
+            </Card>
+            <Card className="p-4">
+              <p className="section-label">Items</p>
+              <div className="mt-3 space-y-2">
+                {selectedFlowItems.map((item) => (
+                  <div key={item.itemId} className="flex items-center justify-between gap-3 text-[13.5px]">
+                    <span className="font-semibold text-text">{item.label}</span>
+                    <span className="text-right text-text-secondary">{item.variantLabel} · x{item.quantity}</span>
+                  </div>
+                ))}
               </div>
             </Card>
             <PriceBreakdown price={selectedPrice} />
             <Card className="p-4">
               <div className="flex items-start gap-3">
                 <CreditCard className="mt-1 h-5 w-5 text-[var(--accent)]" />
-                <div>
-                  <p className="text-[14px] font-semibold text-text">Authorise, then wait for acceptance</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-text">
+                    {paymentMethodReady ? "Authorise, then wait for acceptance" : "Add a payment method first"}
+                  </p>
                   <p className="mt-1 text-[12.5px] leading-5 text-text-secondary">
                     We authorise payment now. Capture only happens if the driver accepts within the response window.
                   </p>
+                  <p className="mt-2 text-[12px] font-semibold text-text-secondary">{selectedPaymentSummary}</p>
+                  {!paymentMethodReady ? (
+                    <div className="mt-3">
+                      <ManagePaymentMethodButton
+                        returnTo="/move/new"
+                        label="Add payment method"
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </Card>
           </div>
           <StickyAction note="If the driver declines or expires, no payment is captured.">
-            <Button type="button" onClick={() => goto("pending")} className="w-full">
-              Send request
+            <Button
+              type="button"
+              onClick={handleSendRequest}
+              className="w-full"
+              disabled={
+                liveState.status === "sending_request" ||
+                liveState.status === "saving_draft" ||
+                (selectedMatchCard?.source === "live" && !paymentMethodReady)
+              }
+            >
+              {liveState.status === "sending_request" ? "Sending request..." : "Send request"}
             </Button>
           </StickyAction>
         </Screen>
@@ -1442,7 +2028,15 @@ export function StitchCustomerFlow() {
             <p className="mt-3 text-[14px] leading-6 text-text-secondary">
               They see the route, item, access, and fixed price. If this one declines, you can pick the next option without starting over.
             </p>
+            {persistedBookingRequestId ? (
+              <p className="mt-2 text-[12px] font-semibold text-[var(--success)]">Live request ID saved.</p>
+            ) : null}
           </div>
+          {liveState.message ? (
+            <Card className="mb-3 p-3">
+              <p className="text-[12.5px] font-semibold text-text">{liveState.message}</p>
+            </Card>
+          ) : null}
           <Timeline />
           <Card className="mt-3 p-4">
             <p className="section-label">What happens next</p>
@@ -1631,8 +2225,8 @@ export function StitchCustomerFlow() {
             </div>
           </Card>
           <StickyAction>
-            <Button type="button" onClick={() => goto("home")} className="w-full">
-              Notify me when someone fits
+            <Button type="button" onClick={handleKeepLooking} className="w-full" disabled={liveState.status === "creating_alert"}>
+              {liveState.status === "creating_alert" ? "Creating alert..." : "Notify me when someone fits"}
             </Button>
           </StickyAction>
         </Screen>

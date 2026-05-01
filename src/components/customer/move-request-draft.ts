@@ -14,6 +14,7 @@ export interface MoveRequestDraft {
   itemWeightBand: "" | "under_20kg" | "20_to_50kg" | "50_to_100kg" | "over_100kg";
   itemDimensions: string;
   itemWeightKg: string;
+  itemPhotoUrls: string[];
   preferredDate: string;
   preferredTimeWindow: TimeWindow;
   pickupAccessNotes: string;
@@ -39,6 +40,7 @@ const DEFAULT_MOVE_REQUEST_DRAFT: MoveRequestDraft = {
   itemWeightBand: "",
   itemDimensions: "",
   itemWeightKg: "",
+  itemPhotoUrls: [],
   preferredDate: "",
   preferredTimeWindow: "flexible",
   pickupAccessNotes: "",
@@ -129,6 +131,9 @@ export function normaliseMoveRequestDraft(value: unknown) {
       typeof candidate.itemDimensions === "string" ? candidate.itemDimensions : base.itemDimensions,
     itemWeightKg:
       typeof candidate.itemWeightKg === "string" ? candidate.itemWeightKg : base.itemWeightKg,
+    itemPhotoUrls: Array.isArray(candidate.itemPhotoUrls)
+      ? candidate.itemPhotoUrls.filter((url): url is string => typeof url === "string" && url.length > 0)
+      : base.itemPhotoUrls,
     preferredDate:
       typeof candidate.preferredDate === "string" ? candidate.preferredDate : base.preferredDate,
     preferredTimeWindow:
@@ -260,7 +265,7 @@ export function toMoveRequestInputFromDraft(draft: MoveRequestDraft): MoveReques
     itemWeightBand: draft.itemWeightBand || undefined,
     itemDimensions: draft.itemDimensions.trim() || undefined,
     itemWeightKg: draft.itemWeightKg.trim() ? Number(draft.itemWeightKg) : undefined,
-    itemPhotoUrls: [],
+    itemPhotoUrls: draft.itemPhotoUrls,
     pickupAddress: draft.pickup.label,
     pickupSuburb: draft.pickup.suburb,
     pickupPostcode: draft.pickup.postcode,
@@ -333,6 +338,7 @@ export function draftFromMoveRequest(moveRequest: MoveRequest) {
     itemDimensions: moveRequest.item.dimensions ?? "",
     itemWeightKg:
       typeof moveRequest.item.weightKg === "number" ? String(moveRequest.item.weightKg) : "",
+    itemPhotoUrls: moveRequest.item.photoUrls,
     preferredDate: moveRequest.route.preferredDate ?? "",
     preferredTimeWindow: moveRequest.route.preferredTimeWindow ?? "flexible",
     pickupAccessNotes: moveRequest.route.pickupAccessNotes ?? "",

@@ -66,7 +66,7 @@ export function CarrierShellLayout({ children }: { children: React.ReactNode }) 
       </main>
       <BottomTabBar
         pathname={pathname}
-        tone="dark"
+        tone="light"
         tabs={[
           { href: "/carrier", label: "Home", icon: "home" },
           { href: "/carrier/requests", label: "Requests", icon: "requests" },
