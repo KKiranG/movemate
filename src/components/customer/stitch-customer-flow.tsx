@@ -249,15 +249,20 @@ function safeParsePersistedStitchDraft(): PersistedStitchDraft | null {
   const raw = window.sessionStorage.getItem(STITCH_FLOW_STORAGE_KEY);
   if (!raw) return null;
 
+  let parsed: Partial<PersistedStitchDraft>;
   try {
-    const parsed = JSON.parse(raw) as Partial<PersistedStitchDraft>;
-    if (!parsed.route || !Array.isArray(parsed.selectedItemIds) || !parsed.itemState) return null;
-
-    return parsed as PersistedStitchDraft;
+    parsed = JSON.parse(raw) as Partial<PersistedStitchDraft>;
   } catch {
     window.sessionStorage.removeItem(STITCH_FLOW_STORAGE_KEY);
     return null;
   }
+
+  if (!parsed || typeof parsed !== "object") return null;
+  if (!parsed.route || !Array.isArray(parsed.selectedItemIds) || !parsed.itemState) {
+    return null;
+  }
+
+  return parsed as PersistedStitchDraft;
 }
 
 function coerceKnownItemIds(ids: string[]) {
@@ -1030,9 +1035,18 @@ export function StitchCustomerFlow({
   customerPaymentProfile?: CustomerPaymentProfile | null;
 }) {
   const persistedDraftRef = useRef<PersistedStitchDraft | null>(null);
+  const blobUrlsRef = useRef<Set<string>>(new Set());
   if (persistedDraftRef.current === null && typeof window !== "undefined") {
     persistedDraftRef.current = safeParsePersistedStitchDraft();
   }
+
+  useEffect(() => {
+    const blobs = blobUrlsRef.current;
+    return () => {
+      blobs.forEach((url) => URL.revokeObjectURL(url));
+      blobs.clear();
+    };
+  }, []);
   const persistedDraft = persistedDraftRef.current;
 
   const [screen, setScreen] = useState<FlowScreen>(() => persistedDraft?.screen ?? "home");
@@ -1174,6 +1188,12 @@ export function StitchCustomerFlow({
     if (!file) return;
 
     const previewUrl = URL.createObjectURL(file);
+    blobUrlsRef.current.add(previewUrl);
+    const previous = itemState[itemId]?.photoPreviewUrl ?? null;
+    if (previous && blobUrlsRef.current.has(previous)) {
+      URL.revokeObjectURL(previous);
+      blobUrlsRef.current.delete(previous);
+    }
     patchItem(itemId, { photoAttached: true, photoPreviewUrl: previewUrl });
     const form = new FormData();
     form.set("bucket", "item-photos");
@@ -2122,7 +2142,7 @@ export function StitchCustomerFlow({
           <div className="mb-3 aspect-[4/3] rounded-[22px] border border-border bg-[repeating-linear-gradient(135deg,var(--bg-elevated-2)_0_10px,var(--bg-elevated-3)_10px_20px)] p-3">
             <div className="flex h-full items-end">
               <span className="rounded-[12px] border border-border bg-surface px-3 py-2 text-[11px] text-text-secondary">
-                10:41am · GPS + timestamp verified
+                Proof photo and GPS-verified timestamp will appear here once delivery is captured.
               </span>
             </div>
           </div>

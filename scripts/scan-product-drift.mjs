@@ -17,6 +17,18 @@ const driftPattern = [
   "Manual payment capture by admin",
   "governing blueprint describes 15% of the full subtotal",
   "per-km detour rate",
+  "place a bid",
+  "submit a bid",
+  "carrier bidding",
+  "auction the route",
+  "quote board",
+  "detour fee",
+  "customer detour surcharge",
+  "call the driver",
+  "phone the driver",
+  "contact the driver directly",
+  "off.platform contact",
+  "dark carrier mode",
 ].join("|");
 
 const args = [
@@ -45,6 +57,16 @@ const args = [
   "!**/experiment-loop/SKILL.md",
   "--glob",
   "!**/capability-index.md",
+  "--glob",
+  "!.claude/skills/founder-scope-check/**",
+  "--glob",
+  "!.claude/DECISION-LOG.md",
+  "--glob",
+  "!.claude/skills/copy-guardian/**",
+  "--glob",
+  "!**/scan-product-drift.mjs",
+  "--glob",
+  "!**/copy-drift.test.ts",
 ];
 
 const result = spawnSync("rg", args, {

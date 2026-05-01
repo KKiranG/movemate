@@ -525,6 +525,11 @@ export function BookingForm({
       return;
     }
 
+    if (activeStage === "address" && stairsUnsupported) {
+      setError("This carrier does not support stairs. Remove the stairs add-on or choose another trip.");
+      return;
+    }
+
     if (activeStage === "price" && stairsUnsupported) {
       setError("This carrier does not support stairs. Remove the stairs add-on or choose another trip.");
       return;
