@@ -28,6 +28,11 @@ export function CarrierTripRunsheet({
   trip: Trip;
   bookings: Booking[];
 }) {
+  const nextBooking =
+    bookings.find((booking) => booking.status === "confirmed" && !booking.pickupProofPhotoUrl) ??
+    bookings.find((booking) => ["picked_up", "in_transit"].includes(booking.status) && !booking.deliveryProofPhotoUrl) ??
+    bookings[0] ??
+    null;
   const confirmedCount = bookings.filter((booking) => booking.status === "confirmed").length;
   const activeDeliveryCount = bookings.filter((booking) =>
     ["picked_up", "in_transit"].includes(booking.status),
@@ -39,19 +44,34 @@ export function CarrierTripRunsheet({
     (sum, booking) => sum + booking.pricing.carrierPayoutCents,
     0,
   );
+  const proofRiskCount = bookings.filter(
+    (booking) =>
+      (["confirmed"].includes(booking.status) && !booking.pickupProofPhotoUrl) ||
+      (["picked_up", "in_transit", "delivered"].includes(booking.status) && !booking.deliveryProofPhotoUrl),
+  ).length;
 
   return (
     <div className="grid gap-4">
-      <Card className="p-4">
-        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <Card className="overflow-hidden">
+        <div className="bg-[var(--text-primary)] px-4 py-3 text-[var(--bg-base)]">
+          <p className="text-xs font-bold uppercase tracking-[0.16em]">Runsheet · next action first</p>
+        </div>
+        <div className="grid gap-4 p-4 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <p className="section-label">Route</p>
-            <h2 className="mt-1 text-lg text-text">{trip.route.label}</h2>
+            <p className="section-label">{nextBooking ? "Next stop" : "Route"}</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-text">
+              {nextBooking ? nextBooking.itemDescription : trip.route.label}
+            </h2>
+            {nextBooking ? (
+              <p className="mt-2 text-sm text-text-secondary">
+                {nextBooking.pickupAddress} → {nextBooking.dropoffAddress}
+              </p>
+            ) : null}
             <p className="mt-2 text-sm text-text-secondary">
               {formatDate(trip.tripDate)} · {trip.timeWindow} · {trip.vehicle.type.replaceAll("_", " ")}
             </p>
             <p className="mt-2 text-sm text-text-secondary">
-              Remaining capacity {trip.remainingCapacityPct}% · Base route price {formatCurrency(trip.priceCents)}
+              Remaining capacity {trip.remainingCapacityPct}% · Payout currently on board {formatCurrency(payoutLoadedCents)}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button asChild variant="secondary" size="sm">
@@ -81,6 +101,11 @@ export function CarrierTripRunsheet({
             <div className="rounded-xl border border-border p-3">
               <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">Payout on board</p>
               <p className="mt-2 text-2xl text-text">{formatCurrency(payoutLoadedCents)}</p>
+            </div>
+            <div className="rounded-xl border border-warning/20 bg-warning/10 p-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-warning">Proof risk</p>
+              <p className="mt-2 text-2xl text-text">{proofRiskCount}</p>
+              <p className="mt-1 text-xs text-text-secondary">Stops that still need pickup or delivery proof.</p>
             </div>
           </div>
         </div>

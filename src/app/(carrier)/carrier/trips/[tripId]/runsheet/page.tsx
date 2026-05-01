@@ -27,8 +27,8 @@ export default async function CarrierTripRunsheetPage(
     <main id="main-content" className="screen">
       <PageIntro
         eyebrow="Runsheet"
-        title="Use the trip as a mobile operating surface"
-        description="This runsheet stays grounded in the real booking queue. Stop order, proof risk, and maps stay big enough for in-vehicle use."
+        title="Next stop, proof, payout"
+        description="This runsheet stays grounded in the real booking queue with large mobile actions, proof capture, and payout risk visible first."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="secondary">

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-import { loginAsCustomer, logout } from "./helpers/auth";
-import { MOCK_ADDRESSES, fillAddressField } from "./helpers/maps";
+import { logout } from "./helpers/auth";
+import { MOCK_ADDRESSES } from "./helpers/maps";
 import { ROUTES } from "./helpers/seed";
 
 // P0: Customer move wizard flows.
@@ -21,59 +21,75 @@ test.describe("customer move wizard", () => {
     await expect(heading).toBeVisible({ timeout: 5_000 });
   });
 
-  test("customer can reach route step and fill addresses", async ({ page }) => {
-    await page.goto(ROUTES.moveRoute);
+  test("customer can edit route and open item selection", async ({ page }) => {
+    await page.goto(ROUTES.moveNew);
 
-    // Route step must present at least one address input.
-    const pickupInput = page.getByRole("textbox", { name: /pickup|from|origin/i })
-      .or(page.locator('input[name*="pickup"], input[placeholder*="pickup"], input[placeholder*="from"]'))
-      .first();
+    const pickupInput = page.getByRole("textbox", { name: /pickup/i });
+    const dropoffInput = page.getByRole("textbox", { name: /drop/i });
 
     await expect(pickupInput).toBeVisible({ timeout: 5_000 });
-    await fillAddressField(page, 'input[placeholder*="pickup"], input[placeholder*="from"], input[name*="pickup"]', MOCK_ADDRESSES.pickup);
+    await pickupInput.fill(MOCK_ADDRESSES.pickup);
+    await dropoffInput.fill(MOCK_ADDRESSES.dropoff);
 
-    const dropoffInput = page.getByRole("textbox", { name: /dropoff|to|destination/i })
-      .or(page.locator('input[name*="dropoff"], input[placeholder*="dropoff"], input[placeholder*="to"]'))
-      .first();
-
-    // If dropoff is on the same step, fill it too.
-    if (await dropoffInput.count() > 0) {
-      await fillAddressField(page, 'input[placeholder*="dropoff"], input[placeholder*="to"], input[name*="dropoff"]', MOCK_ADDRESSES.dropoff);
-    }
+    await page.getByRole("button", { name: /select items/i }).click();
+    await expect(page.getByRole("heading", { name: /what needs moving/i })).toBeVisible();
   });
 
-  test("customer move wizard reaches results or zero-match state without crash", async ({ page }) => {
-    await loginAsCustomer(page);
-
-    // Start the wizard.
+  test("customer can click through Stitch mock flow to matches without crash", async ({ page }) => {
     await page.goto(ROUTES.moveNew);
     await expect(page).not.toHaveURL(/\/auth\/login/);
 
-    // Step through the wizard using the Continue/Next button where available.
-    // We don't assert a specific end state because it depends on live seed data;
-    // we assert no unhandled error pages appear.
-    const continueBtn = page.getByRole("button", { name: /continue|next|search|find/i }).first();
-    if (await continueBtn.isVisible()) {
-      await continueBtn.click();
-      await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
-    }
+    await page.getByRole("button", { name: /start move request/i }).click();
+    await page.getByRole("button", { name: /^continue$/i }).click();
+    await page.getByRole("button", { name: /next: access details/i }).click();
+    await page.getByRole("button", { name: /next: timing/i }).click();
+    await page.getByRole("button", { name: /find available drivers/i }).click();
 
-    // Must not land on a generic error page.
     await expect(page).not.toHaveURL(/\/error|\/500/);
+    await expect(page.getByRole("heading", { name: /3 drivers ready/i })).toBeVisible();
   });
 
-  test("zero-match state renders an alert/save option, not a dead end", async ({ page }) => {
-    await loginAsCustomer(page);
+  test("customer can complete the primary Stitch request, tracking, review, and booking detail flow", async ({ page }) => {
+    await page.goto(ROUTES.moveNew);
 
-    // Navigate to the alert/save page directly — this is the no-match recovery path.
-    await page.goto(ROUTES.moveAlert);
+    await page.getByRole("button", { name: /start move request/i }).click();
+    await page.getByRole("button", { name: /^continue$/i }).click();
+    await page.getByRole("button", { name: /next: access details/i }).click();
+    await page.getByRole("button", { name: /next: timing/i }).click();
+    await page.getByRole("button", { name: /find available drivers/i }).click();
+    await page.getByRole("button", { name: /request nadia/i }).click();
+    await page.getByRole("button", { name: /send request/i }).click();
 
-    // Page must not redirect to login or show a blank error.
-    await expect(page).not.toHaveURL(/\/auth\/login/);
-    await expect(page).not.toHaveURL(/\/error/);
+    await expect(page.getByRole("heading", { name: /asking nadia first/i })).toBeVisible();
+    await page.getByRole("button", { name: /^accepted$/i }).click();
+    await expect(page.getByRole("heading", { name: /nadia is heading to drop-off/i })).toBeVisible();
 
-    // There should be some recoverable content (heading or form).
-    const content = page.getByRole("heading").or(page.getByRole("form")).first();
-    await expect(content).toBeVisible({ timeout: 5_000 });
+    await page.getByRole("button", { name: /view delivery proof/i }).click();
+    await expect(page.getByRole("heading", { name: /delivered/i })).toBeVisible();
+    await page.getByRole("button", { name: /confirm receipt/i }).click();
+    await expect(page.getByRole("heading", { name: /bookings/i })).toBeVisible();
+
+    await page.getByRole("button", { name: /^details$/i }).click();
+    await expect(page.getByRole("heading", { name: /standard fabric sofa/i })).toBeVisible();
+    await page.getByRole("button", { name: /^receipt$/i }).click();
+    await expect(page.getByRole("heading", { name: /fixed-price move/i })).toBeVisible();
+  });
+
+  test("declined fallback and keep-looking path are reachable from the Stitch request flow", async ({ page }) => {
+    await page.goto(ROUTES.moveNew);
+
+    await page.getByRole("button", { name: /start move request/i }).click();
+    await page.getByRole("button", { name: /^continue$/i }).click();
+    await page.getByRole("button", { name: /next: access details/i }).click();
+    await page.getByRole("button", { name: /next: timing/i }).click();
+    await page.getByRole("button", { name: /find available drivers/i }).click();
+    await page.getByRole("button", { name: /request nadia/i }).click();
+    await page.getByRole("button", { name: /send request/i }).click();
+    await page.getByRole("button", { name: /simulate decline/i }).click();
+
+    await expect(page.getByRole("heading", { name: /two options left/i })).toBeVisible();
+    await page.getByRole("button", { name: /keep looking instead/i }).click();
+    await expect(page.getByRole("heading", { name: /keep looking for you/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /notify me when someone fits/i })).toBeVisible();
   });
 });

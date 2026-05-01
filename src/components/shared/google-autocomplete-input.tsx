@@ -23,6 +23,9 @@ interface GoogleAutocompleteInputProps {
   defaultValue?: string;
   placeholder?: string;
   initialResolvedValue?: AddressValue | null;
+  inputClassName?: string;
+  label?: string;
+  onRawChange?: (value: string) => void;
   onResolved?: (value: AddressValue) => void;
 }
 
@@ -88,6 +91,9 @@ export function GoogleAutocompleteInput({
   defaultValue,
   placeholder,
   initialResolvedValue,
+  inputClassName,
+  label,
+  onRawChange,
   onResolved,
 }: GoogleAutocompleteInputProps) {
   const inputId = useId();
@@ -123,6 +129,7 @@ export function GoogleAutocompleteInput({
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
 
     if (!apiKey) {
+      setIsLoading(false);
       return;
     }
 
@@ -250,6 +257,7 @@ export function GoogleAutocompleteInput({
     setPredictions([]);
     setActiveIndex(-1);
     setIsOpen(false);
+    onRawChange?.(resolvedValue.label);
     onResolved?.(resolvedValue);
   }
 
@@ -299,16 +307,18 @@ export function GoogleAutocompleteInput({
         id={inputId}
         ref={inputRef}
         name={name}
+        aria-label={label}
         value={query}
         placeholder={placeholder}
+        className={inputClassName}
         autoComplete="off"
-        role="combobox"
         aria-autocomplete="list"
         aria-controls={listboxId}
         aria-expanded={isOpen}
         aria-activedescendant={activeDescendant}
         onChange={(event) => {
           setQuery(event.target.value);
+          onRawChange?.(event.target.value);
         }}
         onFocus={() => {
           if (predictions.length > 0) {

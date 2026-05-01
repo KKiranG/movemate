@@ -45,15 +45,27 @@ export function CarrierRequestDetailView({
 
   return (
     <div className="grid gap-4">
-      <Card className="p-4">
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <Card className="overflow-hidden">
+        <div className="bg-[var(--text-primary)] px-4 py-3 text-[var(--bg-base)]">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-[0.16em]">Decision card</p>
+            <p className="text-sm font-semibold tabular-nums">{formatCurrency(request.carrierPayoutCents)} payout</p>
+          </div>
+        </div>
+        <div className="grid gap-4 p-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-3">
             <div>
-              <p className="section-label">Request summary</p>
-              <h2 className="mt-1 text-lg text-text">{request.itemDescription}</h2>
+              <p className="section-label">Matched request</p>
+              <h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-text">{request.itemDescription}</h2>
               <p className="mt-2 text-sm text-text-secondary">
                 {request.pickupAddress} to {request.dropoffAddress}
               </p>
+              <div className="mt-3 flex items-baseline gap-2">
+                <p className="text-4xl font-semibold tracking-[-0.05em] text-text tabular-nums">
+                  {formatCurrency(request.carrierPayoutCents)}
+                </p>
+                <p className="text-sm text-text-secondary">released after proof and confirmation</p>
+              </div>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-text-secondary">
                 <span className="rounded-full border border-border px-3 py-1 capitalize">
                   {formatRequestStatus(bookingRequest.status)}
@@ -112,6 +124,16 @@ export function CarrierRequestDetailView({
                 ) : null}
               </div>
             </div>
+            {actionableRequest ? (
+              <div className="grid gap-2 sm:grid-cols-[1fr_1.4fr]">
+                <Button asChild variant="secondary">
+                  <a href="#carrier-request-decision">Decline / clarify</a>
+                </Button>
+                <Button asChild>
+                  <a href="#carrier-request-decision">Review decision actions</a>
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-3">
@@ -157,7 +179,9 @@ export function CarrierRequestDetailView({
       </Card>
 
       {actionableRequest ? (
-        <PendingBookingsAlert requests={[actionableRequest]} compact />
+        <div id="carrier-request-decision">
+          <PendingBookingsAlert requests={[actionableRequest]} compact />
+        </div>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
