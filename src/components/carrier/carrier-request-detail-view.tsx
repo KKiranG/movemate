@@ -125,14 +125,9 @@ export function CarrierRequestDetailView({
               </div>
             </div>
             {actionableRequest ? (
-              <div className="grid gap-2 sm:grid-cols-[1fr_1.4fr]">
-                <Button asChild variant="secondary">
-                  <a href="#carrier-request-decision">Decline / clarify</a>
-                </Button>
-                <Button asChild>
-                  <a href="#carrier-request-decision">Review decision actions</a>
-                </Button>
-              </div>
+              <Button asChild className="w-full sm:w-auto">
+                <a href="#carrier-request-decision">Respond to request</a>
+              </Button>
             ) : null}
           </div>
 

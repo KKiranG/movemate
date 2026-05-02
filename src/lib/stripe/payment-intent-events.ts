@@ -21,7 +21,8 @@ export type PaymentIntentEventOutcome =
   | "marked_authorization_cancelled"
   | "marked_authorized"
   | "marked_captured"
-  | "skipped_already_captured";
+  | "skipped_already_captured"
+  | "skipped_already_authorized";
 
 export type PaymentIntentEventResult = {
   bookingId: string | null;
@@ -417,6 +418,16 @@ export async function applyPaymentIntentEvent(
         eventId: event.id,
         eventType: event.type,
         outcome: "skipped_already_captured",
+      };
+    }
+
+    if (booking.payment_status === "authorized") {
+      params.log?.("info", "Skipping capturable update for already authorized booking.", context);
+      return {
+        bookingId,
+        eventId: event.id,
+        eventType: event.type,
+        outcome: "skipped_already_authorized",
       };
     }
 

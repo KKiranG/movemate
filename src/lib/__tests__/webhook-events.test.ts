@@ -140,3 +140,31 @@ test("payment succeeded marks the booking captured and clears retry state", asyn
   assert.equal(result.outcome, "marked_captured");
   assert.equal(state.booking?.payment_status, "captured");
 });
+
+test("replayed payment_intent.succeeded events are idempotent", async () => {
+  const { repository, state, calls } = createRepository("authorized");
+  const event = makeEvent("payment_intent.succeeded", { status: "succeeded" });
+
+  const first = await applyPaymentIntentEvent(event, { repository });
+  const second = await applyPaymentIntentEvent(event, { repository });
+
+  assert.equal(first.outcome, "marked_captured");
+  assert.equal(second.outcome, "skipped_already_captured");
+  assert.equal(state.booking?.payment_status, "captured");
+  // markCaptured must only be invoked once across both deliveries.
+  assert.equal(calls.filter((entry) => entry === "markCaptured").length, 1);
+});
+
+test("replayed payment_intent.amount_capturable_updated events do not double-authorise", async () => {
+  const { repository, state, calls } = createRepository("pending");
+  const event = makeEvent("payment_intent.amount_capturable_updated");
+
+  const first = await applyPaymentIntentEvent(event, { repository });
+  const second = await applyPaymentIntentEvent(event, { repository });
+
+  assert.equal(first.outcome, "marked_authorized");
+  // Second delivery must return the exact skipped outcome, not a state change.
+  assert.equal(second.outcome, "skipped_already_authorized");
+  assert.equal(state.booking?.payment_status, "authorized");
+  assert.equal(calls.filter((entry) => entry === "markAuthorized").length, 1);
+});

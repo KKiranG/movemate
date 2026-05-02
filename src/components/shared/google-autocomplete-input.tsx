@@ -115,6 +115,9 @@ export function GoogleAutocompleteInput({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [placesAvailable, setPlacesAvailable] = useState<boolean>(() =>
+    typeof process !== "undefined" && Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY),
+  );
 
   useEffect(() => {
     if (!initialResolvedValue) {
@@ -129,6 +132,7 @@ export function GoogleAutocompleteInput({
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
 
     if (!apiKey) {
+      setPlacesAvailable(false);
       setIsLoading(false);
       return;
     }
@@ -138,6 +142,7 @@ export function GoogleAutocompleteInput({
     loadPlacesScript(apiKey)
       .then(() => {
         if (!isMounted || !window.google?.maps?.places) {
+          setPlacesAvailable(false);
           return;
         }
 
@@ -146,8 +151,10 @@ export function GoogleAutocompleteInput({
         placesServiceRef.current = new window.google.maps.places.PlacesService(
           document.createElement("div"),
         );
+        setPlacesAvailable(true);
       })
       .catch(() => {
+        setPlacesAvailable(false);
         setPredictions([]);
         setIsOpen(false);
         setIsLoading(false);
@@ -309,26 +316,46 @@ export function GoogleAutocompleteInput({
         name={name}
         aria-label={label}
         value={query}
-        placeholder={placeholder}
+        placeholder={placesAvailable ? placeholder : `${placeholder ?? "Address"} (manual entry)`}
         className={inputClassName}
-        autoComplete="off"
-        aria-autocomplete="list"
-        aria-controls={listboxId}
-        aria-expanded={isOpen}
+        autoComplete={placesAvailable ? "off" : "street-address"}
+        aria-autocomplete={placesAvailable ? "list" : "none"}
+        aria-controls={placesAvailable ? listboxId : undefined}
+        aria-expanded={placesAvailable ? isOpen : undefined}
         aria-activedescendant={activeDescendant}
         onChange={(event) => {
-          setQuery(event.target.value);
-          onRawChange?.(event.target.value);
+          const next = event.target.value;
+          setQuery(next);
+          onRawChange?.(next);
+          if (!placesAvailable) {
+            const fallbackSuburbMatch = next.match(/([A-Za-z][A-Za-z\s]+?)\s+(\d{4})/);
+            // Only resolve once the address contains a recognisable postcode — partial
+            // keystrokes must not fire onResolved with incomplete suburb/postcode data.
+            if (fallbackSuburbMatch) {
+              onResolved?.({
+                label: next,
+                suburb: fallbackSuburbMatch[1].trim(),
+                postcode: fallbackSuburbMatch[2],
+                latitude: 0,
+                longitude: 0,
+              });
+            }
+          }
         }}
         onFocus={() => {
-          if (predictions.length > 0) {
+          if (placesAvailable && predictions.length > 0) {
             setIsOpen(true);
           }
         }}
         onKeyDown={handleKeyDown}
       />
+      {!placesAvailable ? (
+        <p className="mt-1 text-xs text-text-secondary">
+          Address autocomplete is unavailable. Type the full address including suburb and postcode.
+        </p>
+      ) : null}
 
-      {isOpen || isLoading ? (
+      {placesAvailable && (isOpen || isLoading) ? (
         <ul
           id={listboxId}
           role="listbox"

@@ -12,16 +12,25 @@ import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import type { Booking } from "@/types/booking";
 
-type ProofCaptureStep = "gps_acquiring" | "camera_ready" | "uploading" | "patching" | "error";
+type ProofCaptureStep =
+  | "awaiting_confirmation"
+  | "gps_acquiring"
+  | "camera_ready"
+  | "uploading"
+  | "patching"
+  | "error";
 
 type ProofCaptureState = {
   bookingId: string;
   proofType: "pickup" | "delivery";
   step: ProofCaptureStep;
+  confirmed: boolean;
   errorMessage?: string;
   uploadedPath?: string;
   gps?: { latitude: number; longitude: number };
 };
+
+const PROOF_BLOCKED_STATUSES: Booking["status"][] = ["disputed", "cancelled", "completed"];
 
 type CarrierTripBookingsPanelProps = {
   listingId: string;
@@ -135,15 +144,18 @@ function getBookingNextAction(booking: Booking) {
 
 function ProofCaptureButton({
   label,
+  proofType,
   captureState,
   onCapture,
+  onConfirm,
   onRetry,
   onDismiss,
 }: {
   label: string;
-  isActive: boolean;
+  proofType: "pickup" | "delivery";
   captureState: ProofCaptureState | null;
   onCapture: () => void;
+  onConfirm: () => void;
   onRetry: () => void;
   onDismiss: () => void;
 }) {
@@ -156,6 +168,44 @@ function ProofCaptureButton({
       >
         {label}
       </button>
+    );
+  }
+
+  if (captureState.step === "awaiting_confirmation") {
+    const promptText =
+      proofType === "pickup"
+        ? "Confirm the customer handed over the items in person before you take the photo."
+        : "Confirm the recipient acknowledged delivery before you take the photo.";
+
+    return (
+      <div className="space-y-2 rounded-md border border-border p-3">
+        <label className="flex items-start gap-2 text-sm text-text">
+          <input
+            type="checkbox"
+            checked={captureState.confirmed}
+            onChange={onConfirm}
+            className="mt-1 h-5 w-5"
+          />
+          <span>{promptText}</span>
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onCapture}
+            disabled={!captureState.confirmed}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-md bg-[var(--brand-ink)] px-4 py-2 text-sm font-medium text-[var(--brand-paper)] hover:opacity-90 active:opacity-80 disabled:opacity-40"
+          >
+            Continue
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-md border border-border px-4 py-2 text-sm text-text-secondary hover:bg-[var(--bg-elevated-2)] active:bg-[var(--bg-elevated-3)]"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -316,8 +366,40 @@ export function CarrierTripBookingsPanel({
     };
   }, [carrierId, listingId, variant]);
 
+  function startProofConsent(booking: Booking, proofType: "pickup" | "delivery") {
+    if (PROOF_BLOCKED_STATUSES.includes(booking.status)) return;
+    setProofCapture({
+      bookingId: booking.id,
+      proofType,
+      step: "awaiting_confirmation",
+      confirmed: false,
+    });
+  }
+
+  function toggleProofConsent() {
+    setProofCapture((current) =>
+      current && current.step === "awaiting_confirmation"
+        ? { ...current, confirmed: !current.confirmed }
+        : current,
+    );
+  }
+
   function startProofCapture(booking: Booking, proofType: "pickup" | "delivery") {
-    setProofCapture({ bookingId: booking.id, proofType, step: "gps_acquiring" });
+    setProofCapture((current) => {
+      const previousConfirmed =
+        current?.bookingId === booking.id && current.proofType === proofType
+          ? current.confirmed
+          : false;
+      if (!previousConfirmed) {
+        return current;
+      }
+      return {
+        bookingId: booking.id,
+        proofType,
+        step: "gps_acquiring",
+        confirmed: true,
+      };
+    });
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const gps = { latitude: position.coords.latitude, longitude: position.coords.longitude };
@@ -350,6 +432,13 @@ export function CarrierTripBookingsPanel({
     const capture = proofCapture;
     const booking = bookings.find((b) => b.id === capture.bookingId);
     if (!booking || !capture.gps) return;
+
+    // Guard: stale client state could allow a capture attempt on a booking that has
+    // since moved into a blocked status (disputed / cancelled / completed).
+    if (PROOF_BLOCKED_STATUSES.includes(booking.status)) {
+      setProofCapture(null);
+      return;
+    }
 
     // Reset input so the same file can be re-selected on retry
     event.target.value = "";
@@ -598,18 +687,30 @@ export function CarrierTripBookingsPanel({
                         </Link>
                       </Button>
                     )}
+                    {PROOF_BLOCKED_STATUSES.includes(booking.status) ? (
+                      <p className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-text-secondary">
+                        Proof capture is locked for {booking.status} bookings. Contact support if you need to amend evidence.
+                      </p>
+                    ) : null}
                     {["confirmed"].includes(booking.status) && !booking.pickupProofPhotoUrl ? (
                       <ProofCaptureButton
                         label="Capture pickup proof"
-                        isActive={proofCapture?.bookingId === booking.id && proofCapture?.proofType === "pickup"}
+                        proofType="pickup"
                         captureState={proofCapture?.bookingId === booking.id && proofCapture?.proofType === "pickup" ? proofCapture : null}
-                        onCapture={() => startProofCapture(booking, "pickup")}
+                        onCapture={() => {
+                          if (!proofCapture || proofCapture.step !== "awaiting_confirmation") {
+                            startProofConsent(booking, "pickup");
+                            return;
+                          }
+                          startProofCapture(booking, "pickup");
+                        }}
+                        onConfirm={toggleProofConsent}
                         onRetry={() => {
                           if (proofCapture?.uploadedPath) {
                             setProofCapture((c) => c ? { ...c, step: "patching", errorMessage: undefined } : c);
                             void handleRetryPatch(booking, proofCapture);
                           } else {
-                            startProofCapture(booking, "pickup");
+                            startProofConsent(booking, "pickup");
                           }
                         }}
                         onDismiss={() => setProofCapture(null)}
@@ -618,15 +719,22 @@ export function CarrierTripBookingsPanel({
                     {["picked_up", "in_transit"].includes(booking.status) && !booking.deliveryProofPhotoUrl ? (
                       <ProofCaptureButton
                         label="Capture delivery proof"
-                        isActive={proofCapture?.bookingId === booking.id && proofCapture?.proofType === "delivery"}
+                        proofType="delivery"
                         captureState={proofCapture?.bookingId === booking.id && proofCapture?.proofType === "delivery" ? proofCapture : null}
-                        onCapture={() => startProofCapture(booking, "delivery")}
+                        onCapture={() => {
+                          if (!proofCapture || proofCapture.step !== "awaiting_confirmation") {
+                            startProofConsent(booking, "delivery");
+                            return;
+                          }
+                          startProofCapture(booking, "delivery");
+                        }}
+                        onConfirm={toggleProofConsent}
                         onRetry={() => {
                           if (proofCapture?.uploadedPath) {
                             setProofCapture((c) => c ? { ...c, step: "patching", errorMessage: undefined } : c);
                             void handleRetryPatch(booking, proofCapture);
                           } else {
-                            startProofCapture(booking, "delivery");
+                            startProofConsent(booking, "delivery");
                           }
                         }}
                         onDismiss={() => setProofCapture(null)}

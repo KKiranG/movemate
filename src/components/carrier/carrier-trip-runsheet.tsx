@@ -47,7 +47,7 @@ export function CarrierTripRunsheet({
   const proofRiskCount = bookings.filter(
     (booking) =>
       (["confirmed"].includes(booking.status) && !booking.pickupProofPhotoUrl) ||
-      (["picked_up", "in_transit", "delivered"].includes(booking.status) && !booking.deliveryProofPhotoUrl),
+      (["in_transit", "delivered"].includes(booking.status) && !booking.deliveryProofPhotoUrl),
   ).length;
 
   return (

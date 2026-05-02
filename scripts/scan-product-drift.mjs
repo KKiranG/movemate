@@ -17,6 +17,18 @@ const driftPattern = [
   "Manual payment capture by admin",
   "governing blueprint describes 15% of the full subtotal",
   "per-km detour rate",
+  "place a bid",
+  "submit a bid",
+  "carrier bidding",
+  "auction the route",
+  "quote board",
+  "detour fee",
+  "customer detour surcharge",
+  "call the driver",
+  "phone the driver",
+  "contact the driver directly",
+  "off.platform contact",
+  "dark carrier mode",
 ].join("|");
 
 const args = [
@@ -45,6 +57,16 @@ const args = [
   "!**/experiment-loop/SKILL.md",
   "--glob",
   "!**/capability-index.md",
+  "--glob",
+  "!.claude/skills/founder-scope-check/**",
+  "--glob",
+  "!.claude/DECISION-LOG.md",
+  "--glob",
+  "!.claude/skills/copy-guardian/**",
+  "--glob",
+  "!**/scan-product-drift.mjs",
+  "--glob",
+  "!**/copy-drift.test.ts",
 ];
 
 const result = spawnSync("rg", args, {
@@ -53,7 +75,7 @@ const result = spawnSync("rg", args, {
 });
 
 if (result.status === 0) {
-  process.stdout.write(result.stdout);
+  process.stdout.write(result.stdout ?? "");
   process.stderr.write("Product drift terms found. Resolve them or narrow the scanner with a documented exception.\n");
   process.exit(1);
 }
@@ -63,6 +85,11 @@ if (result.status === 1) {
   process.exit(0);
 }
 
-process.stdout.write(result.stdout);
-process.stderr.write(result.stderr);
+if (result.error) {
+  process.stderr.write(`scan-product-drift: could not run rg: ${result.error.message}\n`);
+  process.stderr.write("Install ripgrep (rg) to run this check.\n");
+  process.exit(1);
+}
+process.stdout.write(result.stdout ?? "");
+process.stderr.write(result.stderr ?? "");
 process.exit(result.status ?? 1);
